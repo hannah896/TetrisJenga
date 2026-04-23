@@ -7,7 +7,7 @@ public class BoundaryLine : MonoBehaviour
     void OnTriggerStay(Collider other)
     {
         var rb = other.attachedRigidbody;
-        if (rb != null && rb.gameObject.name == "TowerRoot")
+        if (rb != null && !rb.isKinematic)
             OnBlockTouched?.Invoke();
     }
 }

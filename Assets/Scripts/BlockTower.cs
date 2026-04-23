@@ -11,8 +11,8 @@ public class BlockTower : MonoBehaviour
     public int rows    = 10;
 
     [Header("Placement Zone")]
-    public Vector2Int placementMin = new(0, 0);
-    public Vector2Int placementMax = new(3, 14);
+    public Vector2Int placementMin = new(-1, 0);
+    public Vector2Int placementMax = new(4, 14);
 
     [Header("Physics")]
     public float blockFriction = 1f;
@@ -356,6 +356,19 @@ public class BlockTower : MonoBehaviour
             if (adjacent) break;
         }
         if (!adjacent && _cells.Count > 0) return;
+
+        // 중력 체크: 그룹 내 최소 1개의 블럭이 바닥(row 0) 또는 기존 타워 블럭 위에 놓여야 함
+        // (위쪽 블럭에만 붙어서 공중에 배치하는 것 방지)
+        bool hasBottomSupport = false;
+        foreach (var t in targets)
+        {
+            if (t.y == 0 || _cells.ContainsKey(new Vector2Int(t.x, t.y - 1)))
+            {
+                hasBottomSupport = true;
+                break;
+            }
+        }
+        if (!hasBottomSupport) return;
 
         for (int i = 0; i < targets.Count; i++)
         {
@@ -782,12 +795,20 @@ public class BlockTower : MonoBehaviour
         var cam = Camera.main;
         if (cam == null || !cam.orthographic) return;
 
-        float halfW  = columns * 0.5f + 3.5f;
         float aspect = (float)Screen.width / Screen.height;
 
-        cam.orthographicSize   = halfW / aspect;
-        float startY           = _floorY + cam.orthographicSize;
-        cam.transform.position = new Vector3(0f, startY, cam.transform.position.z);
+        // 가로: 열 + 여백
+        float halfW        = columns * 0.5f + 3.5f;
+        float sizeForWidth = halfW / aspect;
+
+        // 세로: 바닥부터 타워 상단(점수 레이블 포함)까지 전체
+        float bottom  = _floorY - 0.5f;
+        float top     = rows * 0.5f + 2f;
+        float centerY = (bottom + top) * 0.5f;
+        float halfH   = (top - bottom) * 0.5f;
+
+        cam.orthographicSize   = Mathf.Max(sizeForWidth, halfH);
+        cam.transform.position = new Vector3(0f, centerY, cam.transform.position.z);
     }
 
     // ── 스프라이트 ────────────────────────────────────────────────────────
