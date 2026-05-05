@@ -1,3 +1,4 @@
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
@@ -30,14 +31,26 @@ public class BlockTower : MonoBehaviour
     [SerializeField, Range(0f, 0.5f)] float placementFailDuration = 0.18f;
     [SerializeField, Range(0f, 0.5f)] float placementFailShakeDistance = 0.12f;
     [SerializeField, Range(1, 8)]     int   placementFailShakeCount = 3;
+    [SerializeField] Color placedBlockColor = new(0.55f, 0.58f, 0.60f, 1f);
 
     [Header("Keyboard Controls")]
     [SerializeField] bool keyboardControlsEnabled = true;
     [SerializeField] ControlPreset controlPreset = ControlPreset.Wasd;
     [SerializeField] Color focusedCellColor = new(1f, 0.92f, 0.25f, 1f);
 
+    [Header("Focus Feedback")]
+    [SerializeField] Color focusedOutlineColor = new(1f, 0.95f, 0.05f, 1f);
+    [SerializeField] Color selectedOutlineColor = new(1f, 1f, 1f, 0.95f);
+    [SerializeField, Range(1f, 1.4f)] float focusedOutlineScale = 1.18f;
+    [SerializeField, Range(1f, 1.3f)] float selectedOutlineScale = 1.10f;
+
     [Header("Physics")]
     public float blockFriction = 1f;
+
+    [Header("Detached Blocks")]
+    [SerializeField] float detachedReattachStableTime = 0.15f;
+    [SerializeField] float detachedReattachVelocity = 0.55f;
+    [SerializeField] float detachedMinAirTime = 0.35f;
 
     [Header("Scene References (optional)")]
     [SerializeField] Transform   towerRootTransform;
@@ -54,13 +67,16 @@ public class BlockTower : MonoBehaviour
     GameOverScreen _gameOverScreen;
     int            _score;
     bool           _isGameOver;
+    Sprite         _outlineSprite;
 
     // ── 셀 데이터 ─────────────────────────────────────────────────────────
     class CellData
     {
         public int            number;
+        public bool           isOriginalTower;
         public GameObject     go;
         public SpriteRenderer sr;
+        public SpriteRenderer outline;
         public TextMeshPro    label;
         public List<SpriteRenderer> previewBlurRenderers;
     }
@@ -68,6 +84,14 @@ public class BlockTower : MonoBehaviour
     readonly Dictionary<Vector2Int, CellData> _cells    = new();
     readonly List<Vector2Int>                  _selected = new();
     readonly HashSet<Vector2Int>               _lastPlacedCells = new();
+    readonly List<DetachedComponent>           _detachedComponents = new();
+
+    class DetachedComponent
+    {
+        public GameObject root;
+        public Rigidbody rb;
+        public float detachedAt;
+    }
 
     // ── 들기 상태 ─────────────────────────────────────────────────────────
     bool             _isHolding;
@@ -104,12 +128,19 @@ public class BlockTower : MonoBehaviour
         _cells.Clear();
         _selected.Clear();
         _lastPlacedCells.Clear();
+        _detachedComponents.Clear();
         _isHolding  = false;
         _isGameOver = false;
         _hasFocusedCell = false;
         _usingKeyboardPlacement = false;
         _hasCameraTarget = false;
+        _cameraTargetSize = 0f;
+        _extractionMinCol = 0;
+        _extractionMaxCol = columns - 1;
+        _extractionMinRow = 0;
+        _extractionMaxRow = rows - 1;
         _blockSprite = null;
+        _outlineSprite = null;
         _score = 0;
         BuildTower();
     }
@@ -174,12 +205,21 @@ public class BlockTower : MonoBehaviour
     [Header("Camera Scroll")]
     public float scrollSpeed = 1.5f;
     [SerializeField] bool  autoFocusCameraOnLift = true;
+    [SerializeField] bool  autoReturnCameraAfterPlace = true;
     [SerializeField] float cameraFocusSpeed = 8f;
     [SerializeField] float cameraTopPadding = 2f;
+    [SerializeField, Range(0f, 1f)] float cameraReturnBodyAnchor = 0.55f;
+    [SerializeField] float extractionViewPadding = 1.25f;
+    [SerializeField] float placementViewTopOffset = 1f;
 
     float _floorY;
     float _cameraTargetY;
+    float _cameraTargetSize;
     bool  _hasCameraTarget;
+    int   _extractionMinCol;
+    int   _extractionMaxCol;
+    int   _extractionMinRow;
+    int   _extractionMaxRow;
 
     void Update()
     {
@@ -255,6 +295,7 @@ public class BlockTower : MonoBehaviour
     void HandleSelectionKeyboardInput(Keyboard keyboard)
     {
         if (!keyboardControlsEnabled || keyboard == null) return;
+        RefreshDetachedComponents();
 
         bool hasMove = ReadMovePressed(keyboard, out var dir);
         bool hasConfirm = ConfirmPressed(keyboard);
@@ -331,7 +372,7 @@ public class BlockTower : MonoBehaviour
 
     void EnsureFocusedCell()
     {
-        if (_hasFocusedCell && _cells.ContainsKey(_focusedCell)) return;
+        if (_hasFocusedCell && IsExtractableCell(_focusedCell)) return;
         if (_cells.Count == 0) { _hasFocusedCell = false; return; }
 
         if (TryFindDefaultFocusCell(ignoreLastPlaced: true, out var best) ||
@@ -343,13 +384,33 @@ public class BlockTower : MonoBehaviour
 
     bool TryFindDefaultFocusCell(bool ignoreLastPlaced, out Vector2Int best)
     {
+        if (TryFindDefaultFocusCell(ignoreLastPlaced, originalTowerOnly: true, out best))
+            return true;
+
+        return TryFindDefaultFocusCell(ignoreLastPlaced, originalTowerOnly: false, out best);
+    }
+
+    bool TryFindDefaultFocusCell(bool ignoreLastPlaced, bool originalTowerOnly, out Vector2Int best)
+    {
         best = default;
         bool found = false;
+        int targetY = 0;
+
+        if (TryFindTowerBodyRows(ignoreLastPlaced, originalTowerOnly, out int minY, out int maxY))
+            targetY = Mathf.RoundToInt(Mathf.Lerp(minY, maxY, cameraReturnBodyAnchor));
+
         foreach (var cell in _cells.Keys)
         {
             if (ignoreLastPlaced && _lastPlacedCells.Contains(cell)) continue;
+            if (!IsExtractableCell(cell)) continue;
+            if (originalTowerOnly && !IsInExtractionTowerRows(cell)) continue;
 
-            if (!found || cell.y > best.y || cell.y == best.y && cell.x < best.x)
+            int distance = Mathf.Abs(cell.y - targetY);
+            int bestDistance = found ? Mathf.Abs(best.y - targetY) : int.MaxValue;
+            if (!found ||
+                distance < bestDistance ||
+                distance == bestDistance && cell.y > best.y ||
+                distance == bestDistance && cell.y == best.y && cell.x < best.x)
             {
                 best = cell;
                 found = true;
@@ -363,13 +424,15 @@ public class BlockTower : MonoBehaviour
         if (!_hasFocusedCell) return;
 
         var candidate = _focusedCell + dir;
-        while (candidate.x >= 0 && candidate.x < columns &&
-               candidate.y >= 0 && candidate.y <= placementMax.y)
+        int maxFocusY = Mathf.Max(placementMax.y, HighestOccupiedRow());
+        int minFocusX = Mathf.Min(placementMin.x, _extractionMinCol);
+        int maxFocusX = Mathf.Max(placementMax.x, _extractionMaxCol);
+        while (candidate.x >= minFocusX && candidate.x <= maxFocusX &&
+               candidate.y >= 0 && candidate.y <= maxFocusY)
         {
-            if (_cells.ContainsKey(candidate))
+            if (IsExtractableCell(candidate))
             {
                 SetFocusCell(candidate);
-                FocusCameraOnCell(candidate);
                 return;
             }
             candidate += dir;
@@ -399,7 +462,7 @@ public class BlockTower : MonoBehaviour
 
     void ToggleFocusedSelection()
     {
-        if (!_cells.ContainsKey(_focusedCell)) return;
+        if (!IsExtractableCell(_focusedCell)) return;
 
         if (_selected.Contains(_focusedCell))
             TryDeselect(_focusedCell);
@@ -414,11 +477,12 @@ public class BlockTower : MonoBehaviour
 
     void HandleClick()
     {
+        RefreshDetachedComponents();
         var worldPos = MouseWorldPos();
         var local = _towerRoot.InverseTransformPoint(worldPos);
         var cell  = new Vector2Int(Mathf.FloorToInt(local.x), Mathf.FloorToInt(local.y));
 
-        if (!_cells.ContainsKey(cell)) return;
+        if (!IsExtractableCell(cell)) return;
         SetFocusCell(cell);
 
         if (_selected.Contains(cell))
@@ -435,8 +499,14 @@ public class BlockTower : MonoBehaviour
     void SelectCell(Vector2Int cell)
     {
         if (!_cells.TryGetValue(cell, out var data)) return;
+        if (!data.isOriginalTower) return;
         _selected.Add(cell);
         ApplyCellVisual(cell);
+    }
+
+    bool IsExtractableCell(Vector2Int cell)
+    {
+        return _cells.TryGetValue(cell, out var data) && data.isOriginalTower;
     }
 
     void TryDeselect(Vector2Int cell)
@@ -463,13 +533,26 @@ public class BlockTower : MonoBehaviour
     {
         if (!_cells.TryGetValue(cell, out var data)) return;
 
-        var color = NumberColor(data.number);
-        if (_selected.Contains(cell))
-            color = Color.Lerp(color, Color.white, 0.5f);
-        if (_hasFocusedCell && _focusedCell == cell)
-            color = Color.Lerp(color, focusedCellColor, 0.65f);
+        bool isSelected = _selected.Contains(cell);
+        bool isFocused = _hasFocusedCell && _focusedCell == cell;
+        var color = data.isOriginalTower ? NumberColor(data.number) : placedBlockColor;
+        if (isSelected)
+            color = Color.Lerp(color, Color.white, 0.45f);
+        if (isFocused)
+            color = Color.Lerp(color, focusedCellColor, 0.8f);
 
         data.sr.color = color;
+        ApplyCellOutline(data, isFocused, isSelected);
+    }
+
+    void ApplyCellOutline(CellData data, bool isFocused, bool isSelected)
+    {
+        if (data.outline == null) return;
+
+        data.outline.enabled = isFocused || isSelected;
+        data.outline.color = isFocused ? focusedOutlineColor : selectedOutlineColor;
+        data.outline.transform.localScale = Vector3.one * (isFocused ? focusedOutlineScale : selectedOutlineScale);
+        data.outline.sortingOrder = isFocused ? 4 : 3;
     }
 
     // ── 블럭 들어올리기 ───────────────────────────────────────────────────
@@ -491,9 +574,11 @@ public class BlockTower : MonoBehaviour
         foreach (var c in _selected)
             _heldRelPos.Add(new Vector2Int(c.x - minX, c.y - minY));
 
+        var changedCells = new List<Vector2Int>();
         foreach (var cell in _selected)
         {
             if (!_cells.TryGetValue(cell, out var data)) continue;
+            changedCells.Add(cell);
             data.number--;
             if (data.number <= 0)
             {
@@ -502,18 +587,27 @@ public class BlockTower : MonoBehaviour
             }
             else
             {
-                data.sr.color   = NumberColor(data.number);
+                var bc = data.go.GetComponent<BlockCell>();
+                if (bc != null)
+                {
+                    bc.Weight = data.number;
+                    bc.IsOriginalTower = data.isOriginalTower;
+                }
+
+                data.sr.color = NumberColor(data.number);
                 data.label.text = data.number.ToString();
             }
         }
 
         _selected.Clear();
         _hasFocusedCell = false;
+        foreach (var cell in changedCells)
+            ApplyCellVisual(cell);
 
         _heldRoot = new GameObject("HeldBlocks");
         _heldRoot.transform.SetParent(transform);
 
-        var heldColor = new Color(NumberColor(1).r, NumberColor(1).g, NumberColor(1).b, 0.6f);
+        var heldColor = new Color(placedBlockColor.r, placedBlockColor.g, placedBlockColor.b, 0.6f);
 
         for (int i = 0; i < _heldRelPos.Count; i++)
         {
@@ -531,6 +625,7 @@ public class BlockTower : MonoBehaviour
             sr.color        = heldColor;
             sr.sortingOrder = 0;
             var blurRenderers = CreatePreviewBlur(go.transform);
+            var outline = SpawnCellOutline(go.transform);
 
             var box = go.AddComponent<BoxCollider>();
             box.size           = Vector3.one;
@@ -539,9 +634,19 @@ public class BlockTower : MonoBehaviour
 
             var bc = go.AddComponent<BlockCell>();
             bc.Weight = 1;
+            bc.IsOriginalTower = false;
 
             var label = SpawnLabel(1, go.transform);
-            _heldData.Add(new CellData { number = 1, go = go, sr = sr, label = label, previewBlurRenderers = blurRenderers });
+            _heldData.Add(new CellData
+            {
+                number = 1,
+                isOriginalTower = false,
+                go = go,
+                sr = sr,
+                outline = outline,
+                label = label,
+                previewBlurRenderers = blurRenderers
+            });
         }
 
         CheckForDetachment();
@@ -552,7 +657,7 @@ public class BlockTower : MonoBehaviour
         _usingKeyboardPlacement = false;
         _heldBaseCell = GetDefaultHeldBaseCell();
         if (autoFocusCameraOnLift)
-            FocusCameraOnTowerTop();
+            ShowPlacementCameraView(immediate: false);
         AddScore(1);
     }
 
@@ -692,12 +797,14 @@ public class BlockTower : MonoBehaviour
 
     bool CanPlaceHeldBlocks(out List<Vector2Int> targets, out Vector3 snappedWorldPos)
     {
+        RefreshDetachedComponents();
         var baseCell = _usingKeyboardPlacement ? _heldBaseCell : GetMouseHeldBaseCell();
         return CanPlaceHeldBlocks(baseCell, out targets, out snappedWorldPos);
     }
 
     bool CanPlaceHeldBlocks(Vector2Int baseCell, out List<Vector2Int> targets, out Vector3 snappedWorldPos)
     {
+        var detachedCells = CollectStableDetachedCells();
         targets = new List<Vector2Int>(_heldRelPos.Count);
         var snappedLocalPos = new Vector3(baseCell.x + _heldCenter.x, baseCell.y + _heldCenter.y, 0f);
         snappedWorldPos = _towerRoot.TransformPoint(snappedLocalPos);
@@ -705,7 +812,7 @@ public class BlockTower : MonoBehaviour
         foreach (var rel in _heldRelPos)
         {
             var target = new Vector2Int(baseCell.x + rel.x, baseCell.y + rel.y);
-            if (_cells.ContainsKey(target)) return false;
+            if (IsOccupiedCell(target, detachedCells)) return false;
             if (target.x < placementMin.x || target.x > placementMax.x ||
                 target.y < placementMin.y || target.y > placementMax.y) return false;
             targets.Add(target);
@@ -716,24 +823,29 @@ public class BlockTower : MonoBehaviour
         {
             foreach (var n in Neighbors(t))
             {
-                if (_cells.ContainsKey(n)) { adjacent = true; break; }
+                if (IsOccupiedCell(n, detachedCells)) { adjacent = true; break; }
             }
             if (adjacent) break;
         }
-        if (!adjacent && _cells.Count > 0) return false;
+        if (!adjacent && (_cells.Count > 0 || detachedCells.Count > 0)) return false;
 
         // 중력 체크: 그룹 내 최소 1개의 블럭이 바닥(row 0) 또는 기존 타워 블럭 위에 놓여야 함
         // (위쪽 블럭에만 붙어서 공중에 배치하는 것 방지)
         bool hasBottomSupport = false;
         foreach (var t in targets)
         {
-            if (t.y == 0 || _cells.ContainsKey(new Vector2Int(t.x, t.y - 1)))
+            if (t.y == 0 || IsOccupiedCell(new Vector2Int(t.x, t.y - 1), detachedCells))
             {
                 hasBottomSupport = true;
                 break;
             }
         }
         return hasBottomSupport;
+    }
+
+    bool IsOccupiedCell(Vector2Int cell, HashSet<Vector2Int> detachedCells)
+    {
+        return _cells.ContainsKey(cell) || detachedCells.Contains(cell);
     }
 
     void TryPlaceBlocks()
@@ -757,10 +869,14 @@ public class BlockTower : MonoBehaviour
             var box = data.go.GetComponent<BoxCollider>();
             if (box != null) box.enabled = true;
 
-            data.sr.color = NumberColor(data.number);
+            data.sr.color = placedBlockColor;
 
             var bc = data.go.GetComponent<BlockCell>();
-            if (bc != null) bc.Weight = data.number;
+            if (bc != null)
+            {
+                bc.Weight = data.number;
+                bc.IsOriginalTower = data.isOriginalTower;
+            }
 
             _cells[target] = data;
             _lastPlacedCells.Add(target);
@@ -775,9 +891,25 @@ public class BlockTower : MonoBehaviour
         ClearKeyboardFocus();
 
         _rb.centerOfMass = CalculateCenterOfMass();
-        if (autoFocusCameraOnLift)
-            FocusCameraOnTowerTop();
+        if (autoReturnCameraAfterPlace)
+        {
+            UpdateExtractionTowerRowsFromCells();
+            ShowExtractionCameraView(immediate: true);
+            FocusDefaultExtractionCell();
+        }
+        else if (autoFocusCameraOnLift)
+            ShowPlacementCameraView(immediate: false);
         AddScore(1);
+    }
+
+    void FocusDefaultExtractionCell()
+    {
+        ClearKeyboardFocus();
+        if (TryFindDefaultFocusCell(ignoreLastPlaced: true, out var cell) ||
+            TryFindDefaultFocusCell(ignoreLastPlaced: false, out cell))
+        {
+            SetFocusCell(cell);
+        }
     }
 
     // ── 들기 취소 ─────────────────────────────────────────────────────────
@@ -804,16 +936,55 @@ public class BlockTower : MonoBehaviour
         var components = FindConnectedComponents();
         if (components.Count <= 1) return;
 
-        int mainIdx = 0;
-        for (int i = 1; i < components.Count; i++)
-            if (components[i].Count > components[mainIdx].Count)
-                mainIdx = i;
+        int mainIdx = FindMainTowerComponentIndex(components);
 
         for (int i = 0; i < components.Count; i++)
         {
             if (i == mainIdx) continue;
             DetachComponent(components[i]);
         }
+    }
+
+    int FindMainTowerComponentIndex(List<List<Vector2Int>> components)
+    {
+        int bestIdx = 0;
+        for (int i = 1; i < components.Count; i++)
+        {
+            if (IsBetterMainTowerComponent(components[i], components[bestIdx]))
+                bestIdx = i;
+        }
+        return bestIdx;
+    }
+
+    bool IsBetterMainTowerComponent(List<Vector2Int> candidate, List<Vector2Int> current)
+    {
+        bool candidateGrounded = TouchesGround(candidate);
+        bool currentGrounded = TouchesGround(current);
+        if (candidateGrounded != currentGrounded)
+            return candidateGrounded;
+
+        int candidateMinY = MinComponentY(candidate);
+        int currentMinY = MinComponentY(current);
+        if (candidateMinY != currentMinY)
+            return candidateMinY < currentMinY;
+
+        return candidate.Count > current.Count;
+    }
+
+    bool TouchesGround(List<Vector2Int> component)
+    {
+        foreach (var cell in component)
+            if (cell.y == 0)
+                return true;
+        return false;
+    }
+
+    int MinComponentY(List<Vector2Int> component)
+    {
+        int minY = int.MaxValue;
+        foreach (var cell in component)
+            minY = Mathf.Min(minY, cell.y);
+        return minY;
     }
 
     List<List<Vector2Int>> FindConnectedComponents()
@@ -893,11 +1064,167 @@ public class BlockTower : MonoBehaviour
         if (totalWeight > 0f)
             orphanRb.centerOfMass = new Vector3(weightedSum.x / totalWeight, weightedSum.y / totalWeight, 0f);
 
-        Destroy(orphanGO, 1f);
-        AddScore(-Mathf.RoundToInt(totalWeight));
+        // 분리 조각은 삭제하지 않고 물리 오브젝트로 남겨 둔다.
+        // 떨어지며 메인 타워에 다시 얹히거나, 충격으로 타워를 무너뜨릴 수 있다.
+        if (Application.isPlaying)
+        {
+            _detachedComponents.Add(new DetachedComponent { root = orphanGO, rb = orphanRb, detachedAt = Time.time });
+            StartCoroutine(TryReattachDetachedComponent(orphanGO, orphanRb));
+        }
+    }
+
+    IEnumerator TryReattachDetachedComponent(GameObject detachedRoot, Rigidbody detachedRb)
+    {
+        float stable = 0f;
+        float detachedAt = Time.time;
+
+        while (detachedRoot != null && detachedRb != null && !_isGameOver)
+        {
+            stable = IsDetachedStable(detachedRb) ? stable + Time.deltaTime : 0f;
+
+            bool canTryReattach = Time.time - detachedAt >= detachedMinAirTime &&
+                                  stable >= detachedReattachStableTime;
+            if (canTryReattach && TryAbsorbDetachedComponent(detachedRoot, detachedRb))
+                yield break;
+
+            yield return null;
+        }
+    }
+
+    void RefreshDetachedComponents()
+    {
+        for (int i = _detachedComponents.Count - 1; i >= 0; i--)
+        {
+            var detached = _detachedComponents[i];
+            if (detached.root == null || detached.rb == null)
+            {
+                _detachedComponents.RemoveAt(i);
+                continue;
+            }
+
+            if (CanTryReattach(detached) && TryAbsorbDetachedComponent(detached.root, detached.rb))
+                _detachedComponents.RemoveAt(i);
+        }
+    }
+
+    HashSet<Vector2Int> CollectStableDetachedCells()
+    {
+        var cells = new HashSet<Vector2Int>();
+        foreach (var detached in _detachedComponents)
+        {
+            if (detached.root == null || detached.rb == null) continue;
+            if (!IsDetachedStable(detached.rb)) continue;
+
+            foreach (Transform child in detached.root.transform)
+            {
+                if (TryWorldToGridCell(child.position, out var cell))
+                    cells.Add(cell);
+            }
+        }
+        return cells;
+    }
+
+    bool IsDetachedStable(Rigidbody rb)
+    {
+        return rb.linearVelocity.sqrMagnitude <= detachedReattachVelocity * detachedReattachVelocity &&
+               rb.angularVelocity.sqrMagnitude <= detachedReattachVelocity * detachedReattachVelocity;
+    }
+
+    bool CanTryReattach(DetachedComponent detached)
+    {
+        return detached.root != null &&
+               detached.rb != null &&
+               Time.time - detached.detachedAt >= detachedMinAirTime &&
+               IsDetachedStable(detached.rb);
+    }
+
+    bool TryWorldToGridCell(Vector3 worldPosition, out Vector2Int cell)
+    {
+        var local = _towerRoot.InverseTransformPoint(worldPosition);
+        cell = new Vector2Int(
+            Mathf.RoundToInt(local.x - 0.5f),
+            Mathf.RoundToInt(local.y - 0.5f));
+
+        int minGridX = Mathf.Min(placementMin.x, _extractionMinCol);
+        int maxGridX = Mathf.Max(placementMax.x, _extractionMaxCol);
+        return cell.x >= minGridX && cell.x <= maxGridX && cell.y >= 0;
+    }
+
+    bool TryAbsorbDetachedComponent(GameObject detachedRoot, Rigidbody detachedRb)
+    {
+        var children = new List<Transform>();
+        foreach (Transform child in detachedRoot.transform)
+            children.Add(child);
+        if (children.Count == 0) return false;
+
+        var attach = new List<(Transform child, Vector2Int cell)>(children.Count);
+        var duplicates = new List<Transform>();
+        var used = new HashSet<Vector2Int>();
+        foreach (var child in children)
+        {
+            if (!TryWorldToGridCell(child.position, out var cell)) return false;
+            if (_cells.ContainsKey(cell) || !used.Add(cell))
+            {
+                duplicates.Add(child);
+                continue;
+            }
+            attach.Add((child, cell));
+        }
+        if (attach.Count == 0 && duplicates.Count == 0) return false;
+        if (!HasDetachedBottomSupport(used)) return false;
+
+        detachedRb.isKinematic = true;
+        foreach (var duplicate in duplicates)
+            Destroy(duplicate.gameObject);
+
+        foreach (var item in attach)
+        {
+            var child = item.child;
+            var cell = item.cell;
+            child.SetParent(_towerRoot, worldPositionStays: false);
+            child.localPosition = new Vector3(cell.x + 0.5f, cell.y + 0.5f, 0f);
+            child.localRotation = Quaternion.identity;
+
+            var sr = child.GetComponent<SpriteRenderer>();
+            var label = child.GetComponentInChildren<TextMeshPro>();
+            var blockCell = child.GetComponent<BlockCell>();
+            var data = new CellData
+            {
+                number = Mathf.Max(1, blockCell?.Weight is float w ? Mathf.RoundToInt(w) : 1),
+                isOriginalTower = blockCell != null && blockCell.IsOriginalTower,
+                go = child.gameObject,
+                sr = sr,
+                outline = child.Find("FocusOutline")?.GetComponent<SpriteRenderer>(),
+                label = label
+            };
+            _cells[cell] = data;
+            ApplyCellVisual(cell);
+        }
+
+        Destroy(detachedRoot);
+        _rb.centerOfMass = CalculateCenterOfMass();
+        UpdateExtractionTowerRowsFromCells();
+        if (!_isHolding)
+        {
+            ShowExtractionCameraView(immediate: true);
+            FocusDefaultExtractionCell();
+        }
+        return true;
     }
 
     // ── 메인 타워 무게 중심 ───────────────────────────────────────────────
+
+    bool HasDetachedBottomSupport(HashSet<Vector2Int> detachedCells)
+    {
+        foreach (var cell in detachedCells)
+        {
+            var below = new Vector2Int(cell.x, cell.y - 1);
+            if (detachedCells.Contains(below)) continue;
+            if (cell.y == 0 || _cells.ContainsKey(below))
+                return true;
+        }
+        return false;
+    }
 
     Vector3 CalculateCenterOfMass()
     {
@@ -1004,15 +1331,26 @@ public class BlockTower : MonoBehaviour
 
                 var bc = go.AddComponent<BlockCell>();
                 bc.Weight = number;
+                bc.IsOriginalTower = true;
 
+                var outline = SpawnCellOutline(go.transform);
                 var label = SpawnLabel(number, go.transform);
-                _cells[cell] = new CellData { number = number, go = go, sr = sr, label = label };
+                _cells[cell] = new CellData
+                {
+                    number = number,
+                    isOriginalTower = true,
+                    go = go,
+                    sr = sr,
+                    outline = outline,
+                    label = label
+                };
             }
         }
 
         if (Application.isPlaying)
             _rb.centerOfMass = CalculateCenterOfMass();
 
+        UpdateExtractionTowerRowsFromCells();
         CreateFloor();
         CreateScoreLabel();
 
@@ -1146,6 +1484,21 @@ public class BlockTower : MonoBehaviour
 
     // ── 레이블 ────────────────────────────────────────────────────────────
 
+    SpriteRenderer SpawnCellOutline(Transform parent)
+    {
+        var go = new GameObject("FocusOutline");
+        go.transform.SetParent(parent, false);
+        go.transform.localPosition = new Vector3(0f, 0f, 0.02f);
+        go.transform.localScale = Vector3.one * selectedOutlineScale;
+
+        var sr = go.AddComponent<SpriteRenderer>();
+        sr.sprite = CreateOutlineSprite();
+        sr.color = selectedOutlineColor;
+        sr.sortingOrder = 3;
+        sr.enabled = false;
+        return sr;
+    }
+
     TextMeshPro SpawnLabel(int number, Transform parent)
     {
         var go = new GameObject("Label");
@@ -1177,25 +1530,77 @@ public class BlockTower : MonoBehaviour
         var cam = Camera.main;
         if (cam == null || !cam.orthographic) return;
 
+        FitCameraToGridRows(0, rows - 1, extractionViewPadding, immediate: true);
+    }
+
+    void FitCameraToGridRows(int minGridY, int maxGridY, float padding, bool immediate)
+    {
+        var cam = Camera.main;
+        if (cam == null || !cam.orthographic) return;
+
         float aspect = (float)Screen.width / Screen.height;
 
         // 가로: 열 + 여백
         float halfW        = columns * 0.5f + 3.5f;
         float sizeForWidth = halfW / aspect;
 
-        // 세로: 바닥부터 타워 상단(점수 레이블 포함)까지 전체
-        float bottom  = _floorY - 0.5f;
-        float top     = rows * 0.5f + 2f;
+        float bottom  = _towerRoot.position.y + minGridY - padding;
+        float top     = _towerRoot.position.y + maxGridY + 1f + padding;
         float centerY = (bottom + top) * 0.5f;
         float halfH   = (top - bottom) * 0.5f;
 
-        cam.orthographicSize   = Mathf.Max(sizeForWidth, halfH);
-        cam.transform.position = new Vector3(0f, centerY, cam.transform.position.z);
+        _cameraTargetY = centerY;
+        _cameraTargetSize = Mathf.Max(sizeForWidth, halfH);
+        if (immediate)
+        {
+            cam.orthographicSize = _cameraTargetSize;
+            cam.transform.position = new Vector3(0f, _cameraTargetY, cam.transform.position.z);
+            _hasCameraTarget = false;
+            return;
+        }
+
+        _hasCameraTarget = true;
     }
 
     void FocusCameraOnTowerTop()
     {
-        FocusCameraOnGridY(HighestOccupiedRow() + 1);
+        ShowPlacementCameraView(immediate: false);
+    }
+
+    void ShowExtractionCameraView(bool immediate)
+    {
+        FitCameraToGridRows(_extractionMinRow, _extractionMaxRow, extractionViewPadding, immediate);
+    }
+
+    void ShowPlacementCameraView(bool immediate)
+    {
+        FocusCameraOnGridY(HighestOccupiedRow() + 1, immediate, placementViewTopOffset);
+    }
+
+    bool TryFindTowerBodyRows(bool ignoreLastPlaced, bool originalTowerOnly, out int minY, out int maxY)
+    {
+        minY = int.MaxValue;
+        maxY = int.MinValue;
+        bool found = false;
+
+        foreach (var cell in _cells.Keys)
+        {
+            if (ignoreLastPlaced && _lastPlacedCells.Contains(cell)) continue;
+            if (!IsExtractableCell(cell)) continue;
+            if (originalTowerOnly && !IsInExtractionTowerRows(cell)) continue;
+
+            minY = Mathf.Min(minY, cell.y);
+            maxY = Mathf.Max(maxY, cell.y);
+            found = true;
+        }
+
+        return found;
+    }
+
+    bool IsInExtractionTowerRows(Vector2Int cell)
+    {
+        return cell.x >= _extractionMinCol && cell.x <= _extractionMaxCol &&
+               cell.y >= _extractionMinRow && cell.y <= _extractionMaxRow;
     }
 
     void FocusCameraOnCell(Vector2Int cell)
@@ -1205,12 +1610,27 @@ public class BlockTower : MonoBehaviour
 
     void FocusCameraOnGridY(int gridY)
     {
+        FocusCameraOnGridY(gridY, immediate: false, padding: cameraTopPadding);
+    }
+
+    void FocusCameraOnGridY(int gridY, bool immediate, float padding)
+    {
         var cam = Camera.main;
         if (cam == null || !cam.orthographic) return;
 
         float worldY = _towerRoot.position.y + gridY + 0.5f;
         float minY = _floorY + cam.orthographicSize;
-        _cameraTargetY = Mathf.Max(minY, worldY + cameraTopPadding);
+        _cameraTargetY = Mathf.Max(minY, worldY + padding);
+        _cameraTargetSize = cam.orthographicSize;
+        if (immediate)
+        {
+            var pos = cam.transform.position;
+            cam.orthographicSize = _cameraTargetSize;
+            cam.transform.position = new Vector3(pos.x, _cameraTargetY, pos.z);
+            _hasCameraTarget = false;
+            return;
+        }
+
         _hasCameraTarget = true;
     }
 
@@ -1224,9 +1644,15 @@ public class BlockTower : MonoBehaviour
         var pos = cam.transform.position;
         float t = 1f - Mathf.Exp(-cameraFocusSpeed * Time.deltaTime);
         float nextY = Mathf.Lerp(pos.y, _cameraTargetY, t);
+        float nextSize = _cameraTargetSize > 0f
+            ? Mathf.Lerp(cam.orthographicSize, _cameraTargetSize, t)
+            : cam.orthographicSize;
+        cam.orthographicSize = nextSize;
         cam.transform.position = new Vector3(pos.x, nextY, pos.z);
 
-        if (Mathf.Abs(nextY - _cameraTargetY) < 0.01f)
+        bool reachedY = Mathf.Abs(nextY - _cameraTargetY) < 0.01f;
+        bool reachedSize = _cameraTargetSize <= 0f || Mathf.Abs(nextSize - _cameraTargetSize) < 0.01f;
+        if (reachedY && reachedSize)
             _hasCameraTarget = false;
     }
 
@@ -1236,6 +1662,47 @@ public class BlockTower : MonoBehaviour
         foreach (var cell in _cells.Keys)
             top = Mathf.Max(top, cell.y);
         return top;
+    }
+
+    void UpdateExtractionTowerRowsFromCells()
+    {
+        bool foundOriginalTowerCell = false;
+        foreach (var data in _cells.Values)
+        {
+            if (data.isOriginalTower)
+            {
+                foundOriginalTowerCell = true;
+                break;
+            }
+        }
+
+        if (!foundOriginalTowerCell)
+        {
+            _extractionMinCol = 0;
+            _extractionMaxCol = columns - 1;
+            _extractionMinRow = 0;
+            _extractionMaxRow = rows - 1;
+            return;
+        }
+
+        int minX = int.MaxValue;
+        int maxX = int.MinValue;
+        int minY = int.MaxValue;
+        int maxY = int.MinValue;
+        foreach (var cell in _cells.Keys)
+        {
+            if (!IsExtractableCell(cell)) continue;
+
+            minX = Mathf.Min(minX, cell.x);
+            maxX = Mathf.Max(maxX, cell.x);
+            minY = Mathf.Min(minY, cell.y);
+            maxY = Mathf.Max(maxY, cell.y);
+        }
+
+        _extractionMinCol = minX;
+        _extractionMaxCol = maxX;
+        _extractionMinRow = minY;
+        _extractionMaxRow = maxY;
     }
 
     // ── 스프라이트 ────────────────────────────────────────────────────────
@@ -1272,6 +1739,30 @@ public class BlockTower : MonoBehaviour
         return _blockSprite;
     }
 
+    Sprite CreateOutlineSprite()
+    {
+        if (_outlineSprite != null) return _outlineSprite;
+
+        const int size = 32;
+        const int thickness = 4;
+        var tex = new Texture2D(size, size, TextureFormat.RGBA32, false);
+        tex.filterMode = FilterMode.Point;
+
+        var pixels = new Color[size * size];
+        for (int i = 0; i < pixels.Length; i++)
+        {
+            int x = i % size, y = i / size;
+            bool border = x < thickness || y < thickness || x >= size - thickness || y >= size - thickness;
+            pixels[i] = border ? Color.white : Color.clear;
+        }
+        tex.SetPixels(pixels);
+        tex.Apply();
+
+        _outlineSprite = Sprite.Create(tex, new Rect(0, 0, size, size),
+                                       new Vector2(0.5f, 0.5f), size);
+        return _outlineSprite;
+    }
+
     // ── 기즈모 ────────────────────────────────────────────────────────────
 
     void OnDrawGizmos()
@@ -1300,6 +1791,7 @@ public class BlockTower : MonoBehaviour
 
     static Color NumberColor(int n) => n switch
     {
+        1 => new Color(0.95f, 0.43f, 0.68f),
         2 => new Color(0.93f, 0.27f, 0.27f),
         3 => new Color(0.26f, 0.65f, 0.96f),
         4 => new Color(0.22f, 0.80f, 0.45f),

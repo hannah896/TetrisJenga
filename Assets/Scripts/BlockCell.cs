@@ -5,4 +5,5 @@ using UnityEngine;
 public class BlockCell : MonoBehaviour
 {
     public float Weight;
+    public bool IsOriginalTower;
 }
