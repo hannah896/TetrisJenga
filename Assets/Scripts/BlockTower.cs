@@ -46,6 +46,17 @@ public class BlockTower : MonoBehaviour
 
     [Header("Physics")]
     public float blockFriction = 1f;
+    [SerializeField, Range(0f, 1f)] float floorFrictionMultiplier = 0.5f;
+
+    [Header("Half Base")]
+    [SerializeField] bool halfBaseEnabled = true;
+    [SerializeField] Sprite halfBaseSprite;
+    [SerializeField] Vector2 halfBaseSize = new(4f, 2f);
+    [SerializeField, Range(8, 64)] int halfBaseSegments = 32;
+    [SerializeField, Min(0.05f)] float halfBaseDepth = 1f;
+    [SerializeField] bool halfBaseMovable = true;
+    [SerializeField, Min(0.01f)] float halfBaseMass = 5f;
+    [SerializeField, Range(0f, 1f)] float halfBaseFrictionMultiplier = 0.5f;
 
     [Header("Detached Blocks")]
     [SerializeField] float detachedReattachStableTime = 0.15f;
@@ -58,9 +69,10 @@ public class BlockTower : MonoBehaviour
     [SerializeField] TextMeshPro scoreLabel;
 
     Transform      _towerRoot;
-    Rigidbody      _rb;
     Sprite         _blockSprite;
+    Sprite         _generatedHalfBaseSprite;
     GameObject     _generatedFloor;
+    GameObject     _generatedHalfBase;
     GameObject     _generatedScoreLabel;
     GameObject     _leftBoundary;
     GameObject     _rightBoundary;
@@ -163,11 +175,13 @@ public class BlockTower : MonoBehaviour
                 foreach (var t in children) DestroyLocal(t.gameObject);
             }
             _towerRoot = null;
-            _rb = null;
         }
 
         if (_generatedFloor == null) { var f = transform.Find("Floor"); if (f) _generatedFloor = f.gameObject; }
         if (_generatedFloor != null) { DestroyLocal(_generatedFloor); _generatedFloor = null; }
+
+        if (_generatedHalfBase == null) { var f = transform.Find("HalfBase"); if (f) _generatedHalfBase = f.gameObject; }
+        if (_generatedHalfBase != null) { DestroyLocal(_generatedHalfBase); _generatedHalfBase = null; }
 
         if (_generatedScoreLabel == null) { var f = transform.Find("ScoreLabel"); if (f) _generatedScoreLabel = f.gameObject; }
         if (_generatedScoreLabel != null && scoreLabel == null) { DestroyLocal(_generatedScoreLabel); _generatedScoreLabel = null; scoreLabel = null; }
@@ -593,6 +607,7 @@ public class BlockTower : MonoBehaviour
                     bc.Weight = data.number;
                     bc.IsOriginalTower = data.isOriginalTower;
                 }
+                ConfigureCellRigidbody(data.go, data.number);
 
                 data.sr.color = NumberColor(data.number);
                 data.label.text = data.number.ToString();
@@ -650,8 +665,6 @@ public class BlockTower : MonoBehaviour
         }
 
         CheckForDetachment();
-        if (_cells.Count > 0)
-            _rb.centerOfMass = CalculateCenterOfMass();
 
         _isHolding = true;
         _usingKeyboardPlacement = false;
@@ -877,6 +890,7 @@ public class BlockTower : MonoBehaviour
                 bc.Weight = data.number;
                 bc.IsOriginalTower = data.isOriginalTower;
             }
+            ConfigureCellRigidbody(data.go, data.number);
 
             _cells[target] = data;
             _lastPlacedCells.Add(target);
@@ -890,7 +904,6 @@ public class BlockTower : MonoBehaviour
         _usingKeyboardPlacement = false;
         ClearKeyboardFocus();
 
-        _rb.centerOfMass = CalculateCenterOfMass();
         if (autoReturnCameraAfterPlace)
         {
             UpdateExtractionTowerRowsFromCells();
@@ -923,26 +936,14 @@ public class BlockTower : MonoBehaviour
         _isHolding = false;
         _usingKeyboardPlacement = false;
 
-        if (_cells.Count > 0)
-            _rb.centerOfMass = CalculateCenterOfMass();
+        RefreshCellRigidbodies();
     }
 
     // ── 연결 요소 분리 ────────────────────────────────────────────────────
 
     void CheckForDetachment()
     {
-        if (_cells.Count == 0) return;
-
-        var components = FindConnectedComponents();
-        if (components.Count <= 1) return;
-
-        int mainIdx = FindMainTowerComponentIndex(components);
-
-        for (int i = 0; i < components.Count; i++)
-        {
-            if (i == mainIdx) continue;
-            DetachComponent(components[i]);
-        }
+        // Blocks now each own a Rigidbody, so disconnected chunks already move independently.
     }
 
     int FindMainTowerComponentIndex(List<List<Vector2Int>> components)
@@ -1037,8 +1038,8 @@ public class BlockTower : MonoBehaviour
         orphanRb.useGravity             = true;
         orphanRb.interpolation          = RigidbodyInterpolation.Interpolate;
         orphanRb.collisionDetectionMode = CollisionDetectionMode.ContinuousSpeculative;
-        orphanRb.linearVelocity         = _rb.linearVelocity;
-        orphanRb.angularVelocity        = _rb.angularVelocity;
+        orphanRb.linearVelocity         = Vector3.zero;
+        orphanRb.angularVelocity        = Vector3.zero;
         orphanRb.linearDamping          = 0.3f;
         orphanRb.angularDamping         = 1f;
         orphanRb.constraints            = RigidbodyConstraints.FreezePositionZ
@@ -1198,11 +1199,12 @@ public class BlockTower : MonoBehaviour
                 label = label
             };
             _cells[cell] = data;
+            ConfigureCellRigidbody(data.go, data.number);
             ApplyCellVisual(cell);
         }
 
         Destroy(detachedRoot);
-        _rb.centerOfMass = CalculateCenterOfMass();
+        RefreshCellRigidbodies();
         UpdateExtractionTowerRowsFromCells();
         if (!_isHolding)
         {
@@ -1210,6 +1212,33 @@ public class BlockTower : MonoBehaviour
             FocusDefaultExtractionCell();
         }
         return true;
+    }
+
+    // ── 블럭별 물리 ───────────────────────────────────────────────────────
+
+    void ConfigureCellRigidbody(GameObject go, float mass)
+    {
+        if (go == null) return;
+
+        if (!go.TryGetComponent(out Rigidbody rb))
+            rb = go.AddComponent<Rigidbody>();
+
+        rb.mass = Mathf.Max(0.01f, mass);
+        rb.useGravity = true;
+        rb.isKinematic = false;
+        rb.interpolation = RigidbodyInterpolation.Interpolate;
+        rb.collisionDetectionMode = CollisionDetectionMode.ContinuousSpeculative;
+        rb.linearDamping = 0.3f;
+        rb.angularDamping = 2f;
+        rb.constraints = RigidbodyConstraints.FreezePositionZ
+                       | RigidbodyConstraints.FreezeRotationX
+                       | RigidbodyConstraints.FreezeRotationY;
+    }
+
+    void RefreshCellRigidbodies()
+    {
+        foreach (var data in _cells.Values)
+            ConfigureCellRigidbody(data.go, data.number);
     }
 
     // ── 메인 타워 무게 중심 ───────────────────────────────────────────────
@@ -1294,21 +1323,6 @@ public class BlockTower : MonoBehaviour
         towerRootGO.transform.position = new Vector3(-columns * 0.5f, -rows * 0.5f, 0f);
         _towerRoot = towerRootGO.transform;
 
-        if (Application.isPlaying)
-        {
-            if (!towerRootGO.TryGetComponent(out _rb))
-                _rb = towerRootGO.AddComponent<Rigidbody>();
-            _rb.useGravity             = true;
-            _rb.isKinematic            = false;
-            _rb.interpolation          = RigidbodyInterpolation.Interpolate;
-            _rb.collisionDetectionMode = CollisionDetectionMode.ContinuousSpeculative;
-            _rb.linearDamping          = 0.3f;
-            _rb.angularDamping         = 2f;
-            _rb.constraints            = RigidbodyConstraints.FreezePositionZ
-                                       | RigidbodyConstraints.FreezeRotationX
-                                       | RigidbodyConstraints.FreezeRotationY;
-        }
-
         for (int row = 0; row < rows; row++)
         {
             for (int col = 0; col < columns; col++)
@@ -1332,6 +1346,7 @@ public class BlockTower : MonoBehaviour
                 var bc = go.AddComponent<BlockCell>();
                 bc.Weight = number;
                 bc.IsOriginalTower = true;
+                ConfigureCellRigidbody(go, number);
 
                 var outline = SpawnCellOutline(go.transform);
                 var label = SpawnLabel(number, go.transform);
@@ -1347,10 +1362,8 @@ public class BlockTower : MonoBehaviour
             }
         }
 
-        if (Application.isPlaying)
-            _rb.centerOfMass = CalculateCenterOfMass();
-
         UpdateExtractionTowerRowsFromCells();
+        CreateHalfBase();
         CreateFloor();
         CreateScoreLabel();
 
@@ -1362,11 +1375,172 @@ public class BlockTower : MonoBehaviour
         FitCamera();
     }
 
+    // ── 반원 받침대 ───────────────────────────────────────────────────────
+
+    void CreateHalfBase()
+    {
+        if (!halfBaseEnabled) return;
+
+        var safeSize = new Vector2(
+            Mathf.Max(0.1f, halfBaseSize.x),
+            Mathf.Max(0.1f, halfBaseSize.y));
+
+        var go = new GameObject("HalfBase");
+        go.transform.SetParent(transform);
+        go.transform.position = new Vector3(0f, GetTowerBottomY() - safeSize.y * 0.5f, 0f);
+        _generatedHalfBase = go;
+
+        var visual = new GameObject("Visual");
+        visual.transform.SetParent(go.transform, false);
+        visual.transform.localPosition = new Vector3(0f, 0f, -0.01f);
+
+        var sr = visual.AddComponent<SpriteRenderer>();
+        sr.sprite = GetHalfBaseSprite();
+        sr.color = Color.white;
+        sr.sortingOrder = -1;
+        FitSpriteToSize(visual.transform, sr.sprite, safeSize);
+
+        var rb = go.AddComponent<Rigidbody>();
+        rb.isKinematic = !halfBaseMovable;
+        rb.useGravity = halfBaseMovable;
+        rb.mass = halfBaseMass;
+        rb.interpolation = RigidbodyInterpolation.Interpolate;
+        rb.collisionDetectionMode = CollisionDetectionMode.ContinuousSpeculative;
+        rb.linearDamping = 0.3f;
+        rb.angularDamping = 2f;
+        rb.constraints = RigidbodyConstraints.FreezePositionZ
+                       | RigidbodyConstraints.FreezeRotationX
+                       | RigidbodyConstraints.FreezeRotationY;
+
+        var col = go.AddComponent<MeshCollider>();
+        col.sharedMesh = CreateHalfBaseCollisionMesh(safeSize, Mathf.Max(8, halfBaseSegments), Mathf.Max(0.05f, halfBaseDepth));
+        col.convex = true;
+        col.sharedMaterial = CreateHalfBaseFrictionMaterial();
+    }
+
+    float GetTowerBottomY()
+    {
+        return -rows * 0.5f;
+    }
+
+    float GetHalfBaseBottomY()
+    {
+        return halfBaseEnabled
+            ? GetTowerBottomY() - Mathf.Max(0.1f, halfBaseSize.y)
+            : GetTowerBottomY();
+    }
+
+    void FitSpriteToSize(Transform target, Sprite sprite, Vector2 size)
+    {
+        if (sprite == null || sprite.bounds.size.x <= 0f || sprite.bounds.size.y <= 0f) return;
+
+        target.localScale = new Vector3(
+            size.x / sprite.bounds.size.x,
+            size.y / sprite.bounds.size.y,
+            1f);
+    }
+
+    Mesh CreateHalfBaseCollisionMesh(Vector2 size, int segments, float depth)
+    {
+        int clampedSegments = Mathf.Clamp(segments, 8, 64);
+        int boundaryCount = clampedSegments + 1;
+        int frontCenter = 0;
+        int frontStart = 1;
+        int backCenter = frontStart + boundaryCount;
+        int backStart = backCenter + 1;
+        float halfW = size.x * 0.5f;
+        float halfH = size.y * 0.5f;
+        float halfD = depth * 0.5f;
+
+        var vertices = new Vector3[(boundaryCount + 1) * 2];
+        vertices[frontCenter] = new Vector3(0f, 0f, -halfD);
+        vertices[backCenter] = new Vector3(0f, 0f, halfD);
+
+        vertices[frontStart] = new Vector3(-halfW, halfH, -halfD);
+        vertices[frontStart + 1] = new Vector3(halfW, halfH, -halfD);
+        vertices[backStart] = new Vector3(-halfW, halfH, halfD);
+        vertices[backStart + 1] = new Vector3(halfW, halfH, halfD);
+
+        for (int i = 1; i < clampedSegments; i++)
+        {
+            float t = i / (float)clampedSegments;
+            float angle = Mathf.PI * t;
+            float x = halfW * Mathf.Cos(angle);
+            float y = halfH - size.y * Mathf.Sin(angle);
+            int boundaryIndex = 1 + i;
+            vertices[frontStart + boundaryIndex] = new Vector3(x, y, -halfD);
+            vertices[backStart + boundaryIndex] = new Vector3(x, y, halfD);
+        }
+
+        var triangles = new List<int>(boundaryCount * 12);
+        for (int i = 0; i < boundaryCount; i++)
+        {
+            int next = (i + 1) % boundaryCount;
+            int f0 = frontStart + i;
+            int f1 = frontStart + next;
+            int b0 = backStart + i;
+            int b1 = backStart + next;
+
+            triangles.Add(frontCenter); triangles.Add(f1); triangles.Add(f0);
+            triangles.Add(backCenter); triangles.Add(b0); triangles.Add(b1);
+
+            triangles.Add(f0); triangles.Add(f1); triangles.Add(b1);
+            triangles.Add(f0); triangles.Add(b1); triangles.Add(b0);
+        }
+
+        var mesh = new Mesh { name = "HalfBaseCollisionMesh" };
+        mesh.SetVertices(vertices);
+        mesh.SetTriangles(triangles, 0);
+        mesh.RecalculateNormals();
+        mesh.RecalculateBounds();
+        return mesh;
+    }
+
+    Sprite GetHalfBaseSprite()
+    {
+        if (halfBaseSprite != null) return halfBaseSprite;
+
+#if UNITY_EDITOR
+        halfBaseSprite = UnityEditor.AssetDatabase.LoadAssetAtPath<Sprite>("Assets/image/half.png");
+        if (halfBaseSprite != null) return halfBaseSprite;
+#endif
+
+        return CreateGeneratedHalfBaseSprite();
+    }
+
+    Sprite CreateGeneratedHalfBaseSprite()
+    {
+        if (_generatedHalfBaseSprite != null) return _generatedHalfBaseSprite;
+
+        const int width = 128;
+        const int height = 64;
+        var tex = new Texture2D(width, height, TextureFormat.RGBA32, false);
+        tex.filterMode = FilterMode.Bilinear;
+
+        var pixels = new Color[width * height];
+        var fill = new Color(0.72f, 0.72f, 0.72f, 1f);
+        for (int y = 0; y < height; y++)
+        {
+            for (int x = 0; x < width; x++)
+            {
+                float nx = (x + 0.5f) / width * 2f - 1f;
+                float ny = (y + 0.5f) / height;
+                bool inside = ny >= 1f - Mathf.Sqrt(Mathf.Max(0f, 1f - nx * nx));
+                pixels[y * width + x] = inside ? fill : Color.clear;
+            }
+        }
+        tex.SetPixels(pixels);
+        tex.Apply();
+
+        _generatedHalfBaseSprite = Sprite.Create(tex, new Rect(0, 0, width, height), new Vector2(0.5f, 0.5f), width / 4f);
+        return _generatedHalfBaseSprite;
+    }
+
     // ── 바닥 ─────────────────────────────────────────────────────────────
 
     void CreateFloor()
     {
-        float floorY     = _floorY = -rows * 0.5f - 1.5f;
+        float floorY     = _floorY = GetHalfBaseBottomY() - 0.5f;
         float floorWidth = columns + 4f;
 
         GameObject floorGO;
@@ -1393,7 +1567,7 @@ public class BlockTower : MonoBehaviour
             if (!floorGO.TryGetComponent<BoxCollider>(out var col))
                 col = floorGO.AddComponent<BoxCollider>();
             col.size           = Vector3.one;
-            col.sharedMaterial = CreateFrictionMaterial();
+            col.sharedMaterial = CreateFloorFrictionMaterial();
         }
     }
 
@@ -1712,6 +1886,26 @@ public class BlockTower : MonoBehaviour
         var mat             = new PhysicsMaterial("BlockFriction");
         mat.dynamicFriction = blockFriction;
         mat.staticFriction  = blockFriction;
+        mat.bounciness      = 0f;
+        return mat;
+    }
+
+    PhysicsMaterial CreateHalfBaseFrictionMaterial()
+    {
+        float friction = blockFriction * halfBaseFrictionMultiplier;
+        var mat             = new PhysicsMaterial("HalfBaseFriction");
+        mat.dynamicFriction = friction;
+        mat.staticFriction  = friction;
+        mat.bounciness      = 0f;
+        return mat;
+    }
+
+    PhysicsMaterial CreateFloorFrictionMaterial()
+    {
+        float friction = blockFriction * floorFrictionMultiplier;
+        var mat             = new PhysicsMaterial("FloorFriction");
+        mat.dynamicFriction = friction;
+        mat.staticFriction  = friction;
         mat.bounciness      = 0f;
         return mat;
     }
