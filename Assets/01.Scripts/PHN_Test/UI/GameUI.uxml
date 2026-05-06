@@ -5,7 +5,7 @@
         <ui:VisualElement class="sky-blob blob-right"/>
         <ui:VisualElement class="sky-blob blob-bottom"/>
         <ui:VisualElement name="title-screen" class="screen title-image-screen">
-            <ui:VisualElement class="title-menu-layout">
+            <ui:VisualElement class="title-menu-layout" style="height: 722px; width: 650px;">
                 <ui:VisualElement class="title-sprite-row">
                     <ui:VisualElement class="title-sprite title-sprite--abyss"/>
                     <ui:VisualElement class="title-sprite title-sprite--stack"/>
@@ -18,20 +18,16 @@
             </ui:VisualElement>
         </ui:VisualElement>
         <ui:VisualElement name="mode-select-screen" class="screen title-image-screen hidden">
-            <ui:VisualElement class="title-menu-layout mode-select-layout">
+            <ui:VisualElement class="title-menu-layout">
                 <ui:VisualElement class="title-sprite-row">
                     <ui:VisualElement class="title-sprite title-sprite--abyss"/>
                     <ui:VisualElement class="title-sprite title-sprite--stack"/>
                 </ui:VisualElement>
-                <ui:VisualElement class="mode-select-body">
-                    <ui:VisualElement class="mode-button-column">
-                        <ui:Button name="single-play-button" text="" class="mode-image-button mode-image-button--single selected"/>
-                        <ui:Button name="multi-play-button" text="" class="mode-image-button mode-image-button--multi"/>
-                    </ui:VisualElement>
-                    <ui:VisualElement class="mode-description-panel">
-                        <ui:Label name="mode-title-label" text="" class="mode-note-title"/>
-                        <ui:Label name="mode-description-label" text="" class="mode-note-body"/>
-                    </ui:VisualElement>
+                <ui:VisualElement class="mode-button-column">
+                    <ui:Button name="single-play-button" text="Single - Play" class="mode-image-button selected"/>
+                    <ui:Button name="multi-play-button" text="Multi - Play" class="mode-image-button"/>
+                    <ui:Label name="mode-title-label" text="싱글플레이" class="mode-note-title"/>
+                    <ui:Label name="mode-description-label" text="혼자서 블록 타워를 쌓고 최고 점수에 도전합니다." class="mode-note-body"/>
                 </ui:VisualElement>
             </ui:VisualElement>
         </ui:VisualElement>
@@ -91,12 +87,12 @@
         <ui:VisualElement name="setting-popup" class="overlay hidden">
             <ui:VisualElement class="settings-art-popup">
                 <ui:Label text="Setting" class="settings-art-title"/>
-                <ui:Label text="All" class="setting-label setting-label--audio"/>
-                <ui:Slider name="audio-slider" low-value="0" high-value="1" value="1" class="setting-art-slider setting-art-slider--audio"/>
+                <ui:Label text="Audio" class="setting-label setting-label--audio"/>
+                <ui:Slider name="audio-slider" low-value="0" high-value="1" value="0.85" class="setting-art-slider setting-art-slider--audio"/>
                 <ui:Label text="BGM" class="setting-label setting-label--bgm"/>
-                <ui:Slider name="bgm-slider" low-value="0" high-value="1" value="1" class="setting-art-slider setting-art-slider--bgm"/>
+                <ui:Slider name="bgm-slider" low-value="0" high-value="1" value="0.55" class="setting-art-slider setting-art-slider--bgm"/>
                 <ui:Label text="SFX" class="setting-label setting-label--sfx"/>
-                <ui:Slider name="sfx-slider" low-value="0" high-value="1" value="1" class="setting-art-slider setting-art-slider--sfx"/>
+                <ui:Slider name="sfx-slider" low-value="0" high-value="1" value="0.75" class="setting-art-slider setting-art-slider--sfx"/>
                 <ui:VisualElement class="setting-art-button-row">
                     <ui:Button name="setting-home-button" text="Home" class="setting-art-button"/>
                     <ui:Button name="setting-exit-button" text="Exit" class="setting-art-button"/>

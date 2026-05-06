@@ -24,10 +24,6 @@ public class UIManager : MonoBehaviour
     private Label winnerLabel;
     private Label scoreLabel;
 
-    private Slider audioSlider;
-    private Slider bgmSlider;
-    private Slider sfxSlider;
-
     private Button singlePlayButton;
     private Button multiPlayButton;
     private Button[] stageButtons;
@@ -35,15 +31,6 @@ public class UIManager : MonoBehaviour
     private int selectedStage = 1;
     private bool isMultiPlay;
     private bool settingOpenedFromGame;
-
-    private const string SingleModeTitle = "싱글플레이";
-    private const string SingleModeDescription = "혼자서 블록 타워를 쌓고 최고 점수에 도전합니다.";
-    private const string MultiModeTitle = "멀티플레이";
-    private const string MultiModeDescription = "친구와 함께 같은 타워를 번갈아 쌓고 먼저 무너뜨리지 않는 사람이 승리합니다.";
-    private const string AudioVolumeKey = "Settings.AudioVolume";
-    private const string BgmVolumeKey = "Settings.BgmVolume";
-    private const string SfxVolumeKey = "Settings.SfxVolume";
-    private const float DefaultVolume = 1f;
 
     private void Awake()
     {
@@ -68,12 +55,6 @@ public class UIManager : MonoBehaviour
         }
 
         BindLabels();
-        BindSliders();
-        if (!enabled)
-        {
-            return;
-        }
-
         BindButtons();
         SelectStage(1);
         SetMode(false);
@@ -133,40 +114,6 @@ public class UIManager : MonoBehaviour
         scoreLabel = root.Q<Label>("score-label");
     }
 
-    private void BindSliders()
-    {
-        audioSlider = root.Q<Slider>("audio-slider");
-        bgmSlider = root.Q<Slider>("bgm-slider");
-        sfxSlider = root.Q<Slider>("sfx-slider");
-
-        if (audioSlider == null || bgmSlider == null || sfxSlider == null)
-        {
-            Debug.LogError("UIManager could not find one or more setting sliders. Check audio-slider, bgm-slider, and sfx-slider in GameUI.uxml.");
-            enabled = false;
-            return;
-        }
-
-        LoadVolumeSlider(audioSlider, AudioVolumeKey);
-        LoadVolumeSlider(bgmSlider, BgmVolumeKey);
-        LoadVolumeSlider(sfxSlider, SfxVolumeKey);
-
-        audioSlider.RegisterValueChangedCallback(evt => SaveVolume(AudioVolumeKey, evt.newValue));
-        bgmSlider.RegisterValueChangedCallback(evt => SaveVolume(BgmVolumeKey, evt.newValue));
-        sfxSlider.RegisterValueChangedCallback(evt => SaveVolume(SfxVolumeKey, evt.newValue));
-    }
-
-    private void LoadVolumeSlider(Slider slider, string prefsKey)
-    {
-        float value = PlayerPrefs.GetFloat(prefsKey, DefaultVolume);
-        slider.SetValueWithoutNotify(Mathf.Clamp01(value));
-    }
-
-    private void SaveVolume(string prefsKey, float value)
-    {
-        PlayerPrefs.SetFloat(prefsKey, Mathf.Clamp01(value));
-        PlayerPrefs.Save();
-    }
-
     private void BindButtons()
     {
         root.Q<Button>("play-button").clicked += ShowModeSelect;
@@ -182,7 +129,6 @@ public class UIManager : MonoBehaviour
 
         singlePlayButton = root.Q<Button>("single-play-button");
         multiPlayButton = root.Q<Button>("multi-play-button");
-        RegisterModeHoverEvents();
 
         singlePlayButton.clicked += () =>
         {
@@ -217,14 +163,6 @@ public class UIManager : MonoBehaviour
         root.Q<Button>("final-exit-button").clicked += ExitGame;
     }
 
-    private void RegisterModeHoverEvents()
-    {
-        singlePlayButton.RegisterCallback<PointerEnterEvent>(_ => PreviewMode(false));
-        multiPlayButton.RegisterCallback<PointerEnterEvent>(_ => PreviewMode(true));
-        singlePlayButton.RegisterCallback<PointerLeaveEvent>(_ => ClearModePreview());
-        multiPlayButton.RegisterCallback<PointerLeaveEvent>(_ => ClearModePreview());
-    }
-
     private void ShowOnly(VisualElement target)
     {
         titleScreen.AddToClassList("hidden");
@@ -241,19 +179,11 @@ public class UIManager : MonoBehaviour
         isMultiPlay = multiPlay;
         singlePlayButton.EnableInClassList("selected", !isMultiPlay);
         multiPlayButton.EnableInClassList("selected", isMultiPlay);
-        ClearModePreview();
-    }
 
-    private void PreviewMode(bool multiPlay)
-    {
-        modeTitleLabel.text = multiPlay ? MultiModeTitle : SingleModeTitle;
-        modeDescriptionLabel.text = multiPlay ? MultiModeDescription : SingleModeDescription;
-    }
-
-    private void ClearModePreview()
-    {
-        modeTitleLabel.text = string.Empty;
-        modeDescriptionLabel.text = string.Empty;
+        modeTitleLabel.text = isMultiPlay ? "멀티" : "싱글플레이";
+        modeDescriptionLabel.text = isMultiPlay
+            ? "친구와 함께 같은 타워를 번갈아 쌓고 먼저 무너뜨리지 않는 사람이 승리합니다."
+            : "혼자서 블록 타워를 쌓고 최고 점수에 도전합니다.";
     }
 
     public void ShowTitle()

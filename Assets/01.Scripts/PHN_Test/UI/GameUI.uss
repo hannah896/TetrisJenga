@@ -3,7 +3,6 @@
     height: 100%;
     background-color: #f7fbff;
     color: #171717;
-    -unity-font-definition: url("project://database/Assets/00.Resources/Font/DNFBitBitv2.ttf?fileID=12800000&guid=f696af773a4d9964880d5f416fe7512a&type=3#DNFBitBitv2");
     -unity-font-style: bold;
     overflow: hidden;
 }
@@ -16,7 +15,7 @@
     bottom: 0;
     align-items: center;
     justify-content: center;
-    padding: 0;
+    padding: 32px;
 }
 
 .screen--compact {
@@ -35,26 +34,18 @@
 }
 
 .title-menu-layout {
-    width: 950px;
-    height: 850px;
-    margin-left: 120px;
-    margin-top: 90px;
+    width: 650px;
+    height: 600px;
+    margin-left: 140px;
+    margin-top: 52px;
     align-items: center;
-}
-
-.mode-select-layout {
-    width: 1660px;
-    height: 850px;
-    margin-left: 110px;
-    margin-top: 80px;
-    align-items: flex-start;
 }
 
 .title-sprite-row {
     flex-direction: row;
     align-items: flex-end;
     justify-content: center;
-    margin-bottom: 48px;
+    margin-bottom: 52px;
 }
 
 .title-sprite {
@@ -62,37 +53,31 @@
 }
 
 .title-sprite--abyss {
-    width: 444px;
-    height: 192px;
+    width: 296px;
+    height: 128px;
     background-image: url("project://database/Assets/00.Resources/TempImage/StartUI.png?fileID=-1566173602&guid=48713fb5d8712364a999df4153c0f0ff&type=3#StartUI_0");
 }
 
 .title-sprite--stack {
-    width: 399px;
-    height: 170px;
-    margin-left: 18px;
+    width: 266px;
+    height: 113px;
+    margin-left: 12px;
     background-image: url("project://database/Assets/00.Resources/TempImage/StartUI.png?fileID=-1879954767&guid=48713fb5d8712364a999df4153c0f0ff&type=3#StartUI_1");
 }
 
 .title-button-column {
-    width: 460px;
+    width: 300px;
 }
 
 .mode-button-column {
-    width: 940px;
+    width: 320px;
     align-items: center;
 }
 
-.mode-select-body {
-    flex-direction: row;
-    align-items: flex-start;
-    justify-content: flex-start;
-}
-
 .title-image-button {
-    width: 420px;
-    height: 183px;
-    margin-bottom: 18px;
+    width: 280px;
+    height: 122px;
+    margin-bottom: 12px;
     -unity-background-scale-mode: scale-to-fit;
     background-color: rgba(0, 0, 0, 0);
     border-width: 0;
@@ -101,7 +86,7 @@
 }
 
 .title-image-button:hover {
-    -unity-background-image-tint-color: rgb(175, 175, 175);
+    -unity-background-image-tint-color: rgb(255, 255, 255);
 }
 
 .title-image-button--play {
@@ -113,75 +98,48 @@
 }
 
 .title-image-button--exit {
-    height: 162px;
+    height: 108px;
     background-image: url("project://database/Assets/00.Resources/TempImage/StartUI.png?fileID=-1526942479&guid=48713fb5d8712364a999df4153c0f0ff&type=3#StartUI_4");
 }
 
 .mode-image-button {
-    width: 910px;
-    height: 211px;
-    margin-bottom: 6px;
-    -unity-background-scale-mode: scale-to-fit;
-    background-color: rgba(0, 0, 0, 0);
-    border-width: 0;
-    border-color: rgba(120, 213, 255, 0);
+    width: 280px;
+    height: 76px;
+    margin-bottom: 18px;
+    background-color: rgba(38, 58, 69, 0.92);
+    border-width: 4px;
+    border-color: #1a232b;
     border-radius: 0;
-    color: rgba(0, 0, 0, 0);
-    padding: 0;
+    color: #fff4dc;
+    font-size: 25px;
+    -unity-text-align: middle-center;
+    -unity-font-style: bold;
 }
 
 .mode-image-button:hover {
-    border-width: 0;
-    border-color: rgba(120, 213, 255, 0);
-    -unity-background-image-tint-color: rgb(175, 175, 175);
+    background-color: rgba(61, 88, 101, 0.95);
 }
 
 .mode-image-button.selected {
-    background-color: rgba(0, 0, 0, 0);
-    border-width: 0;
-    border-color: rgba(120, 213, 255, 0);
-}
-
-.mode-image-button.selected:hover {
-    border-width: 0;
-    border-color: rgba(120, 213, 255, 0);
-    -unity-background-image-tint-color: rgb(175, 175, 175);
-}
-
-.mode-image-button--single {
-    background-image: url("project://database/Assets/00.Resources/TempImage/SelectModeUI.png?fileID=-1309825100&guid=d10647c0c32e20b40bd0a5a5b3945b40&type=3#SelectModeUI_0");
-}
-
-.mode-image-button--multi {
-    height: 301px;
-    background-image: url("project://database/Assets/00.Resources/TempImage/SelectModeUI.png?fileID=256440675&guid=d10647c0c32e20b40bd0a5a5b3945b40&type=3#SelectModeUI_1");
+    border-color: #78d5ff;
+    background-color: rgba(53, 84, 101, 0.96);
 }
 
 .mode-note-title {
     color: #fff4dc;
-    font-size: 34px;
-    margin-top: 0;
+    font-size: 22px;
+    margin-top: 10px;
     -unity-text-align: middle-center;
     -unity-font-style: bold;
 }
 
 .mode-note-body {
-    width: 430px;
+    width: 310px;
     color: #d9ecf2;
-    font-size: 21px;
+    font-size: 14px;
     white-space: normal;
-    -unity-text-align: upper-left;
-    margin-top: 16px;
-}
-
-.mode-description-panel {
-    width: 490px;
-    min-height: 240px;
-    margin-left: 46px;
-    margin-top: 70px;
-    padding: 30px;
-    background-color: rgba(12, 28, 38, 0.58);
-    border-width: 0;
+    -unity-text-align: middle-center;
+    margin-top: 6px;
 }
 
 .hidden {
@@ -543,84 +501,84 @@
 }
 
 .settings-art-popup {
-    width: 950px;
-    height: 669px;
+    width: 727px;
+    height: 512px;
     background-image: url("../../../00.Resources/TempImage/SettingUI.png");
     -unity-background-scale-mode: scale-to-fit;
 }
 
 .settings-art-title {
     position: absolute;
-    left: 274px;
-    top: 99px;
-    width: 392px;
-    height: 91px;
+    left: 210px;
+    top: 48px;
+    width: 300px;
+    height: 70px;
     color: #111111;
-    font-size: 39px;
+    font-size: 30px;
     -unity-text-align: middle-center;
     -unity-font-style: bold;
 }
 
 .setting-label {
     position: absolute;
-    left: 157px;
-    width: 130px;
-    height: 42px;
+    left: 120px;
+    width: 100px;
+    height: 32px;
     color: #17232a;
-    font-size: 26px;
+    font-size: 20px;
     -unity-font-style: bold;
 }
 
 .setting-label--audio {
-    top: 230px;
+    top: 176px;
 }
 
 .setting-label--bgm {
-    top: 327px;
+    top: 250px;
 }
 
 .setting-label--sfx {
-    top: 423px;
+    top: 324px;
 }
 
 .setting-art-slider {
     position: absolute;
-    left: 307px;
-    width: 431px;
-    height: 42px;
+    left: 235px;
+    width: 330px;
+    height: 32px;
 }
 
 .setting-art-slider--audio {
-    top: 225px;
+    top: 172px;
 }
 
 .setting-art-slider--bgm {
-    top: 321px;
+    top: 246px;
 }
 
 .setting-art-slider--sfx {
-    top: 418px;
+    top: 320px;
 }
 
 .setting-art-button-row {
     position: absolute;
-    left: 300px;
-    bottom: 70px;
-    width: 366px;
+    left: 230px;
+    bottom: 54px;
+    width: 280px;
     flex-direction: row;
     justify-content: center;
 }
 
 .setting-art-button {
-    width: 146px;
-    height: 55px;
-    margin-left: 10px;
-    margin-right: 10px;
+    width: 112px;
+    height: 42px;
+    margin-left: 8px;
+    margin-right: 8px;
     background-color: rgba(38, 58, 69, 0.92);
     border-width: 3px;
     border-color: #1a232b;
     color: #fff4dc;
-    font-size: 22px;
+    font-size: 17px;
     -unity-font-style: bold;
 }
 
