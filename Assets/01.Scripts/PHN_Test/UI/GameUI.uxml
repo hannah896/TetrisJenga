@@ -1,121 +1,132 @@
 <ui:UXML xmlns:ui="UnityEngine.UIElements" editor-extension-mode="False">
-    <Style src="project://database/Assets/01.Scripts/PHN_Test/UI/GameUI.uss?fileID=7433441132597879392&amp;guid=8bf8ef898d784dc49a6bc6664ab08293&amp;type=3#GameUI"/>
+    <Style src="project://database/Assets/01.Scripts/PHN_Test/UI/GameUI.uss?fileID=7433441132597879392&amp;guid=8bf8ef898d784dc49a6bc6664ab08293&amp;type=3#GameUI" />
     <ui:VisualElement name="root" class="root">
-        <ui:VisualElement class="sky-blob blob-left"/>
-        <ui:VisualElement class="sky-blob blob-right"/>
-        <ui:VisualElement class="sky-blob blob-bottom"/>
+        <ui:VisualElement class="sky-blob blob-left" />
+        <ui:VisualElement class="sky-blob blob-right" />
+        <ui:VisualElement class="sky-blob blob-bottom" />
+
         <ui:VisualElement name="title-screen" class="screen title-image-screen">
-            <ui:VisualElement class="title-menu-layout" style="height: 722px; width: 650px;">
-                <ui:VisualElement class="title-sprite-row">
-                    <ui:VisualElement class="title-sprite title-sprite--abyss"/>
-                    <ui:VisualElement class="title-sprite title-sprite--stack"/>
-                </ui:VisualElement>
-                <ui:VisualElement class="title-button-column">
-                    <ui:Button name="play-button" text="" class="title-image-button title-image-button--play"/>
-                    <ui:Button name="setting-button" text="" class="title-image-button title-image-button--settings"/>
-                    <ui:Button name="exit-button" text="" class="title-image-button title-image-button--exit"/>
-                </ui:VisualElement>
-            </ui:VisualElement>
-        </ui:VisualElement>
-        <ui:VisualElement name="mode-select-screen" class="screen title-image-screen hidden">
             <ui:VisualElement class="title-menu-layout">
                 <ui:VisualElement class="title-sprite-row">
-                    <ui:VisualElement class="title-sprite title-sprite--abyss"/>
-                    <ui:VisualElement class="title-sprite title-sprite--stack"/>
+                    <ui:VisualElement class="title-sprite title-sprite--abyss" />
+                    <ui:VisualElement class="title-sprite title-sprite--stack" />
                 </ui:VisualElement>
-                <ui:VisualElement class="mode-button-column">
-                    <ui:Button name="single-play-button" text="Single - Play" class="mode-image-button selected"/>
-                    <ui:Button name="multi-play-button" text="Multi - Play" class="mode-image-button"/>
-                    <ui:Label name="mode-title-label" text="싱글플레이" class="mode-note-title"/>
-                    <ui:Label name="mode-description-label" text="혼자서 블록 타워를 쌓고 최고 점수에 도전합니다." class="mode-note-body"/>
+                <ui:VisualElement class="title-button-column">
+                    <ui:Button name="play-button" text="" class="title-image-button title-image-button--play" />
+                    <ui:Button name="setting-button" text="" class="title-image-button title-image-button--settings" />
+                    <ui:Button name="exit-button" text="" class="title-image-button title-image-button--exit" />
                 </ui:VisualElement>
             </ui:VisualElement>
         </ui:VisualElement>
+
+        <ui:VisualElement name="mode-select-screen" class="screen title-image-screen hidden">
+            <ui:VisualElement class="title-menu-layout mode-select-layout">
+                <ui:VisualElement class="title-sprite-row">
+                    <ui:VisualElement class="title-sprite title-sprite--abyss" />
+                    <ui:VisualElement class="title-sprite title-sprite--stack" />
+                </ui:VisualElement>
+                <ui:VisualElement class="mode-select-body">
+                    <ui:VisualElement class="mode-button-column">
+                        <ui:Button name="single-play-button" text="" class="mode-image-button mode-image-button--single selected" />
+                        <ui:Button name="multi-play-button" text="" class="mode-image-button mode-image-button--multi" />
+                    </ui:VisualElement>
+                    <ui:VisualElement class="mode-description-panel">
+                        <ui:Label name="mode-title-label" text="" class="mode-note-title" />
+                        <ui:Label name="mode-description-label" text="" class="mode-note-body" />
+                    </ui:VisualElement>
+                </ui:VisualElement>
+            </ui:VisualElement>
+        </ui:VisualElement>
+
         <ui:VisualElement name="stage-select-screen" class="screen hidden">
             <ui:VisualElement class="panel stage-panel">
                 <ui:VisualElement class="stage-art">
-                    <ui:VisualElement class="stage-doodle stage-doodle--one"/>
-                    <ui:VisualElement class="stage-doodle stage-doodle--two"/>
-                    <ui:VisualElement class="stage-doodle stage-doodle--three"/>
-                    <ui:VisualElement class="stage-doodle stage-doodle--four"/>
+                    <ui:VisualElement class="stage-doodle stage-doodle--one" />
+                    <ui:VisualElement class="stage-doodle stage-doodle--two" />
+                    <ui:VisualElement class="stage-doodle stage-doodle--three" />
+                    <ui:VisualElement class="stage-doodle stage-doodle--four" />
                 </ui:VisualElement>
                 <ui:VisualElement class="stage-select-card">
-                    <ui:Label text="Stage Select" class="stage-heading"/>
+                    <ui:Label text="Stage Select" class="stage-heading" />
                     <ui:VisualElement class="stage-grid">
-                        <ui:Button name="stage-1-button" text="1" class="stage-button selected"/>
-                        <ui:Button name="stage-2-button" text="2" class="stage-button"/>
-                        <ui:Button name="stage-3-button" text="3" class="stage-button"/>
-                        <ui:Button name="stage-4-button" text="4" class="stage-button"/>
-                        <ui:Button name="stage-5-button" text="5" class="stage-button"/>
-                        <ui:Button name="stage-6-button" text="6" class="stage-button"/>
+                        <ui:Button name="stage-1-button" text="1" class="stage-button selected" />
+                        <ui:Button name="stage-2-button" text="2" class="stage-button" />
+                        <ui:Button name="stage-3-button" text="3" class="stage-button" />
+                        <ui:Button name="stage-4-button" text="4" class="stage-button" />
+                        <ui:Button name="stage-5-button" text="5" class="stage-button" />
+                        <ui:Button name="stage-6-button" text="6" class="stage-button" />
                     </ui:VisualElement>
-                    <ui:Button name="stage-play-button" text="PLAY" class="play-button"/>
+                    <ui:Button name="stage-play-button" text="PLAY" class="play-button" />
                 </ui:VisualElement>
-                <ui:Label text="Tetris Jenga" class="brand-caption"/>
+                <ui:Label text="Tetris Jenga" class="brand-caption" />
             </ui:VisualElement>
         </ui:VisualElement>
+
         <ui:VisualElement name="game-screen" class="screen hidden">
             <ui:VisualElement class="game-layout">
                 <ui:VisualElement class="hud-top">
                     <ui:VisualElement class="player-tag active">
-                        <ui:Label name="player1-label" text="Player 1"/>
-                        <ui:Label text="your turn!" class="turn-label"/>
+                        <ui:Label name="player1-label" text="Player 1" />
+                        <ui:Label text="your turn!" class="turn-label" />
                     </ui:VisualElement>
                     <ui:VisualElement class="player-tag">
-                        <ui:Label name="player2-label" text="Player 2"/>
+                        <ui:Label name="player2-label" text="Player 2" />
                     </ui:VisualElement>
                 </ui:VisualElement>
                 <ui:VisualElement class="play-field">
-                    <ui:VisualElement class="tower tower-row--top"/>
-                    <ui:VisualElement class="tower tower-row--middle"/>
-                    <ui:VisualElement class="tower tower-row--bottom"/>
-                    <ui:Label name="stage-label" text="Stage 1" class="stage-label"/>
+                    <ui:VisualElement class="tower tower-row--top" />
+                    <ui:VisualElement class="tower tower-row--middle" />
+                    <ui:VisualElement class="tower tower-row--bottom" />
+                    <ui:Label name="stage-label" text="Stage 1" class="stage-label" />
                 </ui:VisualElement>
                 <ui:VisualElement class="next-panel">
-                    <ui:Label text="NEXT" class="next-title"/>
+                    <ui:Label text="NEXT" class="next-title" />
                     <ui:VisualElement class="next-grid">
-                        <ui:VisualElement class="next-cell"/>
-                        <ui:VisualElement class="next-cell"/>
-                        <ui:VisualElement class="next-cell"/>
-                        <ui:VisualElement class="next-cell"/>
-                        <ui:VisualElement class="next-cell"/>
-                        <ui:VisualElement class="next-cell"/>
+                        <ui:VisualElement class="next-cell" />
+                        <ui:VisualElement class="next-cell" />
+                        <ui:VisualElement class="next-cell" />
+                        <ui:VisualElement class="next-cell" />
+                        <ui:VisualElement class="next-cell" />
+                        <ui:VisualElement class="next-cell" />
                     </ui:VisualElement>
                 </ui:VisualElement>
             </ui:VisualElement>
         </ui:VisualElement>
+
         <ui:VisualElement name="setting-popup" class="overlay hidden">
             <ui:VisualElement class="settings-art-popup">
-                <ui:Label text="Setting" class="settings-art-title"/>
-                <ui:Label text="Audio" class="setting-label setting-label--audio"/>
-                <ui:Slider name="audio-slider" low-value="0" high-value="1" value="0.85" class="setting-art-slider setting-art-slider--audio"/>
-                <ui:Label text="BGM" class="setting-label setting-label--bgm"/>
-                <ui:Slider name="bgm-slider" low-value="0" high-value="1" value="0.55" class="setting-art-slider setting-art-slider--bgm"/>
-                <ui:Label text="SFX" class="setting-label setting-label--sfx"/>
-                <ui:Slider name="sfx-slider" low-value="0" high-value="1" value="0.75" class="setting-art-slider setting-art-slider--sfx"/>
+                <ui:Label text="Setting" class="settings-art-title" />
+                <ui:Label text="All" class="setting-label setting-label--audio" />
+                <ui:Slider name="audio-slider" low-value="0" high-value="1" value="1" class="setting-art-slider setting-art-slider--audio" />
+                <ui:Label text="BGM" class="setting-label setting-label--bgm" />
+                <ui:Slider name="bgm-slider" low-value="0" high-value="1" value="1" class="setting-art-slider setting-art-slider--bgm" />
+                <ui:Label text="SFX" class="setting-label setting-label--sfx" />
+                <ui:Slider name="sfx-slider" low-value="0" high-value="1" value="1" class="setting-art-slider setting-art-slider--sfx" />
                 <ui:VisualElement class="setting-art-button-row">
-                    <ui:Button name="setting-home-button" text="Home" class="setting-art-button"/>
-                    <ui:Button name="setting-exit-button" text="Exit" class="setting-art-button"/>
+                    <ui:Button name="setting-home-button" text="Home" class="setting-art-button" />
+                    <ui:Button name="setting-exit-button" text="Exit" class="setting-art-button" />
                 </ui:VisualElement>
             </ui:VisualElement>
         </ui:VisualElement>
+
         <ui:VisualElement name="result-popup" class="overlay hidden">
             <ui:VisualElement class="popup win-popup">
-                <ui:Label name="winner-label" text="Player 1 승리!" class="popup-title"/>
+                <ui:Label name="winner-label" text="Player 1 승리!" class="popup-title" />
                 <ui:VisualElement class="button-row split">
-                    <ui:Button name="retry-button" text="Retry" class="small-button"/>
-                    <ui:Button name="result-exit-button" text="Exit" class="small-button"/>
+                    <ui:Button name="retry-button" text="Retry" class="small-button" />
+                    <ui:Button name="result-exit-button" text="Exit" class="small-button" />
                 </ui:VisualElement>
             </ui:VisualElement>
         </ui:VisualElement>
+
         <ui:VisualElement name="result-screen" class="screen hidden">
             <ui:VisualElement class="panel result-panel">
-                <ui:Label text="★★★" class="star"/>
-                <ui:Label name="score-label" text="31000점" class="score"/>
+                <ui:Label text="★★★" class="star" />
+                <ui:Label name="score-label" text="31000점" class="score" />
                 <ui:VisualElement class="button-row result-buttons">
-                    <ui:Button name="home-button" text="Home" class="small-button"/>
-                    <ui:Button name="final-exit-button" text="Exit" class="small-button"/>
-                    <ui:Button name="next-button" text="Next" class="small-button primary"/>
+                    <ui:Button name="home-button" text="Home" class="small-button" />
+                    <ui:Button name="final-exit-button" text="Exit" class="small-button" />
+                    <ui:Button name="next-button" text="Next" class="small-button primary" />
                 </ui:VisualElement>
             </ui:VisualElement>
         </ui:VisualElement>
