@@ -45,7 +45,7 @@ public class BlockTower : MonoBehaviour
     [SerializeField, Range(1f, 1.3f)] float selectedOutlineScale = 1.10f;
 
     [Header("Physics")]
-    public float blockFriction = 1f;
+    public float blockFriction = 1.2f;
     [SerializeField, Range(0f, 1f)] float floorFrictionMultiplier = 0.5f;
 
     [Header("Half Base")]
@@ -54,9 +54,19 @@ public class BlockTower : MonoBehaviour
     [SerializeField] Vector2 halfBaseSize = new(4f, 2f);
     [SerializeField, Range(8, 64)] int halfBaseSegments = 32;
     [SerializeField, Min(0.05f)] float halfBaseDepth = 1f;
-    [SerializeField] bool halfBaseMovable = true;
     [SerializeField, Min(0.01f)] float halfBaseMass = 5f;
     [SerializeField, Range(0f, 1f)] float halfBaseFrictionMultiplier = 0.5f;
+    [SerializeField, Range(0f, 35f)] float halfBaseMaxTiltDegrees = 22f;
+    [SerializeField, Range(0.1f, 20f)] float halfBaseTiltResponse = 10f;
+    [SerializeField, Range(0f, 4f)] float halfBaseTiltSensitivity = 1.25f;
+    [SerializeField, Range(0f, 1f)] float towerVisualTiltMultiplier = 0.75f;
+    [SerializeField, Min(1)] int placedCellsForFullTilt = 24;
+    [SerializeField, Range(0f, 20f)] float placementTiltKickDegrees = 1.25f;
+    [SerializeField, Range(0f, 8f)] float placementTiltOscillationDegrees = 4f;
+    [SerializeField, Range(0f, 10f)] float placementTiltOscillationFrequency = 3.2f;
+    [SerializeField, Range(0.05f, 3f)] float placementTiltKickDuration = 1.25f;
+    [SerializeField, Range(0.05f, 1f)] float detachedSettleFallDuration = 0.28f;
+    [SerializeField, Range(0f, 0.25f)] float detachedSettleBounceHeight = 0.08f;
 
     [Header("Detached Blocks")]
     [SerializeField] float detachedReattachStableTime = 0.15f;
@@ -73,6 +83,7 @@ public class BlockTower : MonoBehaviour
     Sprite         _generatedHalfBaseSprite;
     GameObject     _generatedFloor;
     GameObject     _generatedHalfBase;
+    Rigidbody      _halfBaseRigidbody;
     GameObject     _generatedScoreLabel;
     GameObject     _leftBoundary;
     GameObject     _rightBoundary;
@@ -80,6 +91,10 @@ public class BlockTower : MonoBehaviour
     int            _score;
     bool           _isGameOver;
     Sprite         _outlineSprite;
+    float          _halfBaseTiltDegrees;
+    float          _tiltKickStartTime = -1f;
+    float          _tiltKickDirection;
+    Vector3        _towerRootBasePosition;
 
     // ── 셀 데이터 ─────────────────────────────────────────────────────────
     class CellData
@@ -97,6 +112,7 @@ public class BlockTower : MonoBehaviour
     readonly List<Vector2Int>                  _selected = new();
     readonly HashSet<Vector2Int>               _lastPlacedCells = new();
     readonly List<DetachedComponent>           _detachedComponents = new();
+    readonly Dictionary<CellData, Vector3>      _settleVisualOffsets = new();
 
     class DetachedComponent
     {
@@ -141,6 +157,7 @@ public class BlockTower : MonoBehaviour
         _selected.Clear();
         _lastPlacedCells.Clear();
         _detachedComponents.Clear();
+        _settleVisualOffsets.Clear();
         _isHolding  = false;
         _isGameOver = false;
         _hasFocusedCell = false;
@@ -153,6 +170,11 @@ public class BlockTower : MonoBehaviour
         _extractionMaxRow = rows - 1;
         _blockSprite = null;
         _outlineSprite = null;
+        _halfBaseRigidbody = null;
+        _halfBaseTiltDegrees = 0f;
+        _tiltKickStartTime = -1f;
+        _tiltKickDirection = 0f;
+        _towerRootBasePosition = Vector3.zero;
         _score = 0;
         BuildTower();
     }
@@ -181,7 +203,7 @@ public class BlockTower : MonoBehaviour
         if (_generatedFloor != null) { DestroyLocal(_generatedFloor); _generatedFloor = null; }
 
         if (_generatedHalfBase == null) { var f = transform.Find("HalfBase"); if (f) _generatedHalfBase = f.gameObject; }
-        if (_generatedHalfBase != null) { DestroyLocal(_generatedHalfBase); _generatedHalfBase = null; }
+        if (_generatedHalfBase != null) { DestroyLocal(_generatedHalfBase); _generatedHalfBase = null; _halfBaseRigidbody = null; }
 
         if (_generatedScoreLabel == null) { var f = transform.Find("ScoreLabel"); if (f) _generatedScoreLabel = f.gameObject; }
         if (_generatedScoreLabel != null && scoreLabel == null) { DestroyLocal(_generatedScoreLabel); _generatedScoreLabel = null; scoreLabel = null; }
@@ -198,6 +220,39 @@ public class BlockTower : MonoBehaviour
     {
         if (Application.isPlaying) Destroy(go);
         else DestroyImmediate(go);
+    }
+
+    Vector3 GridLocalToWorld(Vector3 localPosition)
+    {
+        return _towerRoot != null ? _towerRoot.TransformPoint(localPosition) : localPosition;
+    }
+
+    Vector3 WorldToGridLocal(Vector3 worldPosition)
+    {
+        return _towerRoot != null ? _towerRoot.InverseTransformPoint(worldPosition) : worldPosition;
+    }
+
+    Quaternion GetTowerVisualRotation()
+    {
+        return Quaternion.Euler(0f, 0f, _halfBaseTiltDegrees * towerVisualTiltMultiplier);
+    }
+
+    Vector3 VisualGridLocalToWorld(Vector3 localPosition)
+    {
+        if (_towerRoot == null) return localPosition;
+
+        var pivot = new Vector3(columns * 0.5f, 0f, 0f);
+        var rotatedLocal = pivot + GetTowerVisualRotation() * (localPosition - pivot);
+        return _towerRoot.TransformPoint(rotatedLocal);
+    }
+
+    Vector3 WorldToVisualGridLocal(Vector3 worldPosition)
+    {
+        if (_towerRoot == null) return worldPosition;
+
+        var pivot = new Vector3(columns * 0.5f, 0f, 0f);
+        var local = _towerRoot.InverseTransformPoint(worldPosition);
+        return pivot + Quaternion.Inverse(GetTowerVisualRotation()) * (local - pivot);
     }
 
     // ── 스코어 ───────────────────────────────────────────────────────────
@@ -282,6 +337,7 @@ public class BlockTower : MonoBehaviour
         }
 
         UpdateCameraTarget();
+        UpdateHalfBaseTilt();
     }
 
     // ── 게임오버 ─────────────────────────────────────────────────────────
@@ -493,7 +549,7 @@ public class BlockTower : MonoBehaviour
     {
         RefreshDetachedComponents();
         var worldPos = MouseWorldPos();
-        var local = _towerRoot.InverseTransformPoint(worldPos);
+        var local = WorldToVisualGridLocal(worldPos);
         var cell  = new Vector2Int(Mathf.FloorToInt(local.x), Mathf.FloorToInt(local.y));
 
         if (!IsExtractableCell(cell)) return;
@@ -664,14 +720,26 @@ public class BlockTower : MonoBehaviour
             });
         }
 
-        CheckForDetachment();
+        bool settledDetachedBlocks = CheckForDetachment();
 
         _isHolding = true;
         _usingKeyboardPlacement = false;
         _heldBaseCell = GetDefaultHeldBaseCell();
         if (autoFocusCameraOnLift)
-            ShowPlacementCameraView(immediate: false);
+        {
+            if (settledDetachedBlocks && Application.isPlaying)
+                StartCoroutine(ShowPlacementCameraAfterSettle());
+            else
+                ShowPlacementCameraView(immediate: false);
+        }
         AddScore(1);
+    }
+
+    IEnumerator ShowPlacementCameraAfterSettle()
+    {
+        yield return new WaitForSeconds(Mathf.Max(0.01f, detachedSettleFallDuration));
+        if (_isHolding && !_isGameOver)
+            ShowPlacementCameraView(immediate: false);
     }
 
     // ── 커서 추적 ─────────────────────────────────────────────────────────
@@ -684,7 +752,9 @@ public class BlockTower : MonoBehaviour
             ? _failFlashColor
             : canPlace ? _validHoldColor : _invalidHoldColor;
 
-        _heldRoot.transform.position = snappedWorldPos + FailShakeOffset(isFailing);
+        _heldRoot.transform.SetPositionAndRotation(
+            snappedWorldPos + FailShakeOffset(isFailing),
+            GetTowerVisualRotation());
         SetHeldPreviewColor(previewColor, canPlace && !isFailing);
     }
 
@@ -706,7 +776,7 @@ public class BlockTower : MonoBehaviour
 
     Vector2Int GetMouseHeldBaseCell()
     {
-        var local = _towerRoot.InverseTransformPoint(MouseWorldPos());
+        var local = WorldToVisualGridLocal(MouseWorldPos());
         return new Vector2Int(
             Mathf.RoundToInt(local.x - _heldCenter.x),
             Mathf.RoundToInt(local.y - _heldCenter.y));
@@ -820,7 +890,7 @@ public class BlockTower : MonoBehaviour
         var detachedCells = CollectStableDetachedCells();
         targets = new List<Vector2Int>(_heldRelPos.Count);
         var snappedLocalPos = new Vector3(baseCell.x + _heldCenter.x, baseCell.y + _heldCenter.y, 0f);
-        snappedWorldPos = _towerRoot.TransformPoint(snappedLocalPos);
+        snappedWorldPos = VisualGridLocalToWorld(snappedLocalPos);
 
         foreach (var rel in _heldRelPos)
         {
@@ -878,6 +948,7 @@ public class BlockTower : MonoBehaviour
             ClearPreviewBlur(data);
             data.go.transform.SetParent(_towerRoot, false);
             data.go.transform.localPosition = new Vector3(target.x + 0.5f, target.y + 0.5f, 0f);
+            data.go.transform.localRotation = Quaternion.identity;
 
             var box = data.go.GetComponent<BoxCollider>();
             if (box != null) box.enabled = true;
@@ -912,6 +983,7 @@ public class BlockTower : MonoBehaviour
         }
         else if (autoFocusCameraOnLift)
             ShowPlacementCameraView(immediate: false);
+        KickHalfBaseTiltFromCells(targets);
         AddScore(1);
     }
 
@@ -941,9 +1013,115 @@ public class BlockTower : MonoBehaviour
 
     // ── 연결 요소 분리 ────────────────────────────────────────────────────
 
-    void CheckForDetachment()
+    bool CheckForDetachment()
     {
-        // Blocks now each own a Rigidbody, so disconnected chunks already move independently.
+        bool movedAny = false;
+        bool movedThisPass;
+        int guard = 0;
+
+        do
+        {
+            movedThisPass = false;
+            var components = FindConnectedComponents();
+            components.Sort((a, b) => MinComponentY(a).CompareTo(MinComponentY(b)));
+
+            foreach (var component in components)
+            {
+                int drop = CalculateComponentDrop(component);
+                if (drop <= 0) continue;
+
+                MoveComponentDown(component, drop);
+                movedThisPass = true;
+                movedAny = true;
+            }
+        }
+        while (movedThisPass && ++guard < rows + placementMax.y + 4);
+
+        if (movedAny)
+        {
+            UpdateExtractionTowerRowsFromCells();
+            RefreshCellRigidbodies();
+            UpdateTowerVisualTilt(_halfBaseTiltDegrees * towerVisualTiltMultiplier);
+        }
+
+        return movedAny;
+    }
+
+    int CalculateComponentDrop(List<Vector2Int> component)
+    {
+        if (component == null || component.Count == 0) return 0;
+
+        var componentSet = new HashSet<Vector2Int>(component);
+        int maxDrop = int.MaxValue;
+
+        foreach (var cell in component)
+        {
+            maxDrop = Mathf.Min(maxDrop, cell.y);
+
+            foreach (var other in _cells.Keys)
+            {
+                if (componentSet.Contains(other)) continue;
+                if (other.x != cell.x || other.y >= cell.y) continue;
+
+                maxDrop = Mathf.Min(maxDrop, cell.y - other.y - 1);
+            }
+        }
+
+        return Mathf.Max(0, maxDrop == int.MaxValue ? 0 : maxDrop);
+    }
+
+    void MoveComponentDown(List<Vector2Int> component, int drop)
+    {
+        var moving = new List<(Vector2Int from, Vector2Int to, CellData data)>(component.Count);
+        foreach (var from in component)
+        {
+            if (!_cells.TryGetValue(from, out var data)) continue;
+            moving.Add((from, new Vector2Int(from.x, from.y - drop), data));
+        }
+
+        foreach (var item in moving)
+            _cells.Remove(item.from);
+
+        foreach (var item in moving)
+        {
+            _cells[item.to] = item.data;
+            item.data.go.transform.SetParent(_towerRoot, false);
+            _settleVisualOffsets[item.data] = new Vector3(0f, drop, 0f);
+            ApplyCellVisual(item.to);
+        }
+
+        if (Application.isPlaying)
+            StartCoroutine(AnimateSettledComponent(moving));
+    }
+
+    IEnumerator AnimateSettledComponent(List<(Vector2Int from, Vector2Int to, CellData data)> moving)
+    {
+        float duration = Mathf.Max(0.01f, detachedSettleFallDuration);
+        float elapsed = 0f;
+
+        while (elapsed < duration)
+        {
+            elapsed += Time.deltaTime;
+            float t = Mathf.Clamp01(elapsed / duration);
+            float eased = 1f - Mathf.Pow(1f - t, 3f);
+            float bounce = Mathf.Sin(t * Mathf.PI) * detachedSettleBounceHeight;
+
+            foreach (var item in moving)
+            {
+                if (item.data == null) continue;
+                float startDrop = item.from.y - item.to.y;
+                _settleVisualOffsets[item.data] = new Vector3(0f, startDrop * (1f - eased) + bounce, 0f);
+            }
+
+            UpdateTowerVisualTilt(_halfBaseTiltDegrees * towerVisualTiltMultiplier);
+            yield return null;
+        }
+
+        foreach (var item in moving)
+            if (item.data != null)
+                _settleVisualOffsets.Remove(item.data);
+
+        UpdateTowerVisualTilt(_halfBaseTiltDegrees * towerVisualTiltMultiplier);
     }
 
     int FindMainTowerComponentIndex(List<List<Vector2Int>> components)
@@ -1141,7 +1319,7 @@ public class BlockTower : MonoBehaviour
 
     bool TryWorldToGridCell(Vector3 worldPosition, out Vector2Int cell)
     {
-        var local = _towerRoot.InverseTransformPoint(worldPosition);
+        var local = WorldToGridLocal(worldPosition);
         cell = new Vector2Int(
             Mathf.RoundToInt(local.x - 0.5f),
             Mathf.RoundToInt(local.y - 0.5f));
@@ -1224,10 +1402,12 @@ public class BlockTower : MonoBehaviour
             rb = go.AddComponent<Rigidbody>();
 
         rb.mass = Mathf.Max(0.01f, mass);
-        rb.useGravity = true;
-        rb.isKinematic = false;
+        rb.useGravity = false;
+        rb.isKinematic = true;
         rb.interpolation = RigidbodyInterpolation.Interpolate;
         rb.collisionDetectionMode = CollisionDetectionMode.ContinuousSpeculative;
+        rb.linearVelocity = Vector3.zero;
+        rb.angularVelocity = Vector3.zero;
         rb.linearDamping = 0.3f;
         rb.angularDamping = 2f;
         rb.constraints = RigidbodyConstraints.FreezePositionZ
@@ -1321,6 +1501,8 @@ public class BlockTower : MonoBehaviour
             towerRootGO.transform.SetParent(transform);
         }
         towerRootGO.transform.position = new Vector3(-columns * 0.5f, -rows * 0.5f, 0f);
+        towerRootGO.transform.rotation = Quaternion.identity;
+        _towerRootBasePosition = towerRootGO.transform.position;
         _towerRoot = towerRootGO.transform;
 
         for (int row = 0; row < rows; row++)
@@ -1331,7 +1513,7 @@ public class BlockTower : MonoBehaviour
                 var cell   = new Vector2Int(col, row);
 
                 var go = new GameObject($"Cell_{col}_{row}");
-                go.transform.SetParent(towerRootGO.transform, false);
+                go.transform.SetParent(_towerRoot, false);
                 go.transform.localPosition = new Vector3(col + 0.5f, row + 0.5f, 0f);
 
                 var sr = go.AddComponent<SpriteRenderer>();
@@ -1401,21 +1583,122 @@ public class BlockTower : MonoBehaviour
         FitSpriteToSize(visual.transform, sr.sprite, safeSize);
 
         var rb = go.AddComponent<Rigidbody>();
-        rb.isKinematic = !halfBaseMovable;
-        rb.useGravity = halfBaseMovable;
+        rb.isKinematic = true;
+        rb.useGravity = false;
         rb.mass = halfBaseMass;
         rb.interpolation = RigidbodyInterpolation.Interpolate;
         rb.collisionDetectionMode = CollisionDetectionMode.ContinuousSpeculative;
+        rb.linearVelocity = Vector3.zero;
+        rb.angularVelocity = Vector3.zero;
         rb.linearDamping = 0.3f;
         rb.angularDamping = 2f;
         rb.constraints = RigidbodyConstraints.FreezePositionZ
                        | RigidbodyConstraints.FreezeRotationX
                        | RigidbodyConstraints.FreezeRotationY;
+        _halfBaseRigidbody = rb;
 
         var col = go.AddComponent<MeshCollider>();
         col.sharedMesh = CreateHalfBaseCollisionMesh(safeSize, Mathf.Max(8, halfBaseSegments), Mathf.Max(0.05f, halfBaseDepth));
         col.convex = true;
         col.sharedMaterial = CreateHalfBaseFrictionMaterial();
+    }
+
+    void UpdateHalfBaseTilt()
+    {
+        if (!halfBaseEnabled || _generatedHalfBase == null) return;
+
+        float targetTilt = CalculateHalfBaseTargetTilt() + CalculateTiltKick();
+        float t = 1f - Mathf.Exp(-halfBaseTiltResponse * Time.deltaTime);
+        _halfBaseTiltDegrees = Mathf.Lerp(_halfBaseTiltDegrees, targetTilt, t);
+
+        var rotation = Quaternion.Euler(0f, 0f, _halfBaseTiltDegrees);
+        if (_halfBaseRigidbody != null)
+            _halfBaseRigidbody.MoveRotation(rotation);
+        else
+            _generatedHalfBase.transform.rotation = rotation;
+
+        UpdateTowerVisualTilt(_halfBaseTiltDegrees * towerVisualTiltMultiplier);
+    }
+
+    void KickHalfBaseTiltFromCells(List<Vector2Int> cells)
+    {
+        if (cells == null || cells.Count == 0) return;
+
+        float sumX = 0f;
+        foreach (var cell in cells)
+            sumX += cell.x + 0.5f;
+
+        float offset = sumX / cells.Count - columns * 0.5f;
+        if (Mathf.Abs(offset) < 0.01f) return;
+
+        _tiltKickDirection = -Mathf.Sign(offset);
+        _tiltKickStartTime = Time.time;
+    }
+
+    float CalculateTiltKick()
+    {
+        if (_tiltKickStartTime < 0f || placementTiltKickDuration <= 0f) return 0f;
+
+        float elapsed = Time.time - _tiltKickStartTime;
+        float progress = Mathf.Clamp01(elapsed / placementTiltKickDuration);
+        if (progress >= 1f)
+        {
+            _tiltKickStartTime = -1f;
+            return 0f;
+        }
+
+        float fade = 1f - progress;
+        float wobbleScale = Mathf.Lerp(0.35f, 1f, CalculateTiltProgress());
+        float shove = placementTiltKickDegrees * fade;
+        float wobble = Mathf.Sin(elapsed * Mathf.PI * 2f * placementTiltOscillationFrequency)
+                     * placementTiltOscillationDegrees
+                     * fade;
+
+        return _tiltKickDirection * (shove + wobble) * wobbleScale;
+    }
+
+    float CalculateTiltProgress()
+    {
+        int placedCells = 0;
+        foreach (var data in _cells.Values)
+            if (!data.isOriginalTower)
+                placedCells++;
+
+        return Mathf.Clamp01(placedCells / (float)Mathf.Max(1, placedCellsForFullTilt));
+    }
+
+    void UpdateTowerVisualTilt(float tiltDegrees)
+    {
+        if (_towerRoot == null) return;
+        _towerRoot.SetPositionAndRotation(_towerRootBasePosition, Quaternion.identity);
+
+        var localPivot = new Vector3(columns * 0.5f, 0f, 0f);
+        var rotation = Quaternion.Euler(0f, 0f, tiltDegrees);
+
+        foreach (var (cell, data) in _cells)
+        {
+            if (data.go == null) continue;
+
+            var gridLocal = new Vector3(cell.x + 0.5f, cell.y + 0.5f, 0f);
+            if (_settleVisualOffsets.TryGetValue(data, out var settleOffset))
+                gridLocal += settleOffset;
+            data.go.transform.SetLocalPositionAndRotation(
+                localPivot + rotation * (gridLocal - localPivot),
+                rotation);
+        }
+    }
+
+    float CalculateHalfBaseTargetTilt()
+    {
+        float halfWidth = Mathf.Max(0.5f, columns * 0.5f);
+        float centerX = columns * 0.5f;
+        float offset = CalculateCenterOfMass().x - centerX;
+        float normalizedOffset = Mathf.Clamp(offset / halfWidth, -1f, 1f);
+
+        return Mathf.Clamp(
+            -normalizedOffset * halfBaseMaxTiltDegrees * halfBaseTiltSensitivity * CalculateTiltProgress(),
+            -halfBaseMaxTiltDegrees,
+             halfBaseMaxTiltDegrees);
     }
 
     float GetTowerBottomY()

@@ -19364,16 +19364,26 @@ MonoBehaviour:
   selectedOutlineColor: {r: 1, g: 1, b: 1, a: 0.95}
   focusedOutlineScale: 1.18
   selectedOutlineScale: 1.1
-  blockFriction: 100
+  blockFriction: 1.2
   floorFrictionMultiplier: 0.5
   halfBaseEnabled: 1
   halfBaseSprite: {fileID: 21300000, guid: 064d5d1d942450142ad4c494e736f96a, type: 3}
   halfBaseSize: {x: 4, y: 2}
   halfBaseSegments: 32
   halfBaseDepth: 1
-  halfBaseMovable: 1
-  halfBaseMass: 5
+  halfBaseMass: 120
   halfBaseFrictionMultiplier: 0.5
+  halfBaseMaxTiltDegrees: 22
+  halfBaseTiltResponse: 10
+  halfBaseTiltSensitivity: 1.25
+  towerVisualTiltMultiplier: 0.75
+  placedCellsForFullTilt: 24
+  placementTiltKickDegrees: 1.25
+  placementTiltOscillationDegrees: 4
+  placementTiltOscillationFrequency: 3.2
+  placementTiltKickDuration: 1.25
+  detachedSettleFallDuration: 0.28
+  detachedSettleBounceHeight: 0.08
   detachedReattachStableTime: 0.15
   detachedReattachVelocity: 0.55
   detachedMinAirTime: 0.35

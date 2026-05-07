@@ -1572,7 +1572,18 @@ MonoBehaviour:
   rows: 10
   placementMin: {x: -1, y: 9}
   placementMax: {x: 4, y: 40}
-  blockFriction: 10
+  blockFriction: 1.2
+  halfBaseMaxTiltDegrees: 22
+  halfBaseTiltResponse: 10
+  halfBaseTiltSensitivity: 1.25
+  towerVisualTiltMultiplier: 0.75
+  placedCellsForFullTilt: 24
+  placementTiltKickDegrees: 1.25
+  placementTiltOscillationDegrees: 4
+  placementTiltOscillationFrequency: 3.2
+  placementTiltKickDuration: 1.25
+  detachedSettleFallDuration: 0.28
+  detachedSettleBounceHeight: 0.08
   towerRootTransform: {fileID: 0}
   floorTransform: {fileID: 0}
   scoreLabel: {fileID: 7894223092979549093}
