@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.SceneManagement;
 using UnityEngine.UIElements;
 #if ENABLE_INPUT_SYSTEM
 using UnityEngine.InputSystem;
@@ -43,6 +44,7 @@ public class UIManager : MonoBehaviour
     private const string AudioVolumeKey = "Settings.AudioVolume";
     private const string BgmVolumeKey = "Settings.BgmVolume";
     private const string SfxVolumeKey = "Settings.SfxVolume";
+    private const string StageSceneName = "StageScene";
     private const float DefaultVolume = 1f;
 
     private void Awake()
@@ -187,7 +189,7 @@ public class UIManager : MonoBehaviour
         singlePlayButton.clicked += () =>
         {
             SetMode(false);
-            ShowStageSelect();
+            LoadStageScene();
         };
 
         multiPlayButton.clicked += () =>
@@ -274,6 +276,13 @@ public class UIManager : MonoBehaviour
     {
         HideResultPopup();
         ShowOnly(stageSelectScreen);
+    }
+
+    private void LoadStageScene()
+    {
+        HideSettingPopup();
+        HideResultPopup();
+        SceneManager.LoadScene(StageSceneName);
     }
 
     public void StartGame()
