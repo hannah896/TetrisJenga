@@ -46,6 +46,8 @@ public class BlockTower : MonoBehaviour
 
     [Header("Physics")]
     public float blockFriction = 1f;
+    [SerializeField] float toppleTorque = 4f;
+    [SerializeField] float toppleMargin = 0.05f;
 
     [Header("Detached Blocks")]
     [SerializeField] float detachedReattachStableTime = 0.15f;
@@ -650,8 +652,7 @@ public class BlockTower : MonoBehaviour
         }
 
         CheckForDetachment();
-        if (_cells.Count > 0)
-            _rb.centerOfMass = CalculateCenterOfMass();
+        UpdateTowerPhysicsState();
 
         _isHolding = true;
         _usingKeyboardPlacement = false;
@@ -890,7 +891,7 @@ public class BlockTower : MonoBehaviour
         _usingKeyboardPlacement = false;
         ClearKeyboardFocus();
 
-        _rb.centerOfMass = CalculateCenterOfMass();
+        UpdateTowerPhysicsState();
         if (autoReturnCameraAfterPlace)
         {
             UpdateExtractionTowerRowsFromCells();
@@ -923,8 +924,7 @@ public class BlockTower : MonoBehaviour
         _isHolding = false;
         _usingKeyboardPlacement = false;
 
-        if (_cells.Count > 0)
-            _rb.centerOfMass = CalculateCenterOfMass();
+        UpdateTowerPhysicsState();
     }
 
     // ── 연결 요소 분리 ────────────────────────────────────────────────────
@@ -1202,7 +1202,7 @@ public class BlockTower : MonoBehaviour
         }
 
         Destroy(detachedRoot);
-        _rb.centerOfMass = CalculateCenterOfMass();
+        UpdateTowerPhysicsState();
         UpdateExtractionTowerRowsFromCells();
         if (!_isHolding)
         {
@@ -1240,6 +1240,53 @@ public class BlockTower : MonoBehaviour
             ? weightedSum / totalWeight
             : new Vector2(columns * 0.5f, rows * 0.5f);
         return new Vector3(com.x, com.y, 0f);
+    }
+
+    void UpdateTowerPhysicsState()
+    {
+        if (!Application.isPlaying || _rb == null || _cells.Count == 0) return;
+
+        var centerOfMass = CalculateCenterOfMass();
+        _rb.centerOfMass = centerOfMass;
+        _rb.WakeUp();
+        ApplyToppleTorqueIfUnsupported(centerOfMass);
+    }
+
+    void ApplyToppleTorqueIfUnsupported(Vector3 centerOfMass)
+    {
+        if (toppleTorque <= 0f) return;
+        if (!TryGetLowestSupportRange(out float supportMinX, out float supportMaxX)) return;
+
+        float torqueSign = 0f;
+        if (centerOfMass.x < supportMinX - toppleMargin)
+            torqueSign = 1f;
+        else if (centerOfMass.x > supportMaxX + toppleMargin)
+            torqueSign = -1f;
+
+        if (Mathf.Approximately(torqueSign, 0f)) return;
+
+        _rb.AddTorque(Vector3.forward * torqueSign * toppleTorque, ForceMode.Impulse);
+    }
+
+    bool TryGetLowestSupportRange(out float minX, out float maxX)
+    {
+        minX = float.MaxValue;
+        maxX = float.MinValue;
+        int minY = int.MaxValue;
+
+        foreach (var cell in _cells.Keys)
+            minY = Mathf.Min(minY, cell.y);
+
+        if (minY == int.MaxValue) return false;
+
+        foreach (var cell in _cells.Keys)
+        {
+            if (cell.y != minY) continue;
+            minX = Mathf.Min(minX, cell.x);
+            maxX = Mathf.Max(maxX, cell.x + 1f);
+        }
+
+        return minX <= maxX;
     }
 
     // ── 유틸리티 ─────────────────────────────────────────────────────────
