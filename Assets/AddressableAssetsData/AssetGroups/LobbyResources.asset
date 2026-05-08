@@ -14,7 +14,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: Unity.Addressables.Editor::UnityEditor.AddressableAssets.Settings.AddressableAssetGroup
   m_GroupName: LobbyResources
   m_GUID: 06bfc9681d5cbfd498a53334920e3f38
-  m_SerializeEntries: []
+  m_SerializeEntries:
+  - m_GUID: 7f9cc55263bbfb34ab5d65308193bcf0
+    m_Address: UI
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - Lobby
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: d7f7ca54d1dbacc48974979d5d5e4d78
+    m_Address: Main Camera
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - Lobby
+    FlaggedDuringContentUpdateRestriction: 0
   m_ReadOnly: 0
   m_Settings: {fileID: 11400000, guid: 7ddc95e14037a1e45b2f3bd53480fefc, type: 2}
   m_SchemaSet:
