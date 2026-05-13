@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using LitMotion;
 using UnityEngine;
 using UnityEngine.UIElements;
 #if ENABLE_INPUT_SYSTEM
@@ -8,9 +9,7 @@ using UnityEngine.InputSystem;
 [RequireComponent(typeof(UIDocument))]
 public class StageMapUIController : MonoBehaviour
 {
-    [SerializeField] private Texture2D stageBackground;
-    [SerializeField] private Sprite stageButtonSprite;
-    [SerializeField] private Sprite submarineSprite;
+    [SerializeField] private UIImageLibrarySO stageImageLibrary;
     [SerializeField] private int stageCount = 10;
     [SerializeField] private float mapZoom = 0.72f;
     [SerializeField] private bool fitBackgroundWidthToCamera = true;
@@ -21,6 +20,7 @@ public class StageMapUIController : MonoBehaviour
     private VisualElement viewport;
     private VisualElement mapContent;
     private VisualElement splineLayer;
+    private VisualElement bubbleLayer;
     private VisualElement submarine;
     private Label selectedStageLabel;
 
@@ -32,16 +32,28 @@ public class StageMapUIController : MonoBehaviour
     private int draggingPointerId;
     private bool isDragging;
     private bool hasAppliedInitialFit;
-    private Coroutine submarineMoveRoutine;
+    private MotionHandle submarineMoveHandle;
 
     private const float StageButtonSize = 96f;
     private const float SubmarineSize = 116f;
     private const float MinZoom = 0.45f;
     private const float MaxZoom = 2f;
-    private const float KeyboardPanSpeed = 760f;
     private const float DefaultMapWidth = 1376f;
     private const float DefaultMapHeight = 3096f;
     private const float CameraEdgePadding = 420f;
+    private const float BubbleSpawnInterval = 0.045f;
+    private const float BubbleLifeTime = 0.72f;
+    private const float SmallBubbleMinSize = 6f;
+    private const float SmallBubbleMaxSize = 13f;
+    private const float MediumBubbleMinSize = 14f;
+    private const float MediumBubbleMaxSize = 22f;
+    private const float LargeBubbleMinSize = 24f;
+    private const float LargeBubbleMaxSize = 34f;
+    private const float ExtraSmallBubbleChance = 0.55f;
+    private const float MediumBubbleChance = 0.48f;
+    private const float LargeBubbleChance = 0.18f;
+    private const float SplineGlowSpacing = 18f;
+    private const float SplineCoreSpacing = 34f;
 
     private static readonly Vector2[] SplineControls =
     {
@@ -73,15 +85,13 @@ public class StageMapUIController : MonoBehaviour
 
     private void Update()
     {
-        Vector2 input = GetKeyboardPanInput();
-        if (input == Vector2.zero)
+        int stageDirection = GetStageNavigationInput();
+        if (stageDirection == 0)
         {
             return;
         }
 
-        mapPan += input * (KeyboardPanSpeed * Time.unscaledDeltaTime);
-        ClampPan();
-        ApplyCamera();
+        MoveSelectedStage(stageDirection);
     }
 
     private void BuildUI()
@@ -109,6 +119,7 @@ public class StageMapUIController : MonoBehaviour
         mapContent.style.width = MapWidth;
         mapContent.style.height = MapHeight;
         mapContent.style.transformOrigin = new TransformOrigin(0f, 0f, 0f);
+        Sprite stageBackground = GetStageSprite(UIImageId.StageBackground);
         if (stageBackground != null)
         {
             mapContent.style.backgroundImage = new StyleBackground(stageBackground);
@@ -125,6 +136,15 @@ public class StageMapUIController : MonoBehaviour
         splineLayer.style.width = MapWidth;
         splineLayer.style.height = MapHeight;
         mapContent.Add(splineLayer);
+
+        bubbleLayer = new VisualElement { name = "stage-bubble-layer" };
+        bubbleLayer.pickingMode = PickingMode.Ignore;
+        bubbleLayer.style.position = Position.Absolute;
+        bubbleLayer.style.left = 0f;
+        bubbleLayer.style.top = 0f;
+        bubbleLayer.style.width = MapWidth;
+        bubbleLayer.style.height = MapHeight;
+        mapContent.Add(bubbleLayer);
 
         VisualElement hud = CreateHud();
         root.Add(hud);
@@ -219,8 +239,35 @@ public class StageMapUIController : MonoBehaviour
     private void DrawSplineDots()
     {
         splineLayer.Clear();
+        DrawSplineGlow();
+        DrawSplineCore();
+    }
 
+    private void DrawSplineGlow()
+    {
+        float distanceSinceGlow = 0f;
+        Vector2 previous = sampledSpline[0];
+
+        for (int i = 0; i < sampledSpline.Count; i++)
+        {
+            Vector2 point = sampledSpline[i];
+            distanceSinceGlow += Vector2.Distance(previous, point);
+
+            if (i == 0 || distanceSinceGlow >= SplineGlowSpacing)
+            {
+                AddSplineCircle(point, 54f, new Color(0.18f, 0.74f, 1f, 0.14f), Color.clear, 0f);
+                AddSplineCircle(point, 32f, new Color(0.58f, 0.94f, 1f, 0.22f), Color.clear, 0f);
+                distanceSinceGlow = 0f;
+            }
+
+            previous = point;
+        }
+    }
+
+    private void DrawSplineCore()
+    {
         float distanceSinceDot = 0f;
+        int sparkleIndex = 0;
         Vector2 previous = sampledSpline[0];
 
         for (int i = 0; i < sampledSpline.Count; i++)
@@ -228,30 +275,56 @@ public class StageMapUIController : MonoBehaviour
             Vector2 point = sampledSpline[i];
             distanceSinceDot += Vector2.Distance(previous, point);
 
-            if (i == 0 || distanceSinceDot >= 34f)
+            if (i == 0 || distanceSinceDot >= SplineCoreSpacing)
             {
-                VisualElement dot = new VisualElement();
                 float size = distanceSinceDot < 45f ? 16f : 24f;
-                dot.style.position = Position.Absolute;
-                dot.style.left = point.x - size * 0.5f;
-                dot.style.top = point.y - size * 0.5f;
-                dot.style.width = size;
-                dot.style.height = size;
-                dot.style.borderTopLeftRadius = size * 0.5f;
-                dot.style.borderTopRightRadius = size * 0.5f;
-                dot.style.borderBottomLeftRadius = size * 0.5f;
-                dot.style.borderBottomRightRadius = size * 0.5f;
-                dot.style.backgroundColor = new Color(1f, 0.94f, 0.58f, 0.88f);
-                dot.style.borderTopWidth = 2f;
-                dot.style.borderBottomWidth = 2f;
-                dot.style.borderLeftWidth = 2f;
-                dot.style.borderRightWidth = 2f;
-                splineLayer.Add(dot);
+                AddSplineCircle(point, size, new Color(1f, 0.93f, 0.38f, 0.96f), new Color(1f, 1f, 0.86f, 0.82f), 2f);
+
+                if (sparkleIndex % 3 == 0)
+                {
+                    AddSplineSparkle(point, sparkleIndex);
+                }
+
+                sparkleIndex++;
                 distanceSinceDot = 0f;
             }
 
             previous = point;
         }
+    }
+
+    private void AddSplineSparkle(Vector2 point, int index)
+    {
+        float angle = index * 2.399963f;
+        float radius = 18f + (index % 3) * 5f;
+        float size = index % 2 == 0 ? 9f : 7f;
+        Vector2 offset = new Vector2(Mathf.Cos(angle), Mathf.Sin(angle)) * radius;
+        AddSplineCircle(point + offset, size, new Color(1f, 1f, 0.9f, 0.82f), Color.clear, 0f);
+    }
+
+    private void AddSplineCircle(Vector2 point, float size, Color fillColor, Color borderColor, float borderWidth)
+    {
+        VisualElement circle = new VisualElement();
+        circle.pickingMode = PickingMode.Ignore;
+        circle.style.position = Position.Absolute;
+        circle.style.left = point.x - size * 0.5f;
+        circle.style.top = point.y - size * 0.5f;
+        circle.style.width = size;
+        circle.style.height = size;
+        circle.style.borderTopLeftRadius = size * 0.5f;
+        circle.style.borderTopRightRadius = size * 0.5f;
+        circle.style.borderBottomLeftRadius = size * 0.5f;
+        circle.style.borderBottomRightRadius = size * 0.5f;
+        circle.style.backgroundColor = fillColor;
+        circle.style.borderTopWidth = borderWidth;
+        circle.style.borderBottomWidth = borderWidth;
+        circle.style.borderLeftWidth = borderWidth;
+        circle.style.borderRightWidth = borderWidth;
+        circle.style.borderTopColor = borderColor;
+        circle.style.borderBottomColor = borderColor;
+        circle.style.borderLeftColor = borderColor;
+        circle.style.borderRightColor = borderColor;
+        splineLayer.Add(circle);
     }
 
     private void CreateStageButtons()
@@ -278,6 +351,7 @@ public class StageMapUIController : MonoBehaviour
             button.style.fontSize = stage >= 10 ? 28f : 34f;
             button.style.unityFontStyleAndWeight = FontStyle.Bold;
             button.style.color = new Color(0.16f, 0.09f, 0.05f);
+            Sprite stageButtonSprite = GetStageSprite(UIImageId.StageButton);
             if (stageButtonSprite != null)
             {
                 button.style.backgroundImage = new StyleBackground(stageButtonSprite);
@@ -303,6 +377,7 @@ public class StageMapUIController : MonoBehaviour
         submarine.style.position = Position.Absolute;
         submarine.style.width = SubmarineSize;
         submarine.style.height = SubmarineSize;
+        Sprite submarineSprite = GetStageSprite(UIImageId.Submarine);
         if (submarineSprite != null)
         {
             submarine.style.backgroundImage = new StyleBackground(submarineSprite);
@@ -313,6 +388,16 @@ public class StageMapUIController : MonoBehaviour
 
         mapContent.Add(submarine);
         SetSubmarinePosition(GetStagePosition(1));
+    }
+
+    private Sprite GetStageSprite(UIImageId imageId)
+    {
+        if (stageImageLibrary != null && stageImageLibrary.TryGetSprite(imageId, out Sprite sprite))
+        {
+            return sprite;
+        }
+
+        return null;
     }
 
     private void SelectStage(int stage, bool centerCamera, bool instantSubmarine)
@@ -329,6 +414,7 @@ public class StageMapUIController : MonoBehaviour
         Vector2 targetPosition = GetStagePosition(selectedStage) + new Vector2(0f, -82f);
         if (instantSubmarine)
         {
+            CancelSubmarineMotion();
             SetSubmarinePosition(targetPosition);
         }
         else
@@ -340,6 +426,17 @@ public class StageMapUIController : MonoBehaviour
         {
             CenterOnSelectedStage();
         }
+    }
+
+    private void MoveSelectedStage(int direction)
+    {
+        int targetStage = Mathf.Clamp(selectedStage + direction, 1, stageCount);
+        if (targetStage == selectedStage)
+        {
+            return;
+        }
+
+        SelectStage(targetStage, true, false);
     }
 
     private void SetSubmarinePosition(Vector2 position)
@@ -356,31 +453,132 @@ public class StageMapUIController : MonoBehaviour
 
     private void MoveSubmarineTo(Vector2 targetPosition)
     {
-        if (submarineMoveRoutine != null)
-        {
-            StopCoroutine(submarineMoveRoutine);
-        }
+        CancelSubmarineMotion();
 
-        submarineMoveRoutine = StartCoroutine(MoveSubmarineRoutine(submarinePosition, targetPosition));
-    }
-
-    private System.Collections.IEnumerator MoveSubmarineRoutine(Vector2 from, Vector2 to)
-    {
+        Vector2 from = submarinePosition;
+        Vector2 to = targetPosition;
         float distance = Vector2.Distance(from, to);
         float duration = Mathf.Clamp(distance / 760f, 0.35f, 1.35f);
-        float elapsed = 0f;
+        float bubbleElapsed = BubbleSpawnInterval;
+        Vector2 direction = distance > 0.001f ? (to - from).normalized : Vector2.right;
 
-        while (elapsed < duration)
+        submarineMoveHandle = LMotion.Create(from, to, duration)
+            .WithEase(Ease.OutExpo)
+            .WithScheduler(MotionScheduler.UpdateIgnoreTimeScale)
+            .WithOnComplete(() =>
+            {
+                SetSubmarinePosition(to);
+                submarineMoveHandle = MotionHandle.None;
+            })
+            .WithOnCancel(() => submarineMoveHandle = MotionHandle.None)
+            .Bind(position =>
+            {
+                SetSubmarinePosition(position);
+
+                bubbleElapsed += Time.unscaledDeltaTime;
+                if (bubbleElapsed >= BubbleSpawnInterval)
+                {
+                    SpawnBubble(position, direction);
+                    bubbleElapsed = 0f;
+                }
+            })
+            .AddTo(gameObject);
+    }
+
+    private void CancelSubmarineMotion()
+    {
+        if (submarineMoveHandle.IsActive())
+        {
+            submarineMoveHandle.Cancel();
+            submarineMoveHandle = MotionHandle.None;
+        }
+    }
+
+    private void SpawnBubble(Vector2 submarineCenter, Vector2 moveDirection)
+    {
+        if (bubbleLayer == null)
+        {
+            return;
+        }
+
+        CreateBubble(submarineCenter, moveDirection, Random.Range(SmallBubbleMinSize, SmallBubbleMaxSize));
+
+        if (Random.value < ExtraSmallBubbleChance)
+        {
+            CreateBubble(submarineCenter, moveDirection, Random.Range(SmallBubbleMinSize, SmallBubbleMaxSize));
+        }
+
+        if (Random.value < MediumBubbleChance)
+        {
+            CreateBubble(submarineCenter, moveDirection, Random.Range(MediumBubbleMinSize, MediumBubbleMaxSize));
+        }
+
+        if (Random.value < LargeBubbleChance)
+        {
+            CreateBubble(submarineCenter, moveDirection, Random.Range(LargeBubbleMinSize, LargeBubbleMaxSize));
+        }
+    }
+
+    private void CreateBubble(Vector2 submarineCenter, Vector2 moveDirection, float size)
+    {
+        Vector2 sideOffset = new Vector2(-moveDirection.y, moveDirection.x) * Random.Range(-18f, 18f);
+        Vector2 tailOffset = -moveDirection * Random.Range(SubmarineSize * 0.25f, SubmarineSize * 0.42f);
+        Vector2 start = submarineCenter + tailOffset + sideOffset + new Vector2(Random.Range(-8f, 8f), Random.Range(-8f, 8f));
+
+        VisualElement bubble = new VisualElement();
+        bubble.pickingMode = PickingMode.Ignore;
+        bubble.style.position = Position.Absolute;
+        bubble.style.left = start.x - size * 0.5f;
+        bubble.style.top = start.y - size * 0.5f;
+        bubble.style.width = size;
+        bubble.style.height = size;
+        bubble.style.borderTopLeftRadius = size * 0.5f;
+        bubble.style.borderTopRightRadius = size * 0.5f;
+        bubble.style.borderBottomLeftRadius = size * 0.5f;
+        bubble.style.borderBottomRightRadius = size * 0.5f;
+        bubble.style.backgroundColor = new Color(0.78f, 0.94f, 1f, 0.36f);
+        bubble.style.borderTopWidth = 2f;
+        bubble.style.borderBottomWidth = 2f;
+        bubble.style.borderLeftWidth = 2f;
+        bubble.style.borderRightWidth = 2f;
+        bubble.style.borderTopColor = new Color(1f, 1f, 1f, 0.62f);
+        bubble.style.borderBottomColor = new Color(1f, 1f, 1f, 0.62f);
+        bubble.style.borderLeftColor = new Color(1f, 1f, 1f, 0.62f);
+        bubble.style.borderRightColor = new Color(1f, 1f, 1f, 0.62f);
+        bubble.style.opacity = 0.85f;
+
+        bubbleLayer.Add(bubble);
+        StartCoroutine(AnimateBubble(bubble, start, size, moveDirection));
+    }
+
+    private System.Collections.IEnumerator AnimateBubble(VisualElement bubble, Vector2 start, float startSize, Vector2 moveDirection)
+    {
+        float elapsed = 0f;
+        Vector2 drift = -moveDirection * Random.Range(18f, 42f) + new Vector2(Random.Range(-24f, 24f), Random.Range(-78f, -42f));
+        float endSize = startSize * Random.Range(1.25f, 1.75f);
+
+        while (elapsed < BubbleLifeTime)
         {
             elapsed += Time.unscaledDeltaTime;
-            float t = Mathf.Clamp01(elapsed / duration);
-            float eased = t * t * (3f - 2f * t);
-            SetSubmarinePosition(Vector2.Lerp(from, to, eased));
+            float t = Mathf.Clamp01(elapsed / BubbleLifeTime);
+            float eased = 1f - Mathf.Pow(1f - t, 2f);
+            Vector2 position = start + drift * eased;
+            float size = Mathf.Lerp(startSize, endSize, eased);
+
+            bubble.style.left = position.x - size * 0.5f;
+            bubble.style.top = position.y - size * 0.5f;
+            bubble.style.width = size;
+            bubble.style.height = size;
+            bubble.style.borderTopLeftRadius = size * 0.5f;
+            bubble.style.borderTopRightRadius = size * 0.5f;
+            bubble.style.borderBottomLeftRadius = size * 0.5f;
+            bubble.style.borderBottomRightRadius = size * 0.5f;
+            bubble.style.opacity = Mathf.Lerp(0.85f, 0f, t);
+
             yield return null;
         }
 
-        SetSubmarinePosition(to);
-        submarineMoveRoutine = null;
+        bubble.RemoveFromHierarchy();
     }
 
     private Vector2 GetStagePosition(int stage)
@@ -460,7 +658,7 @@ public class StageMapUIController : MonoBehaviour
         viewport.RegisterCallback<PointerCancelEvent>(evt => EndDrag(evt.pointerId));
         viewport.RegisterCallback<WheelEvent>(evt =>
         {
-            Zoom(evt.delta.y > 0f ? -0.08f : 0.08f, evt.localMousePosition);
+            MoveSelectedStage(evt.delta.y > 0f ? -1 : 1);
             evt.StopPropagation();
         });
     }
@@ -575,56 +773,40 @@ public class StageMapUIController : MonoBehaviour
         mapContent.style.scale = new Scale(new Vector3(mapZoom, mapZoom, 1f));
     }
 
-    private static Vector2 GetKeyboardPanInput()
+    private static int GetStageNavigationInput()
     {
 #if ENABLE_INPUT_SYSTEM
         Keyboard keyboard = Keyboard.current;
         if (keyboard == null)
         {
-            return Vector2.zero;
+            return 0;
         }
 
-        Vector2 input = Vector2.zero;
-        if (keyboard.leftArrowKey.isPressed || keyboard.aKey.isPressed)
+        if (keyboard.upArrowKey.wasPressedThisFrame || keyboard.rightArrowKey.wasPressedThisFrame)
         {
-            input.x += 1f;
-        }
-        if (keyboard.rightArrowKey.isPressed || keyboard.dKey.isPressed)
-        {
-            input.x -= 1f;
-        }
-        if (keyboard.upArrowKey.isPressed || keyboard.wKey.isPressed)
-        {
-            input.y += 1f;
-        }
-        if (keyboard.downArrowKey.isPressed || keyboard.sKey.isPressed)
-        {
-            input.y -= 1f;
+            return 1;
         }
 
-        return input.normalized;
+        if (keyboard.downArrowKey.wasPressedThisFrame || keyboard.leftArrowKey.wasPressedThisFrame)
+        {
+            return -1;
+        }
+
+        return 0;
 #elif ENABLE_LEGACY_INPUT_MANAGER
-        Vector2 input = Vector2.zero;
-        if (Input.GetKey(KeyCode.LeftArrow) || Input.GetKey(KeyCode.A))
+        if (Input.GetKeyDown(KeyCode.UpArrow) || Input.GetKeyDown(KeyCode.RightArrow))
         {
-            input.x += 1f;
-        }
-        if (Input.GetKey(KeyCode.RightArrow) || Input.GetKey(KeyCode.D))
-        {
-            input.x -= 1f;
-        }
-        if (Input.GetKey(KeyCode.UpArrow) || Input.GetKey(KeyCode.W))
-        {
-            input.y += 1f;
-        }
-        if (Input.GetKey(KeyCode.DownArrow) || Input.GetKey(KeyCode.S))
-        {
-            input.y -= 1f;
+            return 1;
         }
 
-        return input.normalized;
+        if (Input.GetKeyDown(KeyCode.DownArrow) || Input.GetKeyDown(KeyCode.LeftArrow))
+        {
+            return -1;
+        }
+
+        return 0;
 #else
-        return Vector2.zero;
+        return 0;
 #endif
     }
 }

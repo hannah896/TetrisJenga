@@ -9,6 +9,8 @@ using UnityEngine.InputSystem;
 public class UIManager : MonoBehaviour
 {
     [SerializeField] private UIDocument uiDocument;
+    [SerializeField] private UIImageLibrarySO lobbyImageLibrary;
+    [SerializeField] private UIImageLibrarySO settingImageLibrary;
 
     private VisualElement root;
     private VisualElement titleScreen;
@@ -69,6 +71,7 @@ public class UIManager : MonoBehaviour
             return;
         }
 
+        BindImages();
         BindLabels();
         BindSliders();
         if (!enabled)
@@ -123,6 +126,41 @@ public class UIManager : MonoBehaviour
         {
             Debug.LogError("UIManager could not find one or more screens. Check that UIDocument Source Asset is GameUI.uxml.");
             enabled = false;
+        }
+    }
+
+    private void BindImages()
+    {
+        SetBackground(titleScreen, lobbyImageLibrary, UIImageId.LobbyBackground);
+        SetBackground(modeSelectScreen, lobbyImageLibrary, UIImageId.LobbyBackground);
+        SetBackground(root.Q<VisualElement>(className: "settings-art-popup"), settingImageLibrary, UIImageId.SettingBackground);
+
+        SetBackgroundForClass("title-sprite--abyss", lobbyImageLibrary, UIImageId.TitleAbyss);
+        SetBackgroundForClass("title-sprite--stack", lobbyImageLibrary, UIImageId.TitleStack);
+
+        SetBackground(root.Q<Button>("play-button"), lobbyImageLibrary, UIImageId.PlayButton);
+        SetBackground(root.Q<Button>("setting-button"), lobbyImageLibrary, UIImageId.SettingButton);
+        SetBackground(root.Q<Button>("exit-button"), lobbyImageLibrary, UIImageId.ExitButton);
+        SetBackground(root.Q<Button>("single-play-button"), lobbyImageLibrary, UIImageId.SinglePlayButton);
+        SetBackground(root.Q<Button>("multi-play-button"), lobbyImageLibrary, UIImageId.MultiPlayButton);
+    }
+
+    private void SetBackgroundForClass(string className, UIImageLibrarySO imageLibrary, UIImageId imageId)
+    {
+        root.Query<VisualElement>(className: className)
+            .ForEach(element => SetBackground(element, imageLibrary, imageId));
+    }
+
+    private static void SetBackground(VisualElement element, UIImageLibrarySO imageLibrary, UIImageId imageId)
+    {
+        if (element == null || imageLibrary == null)
+        {
+            return;
+        }
+
+        if (imageLibrary.TryGetSprite(imageId, out Sprite sprite) && sprite != null)
+        {
+            element.style.backgroundImage = new StyleBackground(sprite);
         }
     }
 

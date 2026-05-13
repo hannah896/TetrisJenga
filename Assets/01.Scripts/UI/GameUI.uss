@@ -27,7 +27,6 @@
 }
 
 .title-image-screen {
-    background-image: url("../../../00.Resources/TempImage/LobbyBG.png");
     -unity-background-scale-mode: scale-and-crop;
     padding: 0;
     align-items: flex-start;
@@ -64,14 +63,12 @@
 .title-sprite--abyss {
     width: 444px;
     height: 192px;
-    background-image: url("project://database/Assets/00.Resources/TempImage/StartUI.png?fileID=-1566173602&guid=48713fb5d8712364a999df4153c0f0ff&type=3#StartUI_0");
 }
 
 .title-sprite--stack {
     width: 399px;
     height: 170px;
     margin-left: 18px;
-    background-image: url("project://database/Assets/00.Resources/TempImage/StartUI.png?fileID=-1879954767&guid=48713fb5d8712364a999df4153c0f0ff&type=3#StartUI_1");
 }
 
 .title-button-column {
@@ -105,16 +102,13 @@
 }
 
 .title-image-button--play {
-    background-image: url("project://database/Assets/00.Resources/TempImage/StartUI.png?fileID=2004257812&guid=48713fb5d8712364a999df4153c0f0ff&type=3#StartUI_3");
 }
 
 .title-image-button--settings {
-    background-image: url("project://database/Assets/00.Resources/TempImage/StartUI.png?fileID=-738562469&guid=48713fb5d8712364a999df4153c0f0ff&type=3#StartUI_2");
 }
 
 .title-image-button--exit {
     height: 162px;
-    background-image: url("project://database/Assets/00.Resources/TempImage/StartUI.png?fileID=-1526942479&guid=48713fb5d8712364a999df4153c0f0ff&type=3#StartUI_4");
 }
 
 .mode-image-button {
@@ -146,12 +140,10 @@
 }
 
 .mode-image-button--single {
-    background-image: url("project://database/Assets/00.Resources/TempImage/SelectUI.png?fileID=-172091421&guid=b26a99f4d8e276b4da04e9faf24a51d1&type=3#SelectUI_0");
 }
 
 .mode-image-button--multi {
     height: 301px;
-    background-image: url("project://database/Assets/00.Resources/TempImage/SelectUI.png?fileID=-2005297919&guid=b26a99f4d8e276b4da04e9faf24a51d1&type=3#SelectUI_1");
 }
 
 .mode-description-panel {
@@ -459,7 +451,6 @@
 .settings-art-popup {
     width: 950px;
     height: 669px;
-    background-image: url("../../../00.Resources/TempImage/SettingUI.png");
     -unity-background-scale-mode: scale-to-fit;
 }
 
