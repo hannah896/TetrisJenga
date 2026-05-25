@@ -1,0 +1,23 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements" editor-extension-mode="False">
+    <Style src="project://database/Assets/01.Scripts/UI/GameUI.uss?fileID=7433441132597879392&amp;guid=8bf8ef898d784dc49a6bc6664ab08293&amp;type=3#GameUI" />
+    <Style src="project://database/Assets/01.Scripts/UI/TitleScreen.uss?fileID=7433441132597879392&amp;guid=1f74fc6c25bc48f78be90d220807fc46&amp;type=3#TitleScreen" />
+    <Style src="project://database/Assets/01.Scripts/UI/ModeSelectScreen.uss?fileID=7433441132597879392&amp;guid=b7f221026f6240a29138e2383dfe7dd5&amp;type=3#ModeSelectScreen" />
+    <ui:VisualElement name="mode-select-screen" class="screen title-image-screen">
+        <ui:VisualElement class="title-menu-layout mode-select-layout">
+            <ui:VisualElement class="title-sprite-row">
+                <ui:VisualElement class="title-sprite title-sprite--abyss" />
+                <ui:VisualElement class="title-sprite title-sprite--stack" />
+            </ui:VisualElement>
+            <ui:VisualElement class="mode-select-body">
+                <ui:VisualElement class="mode-button-column">
+                    <ui:Button name="single-play-button" text="" class="mode-image-button mode-image-button--single selected" />
+                    <ui:Button name="multi-play-button" text="" class="mode-image-button mode-image-button--multi" />
+                </ui:VisualElement>
+                <ui:VisualElement class="mode-description-panel">
+                    <ui:Label name="mode-title-label" text="" class="mode-note-title" />
+                    <ui:Label name="mode-description-label" text="" class="mode-note-body" />
+                </ui:VisualElement>
+            </ui:VisualElement>
+        </ui:VisualElement>
+    </ui:VisualElement>
+</ui:UXML>

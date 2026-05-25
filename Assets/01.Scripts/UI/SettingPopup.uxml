@@ -1,0 +1,19 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements" editor-extension-mode="False">
+    <Style src="project://database/Assets/01.Scripts/UI/GameUI.uss?fileID=7433441132597879392&amp;guid=8bf8ef898d784dc49a6bc6664ab08293&amp;type=3#GameUI" />
+    <Style src="project://database/Assets/01.Scripts/UI/SettingPopup.uss?fileID=7433441132597879392&amp;guid=ac3d5306ce9d4939a9fcb50f3734f433&amp;type=3#SettingPopup" />
+    <ui:VisualElement name="setting-popup" class="overlay">
+        <ui:VisualElement class="settings-art-popup">
+            <ui:Label text="Setting" class="settings-art-title" />
+            <ui:Label text="All" class="setting-label setting-label--audio" />
+            <ui:Slider name="audio-slider" low-value="0" high-value="1" value="1" class="setting-art-slider setting-art-slider--audio" />
+            <ui:Label text="BGM" class="setting-label setting-label--bgm" />
+            <ui:Slider name="bgm-slider" low-value="0" high-value="1" value="1" class="setting-art-slider setting-art-slider--bgm" />
+            <ui:Label text="SFX" class="setting-label setting-label--sfx" />
+            <ui:Slider name="sfx-slider" low-value="0" high-value="1" value="1" class="setting-art-slider setting-art-slider--sfx" />
+            <ui:VisualElement class="setting-art-button-row">
+                <ui:Button name="setting-home-button" text="Home" class="setting-art-button" />
+                <ui:Button name="setting-exit-button" text="Exit" class="setting-art-button" />
+            </ui:VisualElement>
+        </ui:VisualElement>
+    </ui:VisualElement>
+</ui:UXML>

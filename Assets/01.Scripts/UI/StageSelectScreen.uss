@@ -1,0 +1,118 @@
+.stage-image-screen {
+    background-image: url("project://database/Assets/00.Resources/TempImage/StageBG.png?fileID=21300000&guid=0fe3f5d6e89446f4a9f2e80dbb024ec9&type=3#StageBG");
+    -unity-background-scale-mode: scale-and-crop;
+}
+
+.stage-panel {
+    width: 720px;
+    height: 430px;
+    flex-direction: row;
+    align-items: stretch;
+    justify-content: space-between;
+}
+
+.stage-art {
+    width: 330px;
+    height: 100%;
+}
+
+.stage-art--submarine {
+    background-image: url("project://database/Assets/00.Resources/TempImage/Submarine.png?fileID=1310836293&guid=dbecff7415a22e14ba896a6d324e29aa&type=3#Submarine_0");
+    -unity-background-scale-mode: scale-to-fit;
+}
+
+.stage-doodle {
+    position: absolute;
+    background-color: #1a76bd;
+    border-width: 3px;
+    border-color: #111111;
+}
+
+.stage-doodle--one {
+    left: 80px;
+    top: 52px;
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+}
+
+.stage-doodle--two {
+    left: 170px;
+    top: 88px;
+    width: 78px;
+    height: 42px;
+}
+
+.stage-doodle--three {
+    left: 108px;
+    bottom: 70px;
+    width: 48px;
+    height: 78px;
+}
+
+.stage-doodle--four {
+    left: 238px;
+    bottom: 88px;
+    width: 82px;
+    height: 54px;
+    border-radius: 24px;
+    background-color: #d28c22;
+}
+
+.stage-select-card {
+    width: 280px;
+    height: 320px;
+    background-color: #fffdf7;
+    border-width: 3px;
+    border-color: #f0a11a;
+    padding: 18px;
+}
+
+.stage-heading {
+    font-size: 24px;
+    -unity-text-align: middle-center;
+    margin-bottom: 14px;
+}
+
+.stage-grid {
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+
+.stage-button {
+    width: 58px;
+    height: 58px;
+    margin: 5px;
+    background-image: url("project://database/Assets/00.Resources/TempImage/StageSelectBtn.png?fileID=-2049045337&guid=65e12ca00db28c847a5c21184acba403&type=3#StageSelectBtn_0");
+    -unity-background-scale-mode: scale-to-fit;
+    background-color: rgba(0, 0, 0, 0);
+    border-width: 3px;
+    border-color: rgba(0, 0, 0, 0);
+    font-size: 21px;
+}
+
+.play-button {
+    width: 180px;
+    height: 52px;
+    margin-top: 16px;
+    align-self: center;
+    background-image: url("project://database/Assets/00.Resources/TempImage/StageSelectBtn.png?fileID=-2049045337&guid=65e12ca00db28c847a5c21184acba403&type=3#StageSelectBtn_0");
+    -unity-background-scale-mode: scale-and-crop;
+    background-color: rgba(0, 0, 0, 0);
+    border-width: 3px;
+    border-color: rgba(0, 0, 0, 0);
+    font-size: 25px;
+}
+
+.stage-button:hover,
+.play-button:hover {
+    background-color: #e8f5ff;
+}
+
+.brand-caption {
+    position: absolute;
+    right: 55px;
+    bottom: 24px;
+    font-size: 14px;
+}

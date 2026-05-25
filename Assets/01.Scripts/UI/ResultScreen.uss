@@ -1,0 +1,26 @@
+.result-panel {
+    width: 460px;
+    height: 260px;
+    align-items: center;
+    justify-content: center;
+    background-color: rgba(147, 187, 216, 0.84);
+}
+
+.star {
+    font-size: 44px;
+    color: #fff347;
+    margin-bottom: 8px;
+}
+
+.score {
+    color: #0877d8;
+    font-size: 36px;
+    margin-bottom: 32px;
+}
+
+.result-buttons {
+    position: absolute;
+    left: 20px;
+    right: 20px;
+    bottom: 18px;
+}

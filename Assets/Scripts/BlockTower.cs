@@ -48,6 +48,8 @@ public class BlockTower : MonoBehaviour
     [SerializeField] bool keyboardControlsEnabled = true;
     [SerializeField] ControlPreset controlPreset = ControlPreset.Wasd;
     [SerializeField] Color focusedCellColor = new(1f, 0.92f, 0.25f, 1f);
+    [SerializeField, Range(0.05f, 0.5f)] float moveHoldInitialDelay = 0.22f;
+    [SerializeField, Range(0.02f, 0.25f)] float moveHoldRepeatInterval = 0.08f;
 
     [Header("Focus Feedback")]
     [SerializeField] Color focusedOutlineColor = new(1f, 0.95f, 0.05f, 1f);
@@ -142,6 +144,8 @@ public class BlockTower : MonoBehaviour
     TetrominoPreset  _presetSelectionPreset;
     Vector2Int       _presetSelectionAnchor;
     int              _presetSelectionRotation;
+    Vector2Int       _moveRepeatDir;
+    float            _nextMoveRepeatTime;
 
     // ─────────────────────────────────────────────────────────────────────
 
@@ -218,6 +222,7 @@ public class BlockTower : MonoBehaviour
         _hasFocusedCell = false;
         _presetSelectionActive = false;
         _usingKeyboardPlacement = false;
+        ResetMoveRepeat();
         _hasCameraTarget = false;
         _score = 0;
         _heldStartScore = 0;
@@ -254,6 +259,7 @@ public class BlockTower : MonoBehaviour
         _presetSelectionAnchor = Vector2Int.zero;
         _presetSelectionRotation = 0;
         _usingKeyboardPlacement = false;
+        ResetMoveRepeat();
         _hasCameraTarget = false;
         _cameraTargetSize = 0f;
         _extractionMinCol = 0;
@@ -270,6 +276,8 @@ public class BlockTower : MonoBehaviour
 
     void ClearGenerated()
     {
+        ClearDetachedBlocks();
+
         if (_towerRoot == null && towerRootTransform == null)
         {
             var found = transform.Find("TowerRoot");
@@ -307,6 +315,32 @@ public class BlockTower : MonoBehaviour
         if (_bonusPreviewRoot != null) { DestroyLocal(_bonusPreviewRoot); _bonusPreviewRoot = null; }
         var controlsHelp = transform.Find("ControlsHelp");
         if (controlsHelp != null) DestroyLocal(controlsHelp.gameObject);
+    }
+
+    void ClearDetachedBlocks()
+    {
+        var roots = new HashSet<GameObject>();
+        foreach (var detached in _detachedComponents)
+        {
+            detached.resolved = true;
+            if (detached.root != null)
+                roots.Add(detached.root);
+        }
+        _detachedComponents.Clear();
+
+        var staleDetachedRoots = new List<Transform>();
+        foreach (Transform child in transform)
+            if (child.name == "DetachedBlocks")
+                staleDetachedRoots.Add(child);
+
+        foreach (var child in staleDetachedRoots)
+            roots.Add(child.gameObject);
+
+        foreach (var root in roots)
+        {
+            if (root != null)
+                DestroyLocal(root);
+        }
     }
 
     void DestroyLocal(GameObject go)
@@ -437,12 +471,7 @@ public class BlockTower : MonoBehaviour
                 return;
             }
             UpdateHeldPosition();
-            if (mouse != null && MouseMoved(mouse)) _usingKeyboardPlacement = false;
-            if (mouse != null && mouse.leftButton.wasPressedThisFrame)
-            {
-                _usingKeyboardPlacement = false;
-                TryPlaceBlocks();
-            }
+            if (mouse != null && mouse.leftButton.wasPressedThisFrame) CancelHold();
             if (mouse != null && mouse.rightButton.wasPressedThisFrame) CancelHold();
         }
         else
@@ -477,6 +506,7 @@ public class BlockTower : MonoBehaviour
         if (_isGameOver) return;
         _isGameOver = true;
         if (_heldRoot != null) { Destroy(_heldRoot); _heldRoot = null; _isHolding = false; }
+        ClearDetachedBlocks();
         _gameOverScreen?.Show(_score, Rebuild);
     }
 
@@ -497,7 +527,7 @@ public class BlockTower : MonoBehaviour
         if (!keyboardControlsEnabled || keyboard == null) return;
         RefreshDetachedComponents();
 
-        bool hasMove = ReadMovePressed(keyboard, out var dir);
+        bool hasMove = ReadMoveHeld(keyboard, allowWasd: false, out var dir);
         bool hasConfirm = ConfirmPressed(keyboard);
         bool hasCancel = CancelPressed(keyboard);
         bool hasPreset = ReadTetrominoPresetPressed(keyboard, out var preset);
@@ -542,7 +572,7 @@ public class BlockTower : MonoBehaviour
     {
         if (!keyboardControlsEnabled || keyboard == null) return;
 
-        if (ReadHeldMovePressed(keyboard, out var dir))
+        if (ReadMoveHeld(keyboard, allowWasd: true, out var dir))
         {
             if (!_usingKeyboardPlacement)
             {
@@ -552,6 +582,9 @@ public class BlockTower : MonoBehaviour
             MoveHeldBase(dir);
         }
 
+        if (ReadHeldRotationPressed(keyboard, out var clockwise))
+            RotateHeldBlocks(clockwise);
+
         if (ConfirmPressed(keyboard))
             DropHeldToNearestSurfaceAndPlace();
 
@@ -559,30 +592,71 @@ public class BlockTower : MonoBehaviour
             CancelHold();
     }
 
-    bool ReadHeldMovePressed(Keyboard keyboard, out Vector2Int dir)
+    bool ReadMoveHeld(Keyboard keyboard, bool allowWasd, out Vector2Int dir)
     {
-        dir = Vector2Int.zero;
+        dir = CurrentMoveDirection(keyboard, allowWasd);
+        if (dir == Vector2Int.zero)
+        {
+            ResetMoveRepeat();
+            return false;
+        }
 
-        if (keyboard.upArrowKey.wasPressedThisFrame) dir = Vector2Int.up;
-        else if (keyboard.downArrowKey.wasPressedThisFrame) dir = Vector2Int.down;
-        else if (keyboard.leftArrowKey.wasPressedThisFrame) dir = Vector2Int.left;
-        else if (keyboard.rightArrowKey.wasPressedThisFrame) dir = Vector2Int.right;
-        else if (keyboard.wKey.wasPressedThisFrame) dir = Vector2Int.up;
-        else if (keyboard.sKey.wasPressedThisFrame) dir = Vector2Int.down;
-        else if (keyboard.aKey.wasPressedThisFrame) dir = Vector2Int.left;
-        else if (keyboard.dKey.wasPressedThisFrame) dir = Vector2Int.right;
+        bool pressedThisFrame = MoveDirectionPressedThisFrame(keyboard, dir, allowWasd);
+        if (pressedThisFrame || dir != _moveRepeatDir)
+        {
+            _moveRepeatDir = dir;
+            _nextMoveRepeatTime = Time.time + moveHoldInitialDelay;
+            return true;
+        }
 
-        return dir != Vector2Int.zero;
+        if (Time.time < _nextMoveRepeatTime)
+            return false;
+
+        _nextMoveRepeatTime = Time.time + moveHoldRepeatInterval;
+        return true;
+    }
+
+    Vector2Int CurrentMoveDirection(Keyboard keyboard, bool allowWasd)
+    {
+        if (keyboard.upArrowKey.isPressed) return Vector2Int.up;
+        if (keyboard.downArrowKey.isPressed) return Vector2Int.down;
+        if (keyboard.leftArrowKey.isPressed) return Vector2Int.left;
+        if (keyboard.rightArrowKey.isPressed) return Vector2Int.right;
+
+        if (allowWasd)
+        {
+            if (keyboard.wKey.isPressed) return Vector2Int.up;
+            if (keyboard.sKey.isPressed) return Vector2Int.down;
+            if (keyboard.aKey.isPressed) return Vector2Int.left;
+            if (keyboard.dKey.isPressed) return Vector2Int.right;
+        }
+
+        return Vector2Int.zero;
+    }
+
+    bool MoveDirectionPressedThisFrame(Keyboard keyboard, Vector2Int dir, bool allowWasd)
+    {
+        if (dir == Vector2Int.up)
+            return keyboard.upArrowKey.wasPressedThisFrame || allowWasd && keyboard.wKey.wasPressedThisFrame;
+        if (dir == Vector2Int.down)
+            return keyboard.downArrowKey.wasPressedThisFrame || allowWasd && keyboard.sKey.wasPressedThisFrame;
+        if (dir == Vector2Int.left)
+            return keyboard.leftArrowKey.wasPressedThisFrame || allowWasd && keyboard.aKey.wasPressedThisFrame;
+        if (dir == Vector2Int.right)
+            return keyboard.rightArrowKey.wasPressedThisFrame || allowWasd && keyboard.dKey.wasPressedThisFrame;
+
+        return false;
+    }
+
+    void ResetMoveRepeat()
+    {
+        _moveRepeatDir = Vector2Int.zero;
+        _nextMoveRepeatTime = 0f;
     }
 
     bool ReadHeldRotationPressed(Keyboard keyboard, out bool clockwise)
     {
-        if (keyboard.leftArrowKey.wasPressedThisFrame)
-        {
-            clockwise = false;
-            return true;
-        }
-        if (keyboard.rightArrowKey.wasPressedThisFrame)
+        if (keyboard.leftCtrlKey.wasPressedThisFrame || keyboard.rightCtrlKey.wasPressedThisFrame)
         {
             clockwise = true;
             return true;
@@ -633,11 +707,6 @@ public class BlockTower : MonoBehaviour
 
         preset = default;
         return false;
-    }
-
-    bool MouseMoved(Mouse mouse)
-    {
-        return mouse.delta.ReadValue().sqrMagnitude > 0.01f;
     }
 
     void EnsureFocusedCell()
@@ -914,9 +983,9 @@ public class BlockTower : MonoBehaviour
         return GetTetrominoPresetCells(anchor, preset, 0);
     }
 
-    List<Vector2Int> GetTetrominoPresetCells(Vector2Int anchor, TetrominoPreset preset, int rotation)
+    Vector2Int[] GetTetrominoPresetOffsets(TetrominoPreset preset)
     {
-        var offsets = preset switch
+        return preset switch
         {
             TetrominoPreset.I => new[]
             {
@@ -955,27 +1024,102 @@ public class BlockTower : MonoBehaviour
             },
             _ => new[] { Vector2Int.zero }
         };
+    }
+
+    List<Vector2Int> GetTetrominoPresetCells(Vector2Int anchor, TetrominoPreset preset, int rotation)
+    {
+        if (preset == TetrominoPreset.O)
+            rotation = 0;
+
+        var offsets = GetTetrominoPresetOffsets(preset);
+        var pivot = GetBaseRotationPivotForPreset(preset);
 
         var cells = new List<Vector2Int>(offsets.Length);
-        int minX = int.MaxValue;
-        int minY = int.MaxValue;
-        var rotated = new List<Vector2Int>(offsets.Length);
         foreach (var offset in offsets)
         {
-            var cell = RotateCell(offset, rotation);
-            rotated.Add(cell);
-            minX = Mathf.Min(minX, cell.x);
-            minY = Mathf.Min(minY, cell.y);
+            var rel = RotateCellAroundPivot(offset, pivot, rotation) - pivot;
+            cells.Add(anchor + FloorToCell(rel));
         }
-
-        foreach (var cell in rotated)
-            cells.Add(anchor + new Vector2Int(cell.x - minX - 1, cell.y - minY - 1));
         return cells;
     }
 
     bool ShapeMatchesPreset(List<Vector2Int> shape, TetrominoPreset preset)
     {
         return CanonicalShape(shape) == CanonicalShape(GetTetrominoPresetCells(Vector2Int.zero, preset));
+    }
+
+    bool TryGetMatchingTetrominoPreset(List<Vector2Int> shape, out TetrominoPreset preset, out int rotation)
+    {
+        var shapeKey = NormalizedShapeKey(shape);
+        for (int i = 0; i <= (int)TetrominoPreset.Z; i++)
+        {
+            var candidate = (TetrominoPreset)i;
+            for (int candidateRotation = 0; candidateRotation < 4; candidateRotation++)
+            {
+                var candidateKey = NormalizedShapeKey(GetTetrominoPresetCells(Vector2Int.zero, candidate, candidateRotation));
+                if (shapeKey != candidateKey) continue;
+
+                preset = candidate;
+                rotation = candidateRotation;
+                return true;
+            }
+        }
+
+        preset = TetrominoPreset.I;
+        rotation = 0;
+        return false;
+    }
+
+    Vector2 RotationPivotForPreset(TetrominoPreset preset, int rotation)
+    {
+        var pivot = GetBaseRotationPivotForPreset(preset);
+
+        int minX = int.MaxValue;
+        int minY = int.MaxValue;
+        foreach (var offset in GetTetrominoPresetOffsets(preset))
+        {
+            var rotatedOffset = RotateCellAroundPivot(offset, pivot, rotation);
+            var cell = RoundToCell(rotatedOffset);
+            minX = Mathf.Min(minX, cell.x);
+            minY = Mathf.Min(minY, cell.y);
+        }
+
+        return pivot - new Vector2(minX, minY);
+    }
+
+    Vector2 GetBaseRotationPivotForPreset(TetrominoPreset preset)
+    {
+        return preset switch
+        {
+            TetrominoPreset.I => new Vector2(1.5f, 0.5f),
+            TetrominoPreset.O => new Vector2(1f, 1f),
+            TetrominoPreset.S or TetrominoPreset.Z => new Vector2(1f, 1f),
+            _ => new Vector2(1f, 0f)
+        };
+    }
+
+    Vector2 RotateCellAroundPivot(Vector2Int cell, Vector2 pivot, int quarterTurns)
+    {
+        var rotated = new Vector2(cell.x, cell.y);
+        int turns = ((quarterTurns % 4) + 4) % 4;
+        for (int i = 0; i < turns; i++)
+            rotated = new Vector2(pivot.x + rotated.y - pivot.y, pivot.y - rotated.x + pivot.x);
+
+        return rotated;
+    }
+
+    Vector2Int RoundToCell(Vector2 value)
+    {
+        return new Vector2Int(
+            Mathf.FloorToInt(value.x + 0.5f),
+            Mathf.FloorToInt(value.y + 0.5f));
+    }
+
+    Vector2Int FloorToCell(Vector2 value)
+    {
+        return new Vector2Int(
+            Mathf.FloorToInt(value.x),
+            Mathf.FloorToInt(value.y));
     }
 
     string CanonicalShape(List<Vector2Int> cells)
@@ -1228,11 +1372,13 @@ public class BlockTower : MonoBehaviour
         UpdateTowerPhysicsState();
 
         _isHolding = true;
-        _usingKeyboardPlacement = false;
         _heldBaseCell = GetDefaultHeldBaseCell();
+        _usingKeyboardPlacement = true;
         if (autoFocusCameraOnLift)
             ShowPlacementCameraView(immediate: false);
         AddScore(1, extractionScorePos);
+        if (_heldMatchesBonus)
+            AddScore(2, _bonusPreviewRoot != null ? _bonusPreviewRoot.transform.position : extractionScorePos);
     }
 
     // ── 커서 추적 ─────────────────────────────────────────────────────────
@@ -1269,14 +1415,6 @@ public class BlockTower : MonoBehaviour
 #endif
     }
 
-    Vector2Int GetMouseHeldBaseCell()
-    {
-        var local = _towerRoot.InverseTransformPoint(MouseWorldPos());
-        return new Vector2Int(
-            Mathf.RoundToInt(local.x - _heldCenter.x),
-            Mathf.RoundToInt(local.y - _heldCenter.y));
-    }
-
     Vector2Int GetDefaultHeldBaseCell()
     {
         var baseCell = new Vector2Int(0, HighestOccupiedRow() + 1);
@@ -1293,6 +1431,44 @@ public class BlockTower : MonoBehaviour
     void RotateHeldBlocks(bool clockwise)
     {
         if (_heldRelPos.Count == 0) return;
+
+        if (TryGetMatchingTetrominoPreset(_heldRelPos, out var preset, out var presetRotation))
+        {
+            if (preset == TetrominoPreset.O)
+                return;
+
+            var pivot = RotationPivotForPreset(preset, presetRotation);
+            var pivotWorld = _heldBaseCell + pivot;
+            int minX = int.MaxValue;
+            int minY = int.MaxValue;
+            var rotated = new List<Vector2Int>(_heldRelPos.Count);
+
+            foreach (var rel in _heldRelPos)
+            {
+                var next = clockwise
+                    ? new Vector2(pivot.x + rel.y - pivot.y, pivot.y - rel.x + pivot.x)
+                    : new Vector2(pivot.x - rel.y + pivot.y, pivot.y + rel.x - pivot.x);
+                var nextCell = RoundToCell(next);
+
+                rotated.Add(nextCell);
+                minX = Mathf.Min(minX, nextCell.x);
+                minY = Mathf.Min(minY, nextCell.y);
+            }
+
+            var normalizeOffset = new Vector2Int(minX, minY);
+            for (int i = 0; i < rotated.Count; i++)
+                _heldRelPos[i] = rotated[i] - normalizeOffset;
+
+            if (_usingKeyboardPlacement)
+            {
+                var normalizedPivot = pivot - normalizeOffset;
+                _heldBaseCell = ClampHeldBase(RoundToCell(pivotWorld - normalizedPivot));
+            }
+
+            RecalculateHeldCenter();
+            UpdateHeldChildLocalPositions();
+            return;
+        }
 
         int maxX = 0, maxY = 0;
         foreach (var rel in _heldRelPos)
@@ -1429,8 +1605,7 @@ public class BlockTower : MonoBehaviour
     bool CanPlaceHeldBlocks(out List<Vector2Int> targets, out Vector3 snappedWorldPos)
     {
         RefreshDetachedComponents();
-        var baseCell = _usingKeyboardPlacement ? _heldBaseCell : GetMouseHeldBaseCell();
-        return CanPlaceHeldBlocks(baseCell, out targets, out snappedWorldPos);
+        return CanPlaceHeldBlocks(_heldBaseCell, out targets, out snappedWorldPos);
     }
 
     bool CanPlaceHeldBlocks(Vector2Int baseCell, out List<Vector2Int> targets, out Vector3 snappedWorldPos)
@@ -1481,12 +1656,6 @@ public class BlockTower : MonoBehaviour
 
     void DropHeldToNearestSurfaceAndPlace()
     {
-        if (!_usingKeyboardPlacement)
-        {
-            _heldBaseCell = ClampHeldBase(GetMouseHeldBaseCell());
-            _usingKeyboardPlacement = true;
-        }
-
         if (!TryFindNearestDropBase(_heldBaseCell, out var dropBase))
         {
             PlayPlacementFailFeedback();
@@ -1549,8 +1718,6 @@ public class BlockTower : MonoBehaviour
             _lastPlacedCells.Add(target);
         }
 
-        bool earnedBonus = _heldMatchesBonus;
-
         Destroy(_heldRoot);
         _heldRoot = null;
         _heldRelPos.Clear();
@@ -1572,8 +1739,6 @@ public class BlockTower : MonoBehaviour
         else if (autoFocusCameraOnLift)
             ShowPlacementCameraView(immediate: false);
         AddScore(1, placementScorePos);
-        if (earnedBonus)
-            AddScore(2, _bonusPreviewRoot != null ? _bonusPreviewRoot.transform.position : placementScorePos);
         RollBonusTarget();
     }
 
@@ -1602,7 +1767,10 @@ public class BlockTower : MonoBehaviour
 
     void CancelHold()
     {
-        Destroy(_heldRoot);
+        if (!_isHolding) return;
+
+        if (_heldRoot != null)
+            Destroy(_heldRoot);
         _heldRoot = null;
         RestoreHeldSourceCells();
         _heldRelPos.Clear();
@@ -1612,9 +1780,12 @@ public class BlockTower : MonoBehaviour
         _heldMatchesBonus = false;
         _isHolding = false;
         _usingKeyboardPlacement = false;
+        ResetMoveRepeat();
 
         UpdateTowerPhysicsState();
-        UpdateScoreDisplay();
+        ShowExtractionCameraView(immediate: true);
+        FocusDefaultExtractionCell();
+        AddScore(-2, scoreLabel != null ? scoreLabel.transform.position : transform.position);
     }
 
     void RestoreHeldSourceCells()
@@ -1626,12 +1797,7 @@ public class BlockTower : MonoBehaviour
         }
         _cells.Clear();
 
-        foreach (var detached in _detachedComponents)
-        {
-            if (detached.root != null)
-                DestroyLocal(detached.root);
-        }
-        _detachedComponents.Clear();
+        ClearDetachedBlocks();
 
         foreach (var source in _heldSourceCells)
         {

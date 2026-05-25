@@ -1,0 +1,13 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements" editor-extension-mode="False">
+    <Style src="project://database/Assets/01.Scripts/UI/GameUI.uss?fileID=7433441132597879392&amp;guid=8bf8ef898d784dc49a6bc6664ab08293&amp;type=3#GameUI" />
+    <Style src="project://database/Assets/01.Scripts/UI/ResultPopup.uss?fileID=7433441132597879392&amp;guid=2d76adef02684bc19e9c0746e8b6c310&amp;type=3#ResultPopup" />
+    <ui:VisualElement name="result-popup" class="overlay">
+        <ui:VisualElement class="popup win-popup">
+            <ui:Label name="winner-label" text="Player 1 Win!" class="popup-title" />
+            <ui:VisualElement class="button-row split">
+                <ui:Button name="retry-button" text="Retry" class="small-button" />
+                <ui:Button name="result-exit-button" text="Exit" class="small-button" />
+            </ui:VisualElement>
+        </ui:VisualElement>
+    </ui:VisualElement>
+</ui:UXML>

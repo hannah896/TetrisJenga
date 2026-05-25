@@ -1,0 +1,34 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements" editor-extension-mode="False">
+    <Style src="project://database/Assets/01.Scripts/UI/GameUI.uss?fileID=7433441132597879392&amp;guid=8bf8ef898d784dc49a6bc6664ab08293&amp;type=3#GameUI" />
+    <Style src="project://database/Assets/01.Scripts/UI/GameScreen.uss?fileID=7433441132597879392&amp;guid=6c580d5b020443acbda1e4e47ec37b19&amp;type=3#GameScreen" />
+    <ui:VisualElement name="game-screen" class="screen">
+        <ui:VisualElement class="game-layout">
+            <ui:VisualElement class="hud-top">
+                <ui:VisualElement class="player-tag active">
+                    <ui:Label name="player1-label" text="Player 1" />
+                    <ui:Label text="your turn!" class="turn-label" />
+                </ui:VisualElement>
+                <ui:VisualElement class="player-tag">
+                    <ui:Label name="player2-label" text="Player 2" />
+                </ui:VisualElement>
+            </ui:VisualElement>
+            <ui:VisualElement class="play-field">
+                <ui:VisualElement class="tower tower-row--top" />
+                <ui:VisualElement class="tower tower-row--middle" />
+                <ui:VisualElement class="tower tower-row--bottom" />
+                <ui:Label name="stage-label" text="Stage 1" class="stage-label" />
+            </ui:VisualElement>
+            <ui:VisualElement class="next-panel">
+                <ui:Label text="NEXT" class="next-title" />
+                <ui:VisualElement class="next-grid">
+                    <ui:VisualElement class="next-cell" />
+                    <ui:VisualElement class="next-cell" />
+                    <ui:VisualElement class="next-cell" />
+                    <ui:VisualElement class="next-cell" />
+                    <ui:VisualElement class="next-cell" />
+                    <ui:VisualElement class="next-cell" />
+                </ui:VisualElement>
+            </ui:VisualElement>
+        </ui:VisualElement>
+    </ui:VisualElement>
+</ui:UXML>

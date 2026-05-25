@@ -1,0 +1,27 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements" editor-extension-mode="False">
+    <Style src="project://database/Assets/01.Scripts/UI/GameUI.uss?fileID=7433441132597879392&amp;guid=8bf8ef898d784dc49a6bc6664ab08293&amp;type=3#GameUI" />
+    <Style src="project://database/Assets/01.Scripts/UI/StageSelectScreen.uss?fileID=7433441132597879392&amp;guid=ff365e90da8543fb967b721c22bc030d&amp;type=3#StageSelectScreen" />
+    <ui:VisualElement name="stage-select-screen" class="screen stage-image-screen">
+        <ui:VisualElement class="panel stage-panel">
+            <ui:VisualElement class="stage-art stage-art--submarine">
+                <ui:VisualElement class="stage-doodle stage-doodle--one" />
+                <ui:VisualElement class="stage-doodle stage-doodle--two" />
+                <ui:VisualElement class="stage-doodle stage-doodle--three" />
+                <ui:VisualElement class="stage-doodle stage-doodle--four" />
+            </ui:VisualElement>
+            <ui:VisualElement class="stage-select-card">
+                <ui:Label text="Stage Select" class="stage-heading" />
+                <ui:VisualElement class="stage-grid">
+                    <ui:Button name="stage-1-button" text="1" class="stage-button selected" />
+                    <ui:Button name="stage-2-button" text="2" class="stage-button" />
+                    <ui:Button name="stage-3-button" text="3" class="stage-button" />
+                    <ui:Button name="stage-4-button" text="4" class="stage-button" />
+                    <ui:Button name="stage-5-button" text="5" class="stage-button" />
+                    <ui:Button name="stage-6-button" text="6" class="stage-button" />
+                </ui:VisualElement>
+                <ui:Button name="stage-play-button" text="PLAY" class="play-button" />
+            </ui:VisualElement>
+            <ui:Label text="Tetris Jenga" class="brand-caption" />
+        </ui:VisualElement>
+    </ui:VisualElement>
+</ui:UXML>
