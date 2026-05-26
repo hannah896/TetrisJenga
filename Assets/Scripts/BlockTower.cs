@@ -2,6 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using UnityEngine.UIElements;
 using TMPro;
 
 [ExecuteAlways]
@@ -67,11 +68,16 @@ public class BlockTower : MonoBehaviour
     [SerializeField] float detachedReattachVelocity = 0.55f;
     [SerializeField] float detachedMinAirTime = 0.35f;
     [SerializeField] float detachedPenaltyDelay = 2f;
+    [SerializeField, Range(0.85f, 1f)] float blockBodyScale = 0.94f;
+    [SerializeField, Range(0.85f, 1f)] float blockColliderScale = 0.92f;
 
     [Header("Scene References (optional)")]
     [SerializeField] Transform   towerRootTransform;
     [SerializeField] Transform   floorTransform;
     [SerializeField] TextMeshPro scoreLabel;
+    [SerializeField] UIDocument  hudDocument;
+    [SerializeField] VisualTreeAsset hudVisualTree;
+    [SerializeField] PanelSettings hudPanelSettings;
 
     Transform      _towerRoot;
     Rigidbody      _rb;
@@ -83,10 +89,32 @@ public class BlockTower : MonoBehaviour
     GameOverScreen _gameOverScreen;
     GameObject     _bonusPreviewRoot;
     GameObject     _presetOutlineRoot;
+    Label          _builderScoreTitle;
+    Label          _builderScoreValue;
+    Label          _builderScorePopupText;
+    Label          _builderBonusPreviewTitle;
+    Label          _builderBonusKeyLabel;
+    Label          _builderBonusNextKeyLabel;
+    Label          _builderBonusThirdKeyLabel;
+    VisualElement  _builderBonusPreview;
+    VisualElement  _builderBonusBackground;
+    VisualElement  _builderBonusCells;
+    VisualElement  _builderBonusNextCells;
+    VisualElement  _builderBonusThirdCells;
+    readonly List<VisualElement> _builderBonusCellElements = new();
+    readonly List<VisualElement> _builderBonusNextCellElements = new();
+    readonly List<VisualElement> _builderBonusThirdCellElements = new();
+    bool           _builderBonusPreviewNeedsRefresh;
+    Coroutine      _builderScorePopupRoutine;
+    PanelSettings  _runtimeHudPanelSettings;
+    Font           _runtimeHudFont;
     int            _score;
     bool           _isGameOver;
     Sprite         _outlineSprite;
     TetrominoPreset _bonusTargetPreset;
+    TetrominoPreset _nextBonusTargetPreset;
+    TetrominoPreset _thirdBonusTargetPreset;
+    bool           _bonusQueueInitialized;
 
     // ── 셀 데이터 ─────────────────────────────────────────────────────────
     class CellData
@@ -151,12 +179,147 @@ public class BlockTower : MonoBehaviour
 
     void OnEnable()
     {
+        BindBuilderHud();
         if (Application.isPlaying)
         {
             if (_cells.Count > 0) return;
             if (TryRestoreRuntimeStateFromScene()) return;
         }
         Rebuild();
+    }
+
+    bool BindBuilderHud()
+    {
+        if (hudDocument == null)
+            hudDocument = GetComponent<UIDocument>();
+        if (hudDocument == null)
+            hudDocument = FindObjectOfType<UIDocument>();
+        if (hudDocument == null)
+            return false;
+
+        EnsureHudPanelSettings();
+        EnsureHudVisualTree();
+        if (hudDocument.rootVisualElement == null)
+            return false;
+
+        var root = hudDocument.rootVisualElement;
+        _builderScoreTitle = root.Q<Label>("ScoreTitle");
+        _builderScoreValue = root.Q<Label>("ScoreValue");
+        _builderScorePopupText = root.Q<Label>("ScorePopupText");
+        _builderBonusPreviewTitle = root.Q<Label>("BonusPreviewTitle");
+        _builderBonusKeyLabel = root.Q<Label>("BonusPreview1Key");
+        _builderBonusNextKeyLabel = root.Q<Label>("BonusPreview2Key");
+        _builderBonusThirdKeyLabel = root.Q<Label>("BonusPreview3Key");
+        _builderBonusPreview = root.Q<VisualElement>("BonusPreview");
+        _builderBonusBackground = root.Q<VisualElement>("BonusPreviewBackground");
+        _builderBonusCells = root.Q<VisualElement>("BonusPreview1Cells") ?? root.Q<VisualElement>("BonusPreviewCells");
+        _builderBonusNextCells = root.Q<VisualElement>("BonusPreview2Cells");
+        _builderBonusThirdCells = root.Q<VisualElement>("BonusPreview3Cells");
+        _builderBonusCellElements.Clear();
+        _builderBonusCells?.Query<VisualElement>(className: "bonus-preview-cell")
+            .ForEach(cell => _builderBonusCellElements.Add(cell));
+        _builderBonusNextCellElements.Clear();
+        _builderBonusNextCells?.Query<VisualElement>(className: "bonus-preview-cell")
+            .ForEach(cell => _builderBonusNextCellElements.Add(cell));
+        _builderBonusThirdCellElements.Clear();
+        _builderBonusThirdCells?.Query<VisualElement>(className: "bonus-preview-cell")
+            .ForEach(cell => _builderBonusThirdCellElements.Add(cell));
+
+        ApplyHudTextStyles();
+        _builderBonusPreviewNeedsRefresh = _builderBonusCells != null;
+        if (_builderBonusCells != null)
+            root.schedule.Execute(UpdateBuilderBonusPreview).StartingIn(0);
+        return _builderScoreValue != null || _builderBonusCells != null;
+    }
+
+    void ApplyHudTextStyles()
+    {
+        StyleHudLabel(_builderScoreTitle, "SCORE", 48f, 336f, 66f, Color.white);
+        StyleHudLabel(_builderScoreValue, _score.ToString(), 96f, 336f, 120f, Color.white);
+        StyleHudLabel(_builderBonusPreviewTitle, "NEXT", 33f, 300f, 60f, new Color(0.21f, 0.84f, 0.79f, 1f));
+        StyleHudLabel(_builderScorePopupText, _builderScorePopupText?.text ?? string.Empty, 30f, 336f, 60f, Color.white);
+        SetHudLabelTextOnly(_builderBonusKeyLabel, PresetKeyText(_bonusTargetPreset));
+        SetHudLabelTextOnly(_builderBonusNextKeyLabel, PresetKeyText(_nextBonusTargetPreset));
+        SetHudLabelTextOnly(_builderBonusThirdKeyLabel, PresetKeyText(_thirdBonusTargetPreset));
+    }
+
+    void StyleHudLabel(Label label, string text, float fontSize, float width, float height, Color color)
+    {
+        if (label == null) return;
+
+        label.text = text;
+        label.style.display = DisplayStyle.Flex;
+        label.style.visibility = Visibility.Visible;
+        label.style.width = width;
+        label.style.height = height;
+        label.style.fontSize = fontSize;
+        label.style.color = color;
+        var font = GetRuntimeHudFont();
+        if (font != null)
+            label.style.unityFont = font;
+        label.style.unityFontStyleAndWeight = FontStyle.Bold;
+        label.style.unityTextAlign = TextAnchor.MiddleCenter;
+        label.style.flexShrink = 0f;
+        label.style.opacity = 1f;
+    }
+
+    void SetHudLabelTextOnly(Label label, string text)
+    {
+        if (label == null) return;
+
+        label.text = text;
+        label.style.display = DisplayStyle.Flex;
+        label.style.visibility = Visibility.Visible;
+        label.style.color = Color.white;
+        var font = GetRuntimeHudFont();
+        if (font != null)
+            label.style.unityFont = font;
+        label.style.unityFontStyleAndWeight = FontStyle.Bold;
+        label.style.unityTextAlign = TextAnchor.MiddleCenter;
+        label.style.flexShrink = 0f;
+        label.style.opacity = 1f;
+    }
+
+    Font GetRuntimeHudFont()
+    {
+        if (_runtimeHudFont != null)
+            return _runtimeHudFont;
+
+        _runtimeHudFont = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+        if (_runtimeHudFont == null)
+            _runtimeHudFont = Resources.GetBuiltinResource<Font>("Arial.ttf");
+        return _runtimeHudFont;
+    }
+
+    void EnsureHudPanelSettings()
+    {
+        if (hudDocument == null || hudDocument.panelSettings != null)
+            return;
+
+        if (hudPanelSettings != null)
+        {
+            hudDocument.panelSettings = hudPanelSettings;
+            return;
+        }
+
+        if (_runtimeHudPanelSettings == null)
+        {
+            _runtimeHudPanelSettings = ScriptableObject.CreateInstance<PanelSettings>();
+            _runtimeHudPanelSettings.name = "RuntimeHudPanelSettings";
+            _runtimeHudPanelSettings.scaleMode = PanelScaleMode.ScaleWithScreenSize;
+            _runtimeHudPanelSettings.referenceResolution = new Vector2Int(1920, 1080);
+            _runtimeHudPanelSettings.sortingOrder = 10;
+        }
+        hudDocument.panelSettings = _runtimeHudPanelSettings;
+    }
+
+    void EnsureHudVisualTree()
+    {
+        if (hudDocument == null || hudVisualTree == null)
+            return;
+
+        if (hudDocument.visualTreeAsset != hudVisualTree)
+            hudDocument.visualTreeAsset = hudVisualTree;
     }
 
 #if UNITY_EDITOR
@@ -227,6 +390,7 @@ public class BlockTower : MonoBehaviour
         _score = 0;
         _heldStartScore = 0;
         _heldMatchesBonus = false;
+        _bonusQueueInitialized = false;
 
         if (_generatedFloor == null) { var f = transform.Find("Floor"); if (f) _generatedFloor = f.gameObject; }
         if (_generatedScoreLabel == null) { var f = transform.Find("ScoreLabel"); if (f) _generatedScoreLabel = f.gameObject; }
@@ -271,6 +435,7 @@ public class BlockTower : MonoBehaviour
         _score = 0;
         _heldStartScore = 0;
         _heldMatchesBonus = false;
+        _bonusQueueInitialized = false;
         BuildTower();
     }
 
@@ -373,6 +538,9 @@ public class BlockTower : MonoBehaviour
 
     void UpdateScoreDisplay()
     {
+        BindBuilderHud();
+        if (_builderScoreValue != null)
+            _builderScoreValue.text = _score.ToString();
         if (scoreLabel != null)
             scoreLabel.text = $"SCORE\n{_score}";
     }
@@ -380,6 +548,14 @@ public class BlockTower : MonoBehaviour
     void SpawnFloatingScoreText(int delta)
     {
         if (delta == 0 || !Application.isPlaying) return;
+        BindBuilderHud();
+        if (_builderScorePopupText != null)
+        {
+            if (_builderScorePopupRoutine != null)
+                StopCoroutine(_builderScorePopupRoutine);
+            _builderScorePopupRoutine = StartCoroutine(AnimateBuilderScoreText(delta));
+            return;
+        }
 
         var go = new GameObject("FloatingScoreText");
         MarkGeneratedObject(go);
@@ -432,6 +608,34 @@ public class BlockTower : MonoBehaviour
             Destroy(go);
     }
 
+    IEnumerator AnimateBuilderScoreText(int delta)
+    {
+        float duration = 0.85f;
+        float elapsed = 0f;
+
+        _builderScorePopupText.text = delta > 0 ? $"+{delta}" : delta.ToString();
+        _builderScorePopupText.style.color = delta > 0 ? Color.white : Color.red;
+        _builderScorePopupText.style.display = DisplayStyle.Flex;
+
+        while (elapsed < duration && _builderScorePopupText != null)
+        {
+            elapsed += Time.deltaTime;
+            float t = Mathf.Clamp01(elapsed / duration);
+            _builderScorePopupText.style.top = -t * 18f;
+            _builderScorePopupText.style.opacity = 1f - t;
+            yield return null;
+        }
+
+        if (_builderScorePopupText != null)
+        {
+            _builderScorePopupText.text = string.Empty;
+            _builderScorePopupText.style.top = 0f;
+            _builderScorePopupText.style.opacity = 1f;
+            _builderScorePopupText.style.display = DisplayStyle.None;
+        }
+        _builderScorePopupRoutine = null;
+    }
+
     // ─────────────────────────────────────────────────────────────────────
 
     [Header("Camera Scroll")]
@@ -456,6 +660,8 @@ public class BlockTower : MonoBehaviour
     void Update()
     {
         if (!Application.isPlaying) return;
+        if (_isGameOver) return;
+        CheckTowerBoundaryGameOver();
         if (_isGameOver) return;
 
         var mouse = Mouse.current;
@@ -495,6 +701,8 @@ public class BlockTower : MonoBehaviour
         }
 
         UpdateCameraTarget();
+        if (_builderBonusPreviewNeedsRefresh || _builderBonusCells == null)
+            CreateOrUpdateBonusPreview();
         UpdateBonusPreviewPosition();
         UpdatePresetOutlineFeedback();
     }
@@ -511,6 +719,32 @@ public class BlockTower : MonoBehaviour
     }
 
     // ── 유틸: 마우스 → 월드 좌표 ─────────────────────────────────────────
+
+    void CheckTowerBoundaryGameOver()
+    {
+        if (_leftBoundary == null || _rightBoundary == null) return;
+
+        var leftCollider = _leftBoundary.GetComponent<Collider>();
+        var rightCollider = _rightBoundary.GetComponent<Collider>();
+        if (leftCollider == null || rightCollider == null) return;
+
+        var leftBounds = leftCollider.bounds;
+        var rightBounds = rightCollider.bounds;
+        foreach (var data in _cells.Values)
+        {
+            if (data.go == null) continue;
+
+            var cellCollider = data.go.GetComponent<Collider>();
+            if (cellCollider == null) continue;
+
+            var bounds = cellCollider.bounds;
+            if (bounds.Intersects(leftBounds) || bounds.Intersects(rightBounds))
+            {
+                TriggerGameOver();
+                return;
+            }
+        }
+    }
 
     static Vector3 MouseWorldPos()
     {
@@ -734,6 +968,7 @@ public class BlockTower : MonoBehaviour
         best = default;
         bool found = false;
         int targetY = 0;
+        float targetX = (_extractionMinCol + _extractionMaxCol) * 0.5f;
 
         if (TryFindTowerBodyRows(ignoreLastPlaced, originalTowerOnly, out int minY, out int maxY))
             targetY = Mathf.RoundToInt(Mathf.Lerp(minY, maxY, cameraReturnBodyAnchor));
@@ -746,10 +981,13 @@ public class BlockTower : MonoBehaviour
 
             int distance = Mathf.Abs(cell.y - targetY);
             int bestDistance = found ? Mathf.Abs(best.y - targetY) : int.MaxValue;
+            float xDistance = Mathf.Abs(cell.x - targetX);
+            float bestXDistance = found ? Mathf.Abs(best.x - targetX) : float.MaxValue;
             if (!found ||
                 distance < bestDistance ||
                 distance == bestDistance && cell.y > best.y ||
-                distance == bestDistance && cell.y == best.y && cell.x < best.x)
+                distance == bestDistance && cell.y == best.y && xDistance < bestXDistance ||
+                distance == bestDistance && cell.y == best.y && Mathf.Approximately(xDistance, bestXDistance) && cell.x < best.x)
             {
                 best = cell;
                 found = true;
@@ -1234,7 +1472,7 @@ public class BlockTower : MonoBehaviour
         bool isSelected = _selected.Contains(cell);
         bool isFocused = !_presetSelectionActive && _hasFocusedCell && _focusedCell == cell;
         bool showSelectedOutline = isSelected && !_presetSelectionActive;
-        var color = data.isOriginalTower ? NumberColor(data.number) : placedBlockColor;
+        var color = data.isOriginalTower ? NumberColor(data.number) : PlacedNumberColor(data.number);
         if (isSelected)
             color = Color.Lerp(color, Color.white, 0.45f);
         if (isFocused)
@@ -1339,15 +1577,16 @@ public class BlockTower : MonoBehaviour
                 rel.x + 0.5f - _heldCenter.x,
                 rel.y + 0.5f - _heldCenter.y,
                 0f);
+            go.transform.localScale = Vector3.one * blockBodyScale;
 
             var sr = go.AddComponent<SpriteRenderer>();
             sr.sprite       = CreateBlockSprite();
             sr.color        = heldColor;
-            sr.sortingOrder = 0;
+            sr.sortingOrder = 20;
             var blurRenderers = CreatePreviewBlur(go.transform);
 
             var box = go.AddComponent<BoxCollider>();
-            box.size           = Vector3.one;
+            box.size           = Vector3.one * LocalColliderSize();
             box.sharedMaterial = CreateFrictionMaterial();
             box.enabled        = false;
 
@@ -1355,7 +1594,6 @@ public class BlockTower : MonoBehaviour
             bc.Weight = 1;
             bc.IsOriginalTower = false;
 
-            var label = SpawnLabel(1, go.transform);
             _heldData.Add(new CellData
             {
                 number = 1,
@@ -1363,7 +1601,7 @@ public class BlockTower : MonoBehaviour
                 go = go,
                 sr = sr,
                 outline = null,
-                label = label,
+                label = null,
                 previewBlurRenderers = blurRenderers
             });
         }
@@ -1417,7 +1655,9 @@ public class BlockTower : MonoBehaviour
 
     Vector2Int GetDefaultHeldBaseCell()
     {
-        var baseCell = new Vector2Int(0, HighestOccupiedRow() + 1);
+        float placementCenterX = (placementMin.x + placementMax.x + 1f) * 0.5f;
+        int baseX = Mathf.RoundToInt(placementCenterX - _heldCenter.x);
+        var baseCell = new Vector2Int(baseX, HighestOccupiedRow() + 1);
         return ClampHeldBase(baseCell);
     }
 
@@ -1425,7 +1665,8 @@ public class BlockTower : MonoBehaviour
     {
         _heldBaseCell += dir;
         _heldBaseCell = ClampHeldBase(_heldBaseCell);
-        FocusCameraOnGridY(_heldBaseCell.y + Mathf.CeilToInt(_heldCenter.y));
+        if (dir.y != 0)
+            FocusCameraOnHeldCenter();
     }
 
     void RotateHeldBlocks(bool clockwise)
@@ -1618,15 +1859,22 @@ public class BlockTower : MonoBehaviour
         foreach (var rel in _heldRelPos)
         {
             var target = new Vector2Int(baseCell.x + rel.x, baseCell.y + rel.y);
-            if (IsOccupiedCell(target, detachedCells)) return false;
             if (target.x < placementMin.x || target.x > placementMax.x ||
                 target.y < placementMin.y || target.y > placementMax.y) return false;
+            if (detachedCells.Contains(target)) return false;
+            if (_cells.TryGetValue(target, out var existing) && existing.number >= 6) return false;
             targets.Add(target);
         }
 
         bool adjacent = false;
         foreach (var t in targets)
         {
+            if (_cells.ContainsKey(t))
+            {
+                adjacent = true;
+                break;
+            }
+
             foreach (var n in Neighbors(t))
             {
                 if (IsOccupiedCell(n, detachedCells)) { adjacent = true; break; }
@@ -1640,7 +1888,9 @@ public class BlockTower : MonoBehaviour
         bool hasBottomSupport = false;
         foreach (var t in targets)
         {
-            if (t.y == 0 || IsOccupiedCell(new Vector2Int(t.x, t.y - 1), detachedCells))
+            if (_cells.ContainsKey(t) ||
+                t.y == 0 ||
+                IsOccupiedCell(new Vector2Int(t.x, t.y - 1), detachedCells))
             {
                 hasBottomSupport = true;
                 break;
@@ -1699,13 +1949,32 @@ public class BlockTower : MonoBehaviour
             var data   = _heldData[i];
 
             ClearPreviewBlur(data);
+            if (_cells.TryGetValue(target, out var existing))
+            {
+                existing.number = Mathf.Min(6, existing.number + 1);
+                UpdateCellDataVisuals(existing);
+                ApplyCellVisual(target);
+                if (data.go != null)
+                    Destroy(data.go);
+                _lastPlacedCells.Add(target);
+                continue;
+            }
+
             data.go.transform.SetParent(_towerRoot, false);
             data.go.transform.localPosition = new Vector3(target.x + 0.5f, target.y + 0.5f, 0f);
+            data.go.transform.localScale = Vector3.one * blockBodyScale;
 
             var box = data.go.GetComponent<BoxCollider>();
-            if (box != null) box.enabled = true;
+            if (box != null)
+            {
+                box.size = Vector3.one * LocalColliderSize();
+                box.enabled = true;
+            }
 
-            data.sr.color = placedBlockColor;
+            data.sr.sortingOrder = 0;
+            data.sr.color = PlacedNumberColor(data.number);
+            if (data.label == null)
+                data.label = SpawnLabel(data.number, data.go.transform);
 
             var bc = data.go.GetComponent<BlockCell>();
             if (bc != null)
@@ -1962,6 +2231,11 @@ public class BlockTower : MonoBehaviour
             _detachedComponents.Add(detached);
             StartCoroutine(TryReattachDetachedComponent(detached));
         }
+    }
+
+    float LocalColliderSize()
+    {
+        return blockBodyScale > 0.001f ? blockColliderScale / blockBodyScale : blockColliderScale;
     }
 
     IEnumerator TryReattachDetachedComponent(DetachedComponent detached)
@@ -2315,13 +2589,14 @@ public class BlockTower : MonoBehaviour
         MarkGeneratedObject(go);
         go.transform.SetParent(_towerRoot, false);
         go.transform.localPosition = new Vector3(cell.x + 0.5f, cell.y + 0.5f, 0f);
+        go.transform.localScale = Vector3.one * blockBodyScale;
 
         var sr = go.AddComponent<SpriteRenderer>();
         sr.sprite       = CreateBlockSprite();
         sr.sortingOrder = 0;
 
         var box = go.AddComponent<BoxCollider>();
-        box.size           = Vector3.one;
+        box.size           = Vector3.one * LocalColliderSize();
         box.sharedMaterial = CreateFrictionMaterial();
 
         var bc = go.AddComponent<BlockCell>();
@@ -2355,7 +2630,7 @@ public class BlockTower : MonoBehaviour
         if (data.label != null)
             data.label.text = data.number.ToString();
         if (data.sr != null)
-            data.sr.color = data.isOriginalTower ? NumberColor(data.number) : placedBlockColor;
+            data.sr.color = data.isOriginalTower ? NumberColor(data.number) : PlacedNumberColor(data.number);
     }
 
     // ── 바닥 ─────────────────────────────────────────────────────────────
@@ -2452,71 +2727,78 @@ public class BlockTower : MonoBehaviour
 
     void CreateScoreLabel()
     {
+        BindBuilderHud();
+        if (_builderScoreValue != null) { UpdateScoreDisplay(); return; }
         if (scoreLabel != null) { UpdateScoreDisplay(); return; }
-
-        var go = new GameObject("ScoreLabel");
-        MarkGeneratedObject(go);
-        go.transform.SetParent(transform);
-        go.transform.position = new Vector3(
-            -columns * 0.5f - 2.5f,
-             rows    * 0.5f + 0.5f,
-             0f);
-
-        var tmp  = go.AddComponent<TextMeshPro>();
-        var rect = go.GetComponent<RectTransform>();
-        rect.sizeDelta = new Vector2(4f, 2f);
-
-        tmp.fontSize         = 2.5f;
-        tmp.alignment        = TextAlignmentOptions.TopLeft;
-        tmp.color            = Color.white;
-        tmp.fontStyle        = FontStyles.Bold;
-        tmp.textWrappingMode = TextWrappingModes.NoWrap;
-        tmp.overflowMode     = TextOverflowModes.Overflow;
-
-        var r = go.GetComponent<Renderer>();
-        if (r != null) r.sortingOrder = 3;
-
-        scoreLabel           = tmp;
-        _generatedScoreLabel = go;
-
-        UpdateScoreDisplay();
     }
 
     // ── 레이블 ────────────────────────────────────────────────────────────
 
     void RollBonusTarget()
     {
-        _bonusTargetPreset = (TetrominoPreset)Random.Range(0, 7);
+        if (!_bonusQueueInitialized)
+        {
+            _bonusTargetPreset = RandomBonusPreset();
+            _nextBonusTargetPreset = RandomBonusPreset();
+            _thirdBonusTargetPreset = RandomBonusPreset();
+            _bonusQueueInitialized = true;
+        }
+        else
+        {
+            _bonusTargetPreset = _nextBonusTargetPreset;
+            _nextBonusTargetPreset = _thirdBonusTargetPreset;
+            _thirdBonusTargetPreset = RandomBonusPreset();
+        }
         CreateOrUpdateBonusPreview();
+    }
+
+    TetrominoPreset RandomBonusPreset()
+    {
+        return (TetrominoPreset)Random.Range(0, 7);
     }
 
     void CreateOrUpdateBonusPreview()
     {
-        if (_bonusPreviewRoot == null)
+        BindBuilderHud();
+        if (_builderBonusCells != null)
         {
-            _bonusPreviewRoot = new GameObject("BonusPreview");
-            MarkGeneratedObject(_bonusPreviewRoot);
-            _bonusPreviewRoot.transform.SetParent(transform);
+            UpdateBuilderBonusPreview();
+            return;
         }
+    }
 
-        var children = new List<Transform>();
-        foreach (Transform child in _bonusPreviewRoot.transform)
-            children.Add(child);
-        foreach (var child in children)
-            DestroyLocal(child.gameObject);
+    void UpdateBonusPreviewPosition()
+    {
+        if (_builderBonusPreview != null) return;
+        if (_bonusPreviewRoot == null) return;
 
-        var panel = new GameObject("BonusPreviewBackground");
-        MarkGeneratedObject(panel);
-        panel.transform.SetParent(_bonusPreviewRoot.transform, false);
-        panel.transform.localPosition = new Vector3(0f, 0f, 0.04f);
-        panel.transform.localScale = new Vector3(2.35f, 2f, 1f);
+        var cam = Camera.main;
+        if (cam == null || !cam.orthographic) return;
 
-        var panelSr = panel.AddComponent<SpriteRenderer>();
-        panelSr.sprite = CreateBlockSprite();
-        panelSr.color = new Color(0f, 0f, 0f, 0.45f);
-        panelSr.sortingOrder = 5;
+        var pos = cam.ViewportToWorldPoint(new Vector3(0.76f, 0.78f, -cam.transform.position.z));
+        _bonusPreviewRoot.transform.position = new Vector3(pos.x, pos.y, 0f);
+        _bonusPreviewRoot.transform.localScale = Vector3.one;
+    }
 
-        var cells = GetTetrominoPresetCells(Vector2Int.zero, _bonusTargetPreset);
+    void UpdateBuilderBonusPreview()
+    {
+        if (_builderBonusCells == null) return;
+        UpdateBuilderBonusPreviewSlot(_builderBonusCells, _builderBonusCellElements, _bonusTargetPreset);
+        if (_builderBonusNextCells != null)
+            UpdateBuilderBonusPreviewSlot(_builderBonusNextCells, _builderBonusNextCellElements, _nextBonusTargetPreset);
+        if (_builderBonusThirdCells != null)
+            UpdateBuilderBonusPreviewSlot(_builderBonusThirdCells, _builderBonusThirdCellElements, _thirdBonusTargetPreset);
+        SetHudLabelTextOnly(_builderBonusKeyLabel, PresetKeyText(_bonusTargetPreset));
+        SetHudLabelTextOnly(_builderBonusNextKeyLabel, PresetKeyText(_nextBonusTargetPreset));
+        SetHudLabelTextOnly(_builderBonusThirdKeyLabel, PresetKeyText(_thirdBonusTargetPreset));
+        _builderBonusPreviewNeedsRefresh = false;
+    }
+
+    void UpdateBuilderBonusPreviewSlot(VisualElement container, List<VisualElement> elements, TetrominoPreset preset)
+    {
+        if (container == null) return;
+
+        var cells = GetTetrominoPresetCells(Vector2Int.zero, preset);
         int minX = int.MaxValue, minY = int.MaxValue;
         int maxX = int.MinValue, maxY = int.MinValue;
         foreach (var cell in cells)
@@ -2527,40 +2809,52 @@ public class BlockTower : MonoBehaviour
             maxY = Mathf.Max(maxY, cell.y);
         }
 
-        float blockSize = 0.5f;
-        float width = (maxX - minX + 1) * blockSize;
-        float height = (maxY - minY + 1) * blockSize;
-        var color = TetrominoColor(_bonusTargetPreset);
-        foreach (var cell in cells)
+        float cellSize = 60f;
+        float width = (maxX - minX + 1) * cellSize;
+        float height = (maxY - minY + 1) * cellSize;
+        float containerWidth = Mathf.Max(ResolvedOrDefault(container.resolvedStyle.width, 240f), width);
+        float containerHeight = Mathf.Max(ResolvedOrDefault(container.resolvedStyle.height, 180f), height);
+        float offsetX = (containerWidth - width) * 0.5f;
+        float offsetY = (containerHeight - height) * 0.5f;
+        container.style.position = Position.Relative;
+
+        var color = TetrominoColor(preset);
+        for (int i = 0; i < elements.Count; i++)
         {
-            var go = new GameObject($"BonusCell_{cell.x}_{cell.y}");
-            MarkGeneratedObject(go);
-            go.transform.SetParent(_bonusPreviewRoot.transform, false);
-            go.transform.localPosition = new Vector3(
-                (cell.x - minX) * blockSize - width * 0.5f + blockSize * 0.5f,
-                (cell.y - minY) * blockSize - height * 0.5f,
-                0f);
-            go.transform.localScale = Vector3.one * blockSize;
+            var element = elements[i];
+            if (i >= cells.Count)
+            {
+                element.style.display = DisplayStyle.None;
+                continue;
+            }
 
-            var sr = go.AddComponent<SpriteRenderer>();
-            sr.sprite = CreateBlockSprite();
-            sr.color = color;
-            sr.sortingOrder = 7;
+            var cell = cells[i];
+            element.style.display = DisplayStyle.Flex;
+            element.style.position = Position.Absolute;
+            element.style.left = offsetX + (cell.x - minX) * cellSize;
+            element.style.top = offsetY + (maxY - cell.y) * cellSize;
+            element.style.width = cellSize;
+            element.style.height = cellSize;
+            element.style.backgroundColor = color;
         }
-        UpdateBonusPreviewPosition();
     }
 
-    void UpdateBonusPreviewPosition()
+    float ResolvedOrDefault(float value, float fallback)
     {
-        if (_bonusPreviewRoot == null) return;
-
-        var cam = Camera.main;
-        if (cam == null || !cam.orthographic) return;
-
-        var pos = cam.ViewportToWorldPoint(new Vector3(0.76f, 0.78f, -cam.transform.position.z));
-        _bonusPreviewRoot.transform.position = new Vector3(pos.x, pos.y, 0f);
-        _bonusPreviewRoot.transform.localScale = Vector3.one;
+        return float.IsNaN(value) || value <= 0.01f ? fallback : value;
     }
+
+    string PresetKeyText(TetrominoPreset preset) => preset switch
+    {
+        TetrominoPreset.I => "Q",
+        TetrominoPreset.J => "W",
+        TetrominoPreset.L => "E",
+        TetrominoPreset.O => "R",
+        TetrominoPreset.S => "A",
+        TetrominoPreset.T => "S",
+        TetrominoPreset.Z => "D",
+        _ => string.Empty
+    };
 
     SpriteRenderer SpawnCellOutline(Transform parent)
     {
@@ -2691,6 +2985,18 @@ public class BlockTower : MonoBehaviour
     void FocusCameraOnGridY(int gridY)
     {
         FocusCameraOnGridY(gridY, immediate: false, padding: cameraTopPadding);
+    }
+
+    void FocusCameraOnHeldCenter()
+    {
+        var cam = Camera.main;
+        if (cam == null || !cam.orthographic || _towerRoot == null) return;
+
+        float worldY = _towerRoot.position.y + _heldBaseCell.y + _heldCenter.y;
+        float minY = _floorY + cam.orthographicSize;
+        _cameraTargetY = Mathf.Max(minY, worldY);
+        _cameraTargetSize = cam.orthographicSize;
+        _hasCameraTarget = true;
     }
 
     void FocusCameraOnGridY(int gridY, bool immediate, float padding)
@@ -2883,6 +3189,12 @@ public class BlockTower : MonoBehaviour
         6 => new Color(0.72f, 0.38f, 0.92f),
         _ => Color.gray
     };
+
+    static Color PlacedNumberColor(int n)
+    {
+        float t = Mathf.InverseLerp(1f, 6f, Mathf.Clamp(n, 1, 6));
+        return Color.Lerp(new Color32(160, 160, 160, 255), new Color32(50, 50, 50, 255), t);
+    }
 
     static Color TetrominoColor(TetrominoPreset preset) => preset switch
     {
