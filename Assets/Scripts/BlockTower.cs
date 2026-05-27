@@ -2,18 +2,13 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using UnityEngine.UI;
 using UnityEngine.UIElements;
 using TMPro;
 
 [ExecuteAlways]
 public class BlockTower : MonoBehaviour
 {
-    public enum ControlPreset
-    {
-        Wasd,
-        ArrowKeys
-    }
-
     enum TetrominoPreset
     {
         I,
@@ -32,6 +27,8 @@ public class BlockTower : MonoBehaviour
     [Header("Placement Zone")]
     public Vector2Int placementMin = new(-1, 0);
     public Vector2Int placementMax = new(4, 14);
+    [SerializeField] bool usePlacementZoneObject = true;
+    [SerializeField] Transform placementZoneTransform;
 
     [Header("Placement Preview")]
     [SerializeField] bool  previewBlurEnabled = true;
@@ -47,7 +44,6 @@ public class BlockTower : MonoBehaviour
 
     [Header("Keyboard Controls")]
     [SerializeField] bool keyboardControlsEnabled = true;
-    [SerializeField] ControlPreset controlPreset = ControlPreset.Wasd;
     [SerializeField] Color focusedCellColor = new(1f, 0.92f, 0.25f, 1f);
     [SerializeField, Range(0.05f, 0.5f)] float moveHoldInitialDelay = 0.22f;
     [SerializeField, Range(0.02f, 0.25f)] float moveHoldRepeatInterval = 0.08f;
@@ -71,6 +67,9 @@ public class BlockTower : MonoBehaviour
     [SerializeField, Range(0.85f, 1f)] float blockBodyScale = 0.94f;
     [SerializeField, Range(0.85f, 1f)] float blockColliderScale = 0.92f;
 
+    [Header("Score")]
+    [SerializeField] int targetScore = 30;
+
     [Header("Scene References (optional)")]
     [SerializeField] Transform   towerRootTransform;
     [SerializeField] Transform   floorTransform;
@@ -86,11 +85,15 @@ public class BlockTower : MonoBehaviour
     GameObject     _generatedScoreLabel;
     GameObject     _leftBoundary;
     GameObject     _rightBoundary;
+    GameObject     _towerStackDivider;
+    GameObject     _placementZoneObject;
     GameOverScreen _gameOverScreen;
+    GameOverScreen _clearScreen;
     GameObject     _bonusPreviewRoot;
     GameObject     _presetOutlineRoot;
     Label          _builderScoreTitle;
     Label          _builderScoreValue;
+    Label          _builderTargetScoreValue;
     Label          _builderScorePopupText;
     Label          _builderBonusPreviewTitle;
     Label          _builderBonusKeyLabel;
@@ -101,11 +104,23 @@ public class BlockTower : MonoBehaviour
     VisualElement  _builderBonusCells;
     VisualElement  _builderBonusNextCells;
     VisualElement  _builderBonusThirdCells;
+    TextMeshProUGUI _canvasScoreText;
+    TextMeshProUGUI _canvasTargetScoreText;
+    TextMeshProUGUI _canvasFloatingScoreText;
+    TextMeshProUGUI _canvasBonusKeyText;
+    TextMeshProUGUI _canvasBonusNextKeyText;
+    TextMeshProUGUI _canvasBonusThirdKeyText;
     readonly List<VisualElement> _builderBonusCellElements = new();
     readonly List<VisualElement> _builderBonusNextCellElements = new();
     readonly List<VisualElement> _builderBonusThirdCellElements = new();
+    readonly HashSet<GameObject> _generatedObjects = new();
+    readonly List<RectInt> _placementExclusions = new();
+    readonly List<GameObject> _placementZoneFillObjects = new();
+    string         _placementZoneVisualSignature;
+    float          _placementZoneTopLimitLocal = float.NaN;
     bool           _builderBonusPreviewNeedsRefresh;
     Coroutine      _builderScorePopupRoutine;
+    Coroutine      _canvasFloatingScoreRoutine;
     PanelSettings  _runtimeHudPanelSettings;
     Font           _runtimeHudFont;
     int            _score;
@@ -115,6 +130,9 @@ public class BlockTower : MonoBehaviour
     TetrominoPreset _nextBonusTargetPreset;
     TetrominoPreset _thirdBonusTargetPreset;
     bool           _bonusQueueInitialized;
+    readonly List<TetrominoPreset> _bonusPresetBag = new();
+    int            _bonusPresetBagIndex;
+    bool           _freezePlacementZoneVisuals;
 
     // ── 셀 데이터 ─────────────────────────────────────────────────────────
     class CellData
@@ -180,6 +198,12 @@ public class BlockTower : MonoBehaviour
     void OnEnable()
     {
         BindBuilderHud();
+        if (!Application.isPlaying)
+        {
+            EnsureEditorSceneObjectsVisible();
+            return;
+        }
+
         if (Application.isPlaying)
         {
             if (_cells.Count > 0) return;
@@ -188,12 +212,48 @@ public class BlockTower : MonoBehaviour
         Rebuild();
     }
 
+#if UNITY_EDITOR
+    void OnValidate()
+    {
+        if (Application.isPlaying)
+            return;
+
+        UnityEditor.EditorApplication.delayCall += () =>
+        {
+            if (!this || Application.isPlaying || !gameObject.scene.IsValid())
+                return;
+
+            EnsureEditorSceneObjectsVisible();
+            UnityEditor.EditorUtility.SetDirty(this);
+            UnityEditor.SceneManagement.EditorSceneManager.MarkSceneDirty(gameObject.scene);
+        };
+    }
+#endif
+
+    void EnsureEditorSceneObjectsVisible()
+    {
+        var root = towerRootTransform != null ? towerRootTransform : transform.Find("TowerRoot");
+        if (root != null)
+        {
+            _towerRoot = root;
+            if (_cells.Count == 0)
+                TryRestoreRuntimeStateFromScene();
+            EnsurePlacementZoneObjectVisible();
+            SyncPlacementZoneFromObject();
+            CreateFloor();
+            CreateBoundaries();
+            return;
+        }
+
+        Rebuild();
+    }
+
     bool BindBuilderHud()
     {
         if (hudDocument == null)
             hudDocument = GetComponent<UIDocument>();
         if (hudDocument == null)
-            hudDocument = FindObjectOfType<UIDocument>();
+            hudDocument = FindAnyObjectByType<UIDocument>();
         if (hudDocument == null)
             return false;
 
@@ -205,6 +265,7 @@ public class BlockTower : MonoBehaviour
         var root = hudDocument.rootVisualElement;
         _builderScoreTitle = root.Q<Label>("ScoreTitle");
         _builderScoreValue = root.Q<Label>("ScoreValue");
+        _builderTargetScoreValue = root.Q<Label>("TargetScoreValue");
         _builderScorePopupText = root.Q<Label>("ScorePopupText");
         _builderBonusPreviewTitle = root.Q<Label>("BonusPreviewTitle");
         _builderBonusKeyLabel = root.Q<Label>("BonusPreview1Key");
@@ -225,6 +286,8 @@ public class BlockTower : MonoBehaviour
         _builderBonusThirdCells?.Query<VisualElement>(className: "bonus-preview-cell")
             .ForEach(cell => _builderBonusThirdCellElements.Add(cell));
 
+        RemoveLegacyHudTextFallback();
+        BindCanvasHudText();
         ApplyHudTextStyles();
         _builderBonusPreviewNeedsRefresh = _builderBonusCells != null;
         if (_builderBonusCells != null)
@@ -234,13 +297,15 @@ public class BlockTower : MonoBehaviour
 
     void ApplyHudTextStyles()
     {
-        StyleHudLabel(_builderScoreTitle, "SCORE", 48f, 336f, 66f, Color.white);
-        StyleHudLabel(_builderScoreValue, _score.ToString(), 96f, 336f, 120f, Color.white);
-        StyleHudLabel(_builderBonusPreviewTitle, "NEXT", 33f, 300f, 60f, new Color(0.21f, 0.84f, 0.79f, 1f));
-        StyleHudLabel(_builderScorePopupText, _builderScorePopupText?.text ?? string.Empty, 30f, 336f, 60f, Color.white);
-        SetHudLabelTextOnly(_builderBonusKeyLabel, PresetKeyText(_bonusTargetPreset));
-        SetHudLabelTextOnly(_builderBonusNextKeyLabel, PresetKeyText(_nextBonusTargetPreset));
-        SetHudLabelTextOnly(_builderBonusThirdKeyLabel, PresetKeyText(_thirdBonusTargetPreset));
+        ForceVisibleHudLabel(_builderScoreTitle, "SCORE");
+        ForceVisibleHudLabel(_builderScoreValue, _score.ToString());
+        ForceVisibleHudLabel(_builderTargetScoreValue, targetScore.ToString());
+        ForceVisibleHudLabel(_builderScorePopupText, _builderScorePopupText?.text ?? string.Empty);
+        ForceVisibleHudLabel(_builderBonusPreviewTitle, "NEXT");
+        ForceVisibleBonusKeyLabel(_builderBonusKeyLabel, PresetKeyText(_bonusTargetPreset));
+        ForceVisibleBonusKeyLabel(_builderBonusNextKeyLabel, PresetKeyText(_nextBonusTargetPreset));
+        ForceVisibleBonusKeyLabel(_builderBonusThirdKeyLabel, PresetKeyText(_thirdBonusTargetPreset));
+        UpdateCanvasHudText();
     }
 
     void StyleHudLabel(Label label, string text, float fontSize, float width, float height, Color color)
@@ -268,16 +333,209 @@ public class BlockTower : MonoBehaviour
         if (label == null) return;
 
         label.text = text;
+    }
+
+    void ForceVisibleHudLabel(Label label, string text)
+    {
+        if (label == null) return;
+
+        label.text = text;
         label.style.display = DisplayStyle.Flex;
         label.style.visibility = Visibility.Visible;
+        label.style.opacity = 1f;
         label.style.color = Color.white;
+        label.style.unityTextAlign = TextAnchor.MiddleCenter;
+        label.style.unityFontStyleAndWeight = FontStyle.Bold;
+        label.style.flexShrink = 0f;
+        label.pickingMode = PickingMode.Ignore;
+
         var font = GetRuntimeHudFont();
         if (font != null)
             label.style.unityFont = font;
-        label.style.unityFontStyleAndWeight = FontStyle.Bold;
-        label.style.unityTextAlign = TextAnchor.MiddleCenter;
-        label.style.flexShrink = 0f;
+    }
+
+    void ForceVisibleBonusKeyLabel(Label label, string text)
+    {
+        if (label == null) return;
+
+        label.text = text;
+        label.style.display = DisplayStyle.Flex;
+        label.style.visibility = Visibility.Visible;
         label.style.opacity = 1f;
+        label.style.color = Color.white;
+        label.style.unityTextAlign = TextAnchor.MiddleCenter;
+        label.style.unityFontStyleAndWeight = FontStyle.Bold;
+        label.style.flexShrink = 0f;
+        label.pickingMode = PickingMode.Ignore;
+    }
+
+    void BindCanvasHudText()
+    {
+        if (_canvasScoreText == null)
+            _canvasScoreText = FindCanvasText("Score");
+        if (_canvasTargetScoreText == null)
+            _canvasTargetScoreText = FindCanvasText("Target Score");
+        if (_canvasFloatingScoreText == null)
+        {
+            _canvasFloatingScoreText = FindCanvasText("Floating Score") ?? FindCanvasText("Floating Score ");
+            if (_canvasFloatingScoreText != null)
+                _canvasFloatingScoreText.gameObject.name = "Floating Score";
+        }
+
+        EnsureCanvasBonusKeyTexts();
+    }
+
+    TextMeshProUGUI FindCanvasText(string objectName)
+    {
+        foreach (var text in Resources.FindObjectsOfTypeAll<TextMeshProUGUI>())
+        {
+            if (text == null || text.name != objectName) continue;
+            if (text.gameObject.scene != gameObject.scene) continue;
+            if (HasParentNamed(text.transform, "HudTextFallbackCanvas")) continue;
+            return text;
+        }
+        return null;
+    }
+
+    bool HasParentNamed(Transform target, string parentName)
+    {
+        for (var t = target; t != null; t = t.parent)
+            if (t.name == parentName)
+                return true;
+        return false;
+    }
+
+    void UpdateCanvasHudText()
+    {
+        if (_canvasScoreText != null)
+            _canvasScoreText.text = _score.ToString();
+        if (_canvasTargetScoreText != null)
+            _canvasTargetScoreText.text = targetScore.ToString();
+        if (_canvasBonusKeyText != null)
+            _canvasBonusKeyText.text = PresetKeyText(_bonusTargetPreset);
+        if (_canvasBonusNextKeyText != null)
+            _canvasBonusNextKeyText.text = PresetKeyText(_nextBonusTargetPreset);
+        if (_canvasBonusThirdKeyText != null)
+            _canvasBonusThirdKeyText.text = PresetKeyText(_thirdBonusTargetPreset);
+    }
+
+    void RemoveLegacyHudTextFallback()
+    {
+        if (!Application.isPlaying) return;
+
+        DestroyNamedSceneObject("HudTextFallbackCanvas");
+        DestroyNamedSceneObject("ScoreTitleText");
+        DestroyNamedSceneObject("ScoreValueText");
+        DestroyNamedSceneObject("TargetScoreTitleText");
+        DestroyNamedSceneObject("TargetScoreValueText");
+    }
+
+    void EnsureCanvasBonusKeyTexts()
+    {
+        if (_canvasBonusKeyText == null)
+            _canvasBonusKeyText = FindCanvasText("BonusPreview1KeyText");
+        if (_canvasBonusNextKeyText == null)
+            _canvasBonusNextKeyText = FindCanvasText("BonusPreview2KeyText");
+        if (_canvasBonusThirdKeyText == null)
+            _canvasBonusThirdKeyText = FindCanvasText("BonusPreview3KeyText");
+
+        if (!Application.isPlaying)
+            return;
+
+        var canvas = FindSceneCanvas();
+        if (canvas == null)
+            return;
+
+        _canvasBonusKeyText ??= CreateCanvasBonusKeyText(canvas.transform, "BonusPreview1KeyText", new Vector2(600f, 340f));
+        _canvasBonusNextKeyText ??= CreateCanvasBonusKeyText(canvas.transform, "BonusPreview2KeyText", new Vector2(600f, 170f));
+        _canvasBonusThirdKeyText ??= CreateCanvasBonusKeyText(canvas.transform, "BonusPreview3KeyText", new Vector2(600f, 0f));
+        ConfigureCanvasBonusKeyText(_canvasBonusKeyText, canvas.transform, new Vector2(600f, 340f));
+        ConfigureCanvasBonusKeyText(_canvasBonusNextKeyText, canvas.transform, new Vector2(600f, 170f));
+        ConfigureCanvasBonusKeyText(_canvasBonusThirdKeyText, canvas.transform, new Vector2(600f, 0f));
+    }
+
+    Canvas FindSceneCanvas()
+    {
+        Canvas fallback = null;
+        foreach (var canvas in Resources.FindObjectsOfTypeAll<Canvas>())
+        {
+            if (canvas == null) continue;
+            if (canvas.gameObject.scene != gameObject.scene) continue;
+            if (canvas.name == "HudTextFallbackCanvas") continue;
+            if (!canvas.gameObject.activeInHierarchy || !canvas.enabled) continue;
+            if (canvas.name == "Canvas")
+                return canvas;
+            fallback ??= canvas;
+        }
+        return fallback;
+    }
+
+    TextMeshProUGUI CreateCanvasBonusKeyText(Transform parent, string objectName, Vector2 anchoredPosition)
+    {
+        var go = new GameObject(objectName);
+        MarkGeneratedObject(go);
+        go.layer = parent.gameObject.layer;
+        go.transform.SetParent(parent, false);
+
+        var rect = go.AddComponent<RectTransform>();
+
+        var text = go.AddComponent<TextMeshProUGUI>();
+        if (_canvasScoreText != null && _canvasScoreText.font != null)
+            text.font = _canvasScoreText.font;
+        text.text = string.Empty;
+        text.fontSize = 58f;
+        text.fontStyle = FontStyles.Bold;
+        text.alignment = TextAlignmentOptions.Center;
+        text.color = Color.white;
+        text.raycastTarget = false;
+        text.textWrappingMode = TextWrappingModes.NoWrap;
+        text.overflowMode = TextOverflowModes.Overflow;
+        ConfigureCanvasBonusKeyText(text, parent, anchoredPosition);
+        return text;
+    }
+
+    void ConfigureCanvasBonusKeyText(TextMeshProUGUI text, Transform parent, Vector2 anchoredPosition)
+    {
+        if (text == null || parent == null) return;
+
+        if (text.transform.parent != parent)
+            text.transform.SetParent(parent, false);
+        text.gameObject.SetActive(true);
+        text.transform.SetAsLastSibling();
+        text.raycastTarget = false;
+        text.color = Color.white;
+        text.fontSize = 58f;
+        text.fontStyle = FontStyles.Bold;
+        text.alignment = TextAlignmentOptions.Center;
+        text.textWrappingMode = TextWrappingModes.NoWrap;
+        text.overflowMode = TextOverflowModes.Overflow;
+        if (_canvasScoreText != null && _canvasScoreText.font != null)
+            text.font = _canvasScoreText.font;
+
+        var rect = text.GetComponent<RectTransform>();
+        if (rect == null) return;
+        rect.anchorMin = new Vector2(0.5f, 0.5f);
+        rect.anchorMax = new Vector2(0.5f, 0.5f);
+        rect.pivot = new Vector2(0.5f, 0.5f);
+        rect.anchoredPosition = anchoredPosition;
+        rect.sizeDelta = new Vector2(110f, 110f);
+
+        var canvas = parent.GetComponent<Canvas>();
+        if (canvas != null)
+        {
+            canvas.overrideSorting = true;
+            canvas.sortingOrder = Mathf.Max(canvas.sortingOrder, 20000);
+        }
+    }
+
+    void DestroyNamedSceneObject(string objectName)
+    {
+        foreach (var transform in Resources.FindObjectsOfTypeAll<Transform>())
+        {
+            if (transform == null || transform.name != objectName) continue;
+            if (transform.gameObject.scene != gameObject.scene) continue;
+            Destroy(transform.gameObject);
+        }
     }
 
     Font GetRuntimeHudFont()
@@ -321,15 +579,6 @@ public class BlockTower : MonoBehaviour
         if (hudDocument.visualTreeAsset != hudVisualTree)
             hudDocument.visualTreeAsset = hudVisualTree;
     }
-
-#if UNITY_EDITOR
-    void OnValidate() =>
-        UnityEditor.EditorApplication.delayCall += () =>
-        {
-            if (this && gameObject.scene.IsValid() && !Application.isPlaying)
-                Rebuild();
-        };
-#endif
 
     bool TryRestoreRuntimeStateFromScene()
     {
@@ -382,6 +631,7 @@ public class BlockTower : MonoBehaviour
         _heldSourceCells.Clear();
         _isHolding = false;
         _isGameOver = false;
+        _freezePlacementZoneVisuals = false;
         _hasFocusedCell = false;
         _presetSelectionActive = false;
         _usingKeyboardPlacement = false;
@@ -391,6 +641,8 @@ public class BlockTower : MonoBehaviour
         _heldStartScore = 0;
         _heldMatchesBonus = false;
         _bonusQueueInitialized = false;
+        ResetBonusPresetBag();
+        HideResultScreens();
 
         if (_generatedFloor == null) { var f = transform.Find("Floor"); if (f) _generatedFloor = f.gameObject; }
         if (_generatedScoreLabel == null) { var f = transform.Find("ScoreLabel"); if (f) _generatedScoreLabel = f.gameObject; }
@@ -418,6 +670,7 @@ public class BlockTower : MonoBehaviour
         _detachedComponents.Clear();
         _isHolding  = false;
         _isGameOver = false;
+        _freezePlacementZoneVisuals = false;
         _hasFocusedCell = false;
         _presetSelectionActive = false;
         _presetSelectionAnchor = Vector2Int.zero;
@@ -436,6 +689,8 @@ public class BlockTower : MonoBehaviour
         _heldStartScore = 0;
         _heldMatchesBonus = false;
         _bonusQueueInitialized = false;
+        ResetBonusPresetBag();
+        HideResultScreens();
         BuildTower();
     }
 
@@ -450,36 +705,85 @@ public class BlockTower : MonoBehaviour
         }
         if (_towerRoot != null)
         {
-            if (towerRootTransform == null)
+            if (towerRootTransform == null && IsGeneratedObject(_towerRoot.gameObject))
+            {
                 DestroyLocal(_towerRoot.gameObject);
+            }
             else
             {
                 var children = new List<Transform>();
                 foreach (Transform t in _towerRoot) children.Add(t);
-                foreach (var t in children) DestroyLocal(t.gameObject);
+                foreach (var t in children)
+                {
+                    if (t != null && IsGeneratedObject(t.gameObject))
+                        DestroyLocal(t.gameObject);
+                }
             }
             _towerRoot = null;
             _rb = null;
         }
 
-        if (_generatedFloor == null) { var f = transform.Find("Floor"); if (f) _generatedFloor = f.gameObject; }
-        if (_generatedFloor != null) { DestroyLocal(_generatedFloor); _generatedFloor = null; }
+        if (_generatedFloor == null) { var f = FindSceneObjectByName("Floor"); if (f) _generatedFloor = f.gameObject; }
 
         if (_generatedScoreLabel == null) { var f = transform.Find("ScoreLabel"); if (f) _generatedScoreLabel = f.gameObject; }
         if (_generatedScoreLabel != null && scoreLabel == null) { DestroyLocal(_generatedScoreLabel); _generatedScoreLabel = null; scoreLabel = null; }
 
-        if (_leftBoundary  == null) { var f = transform.Find("BoundaryLeft");  if (f) _leftBoundary  = f.gameObject; }
-        if (_rightBoundary == null) { var f = transform.Find("BoundaryRight"); if (f) _rightBoundary = f.gameObject; }
-        if (_leftBoundary  != null) { DestroyLocal(_leftBoundary);  _leftBoundary  = null; }
-        if (_rightBoundary != null) { DestroyLocal(_rightBoundary); _rightBoundary = null; }
+        if (_leftBoundary  == null) { var f = FindSceneObjectByName("BoundaryLeft");  if (f) _leftBoundary  = f.gameObject; }
+        if (_rightBoundary == null) { var f = FindSceneObjectByName("BoundaryRight"); if (f) _rightBoundary = f.gameObject; }
 
-        if (_gameOverScreen != null) { DestroyLocal(_gameOverScreen.gameObject); _gameOverScreen = null; }
+        _gameOverScreen = FindSceneObjectByName("GameOverScreen")?.GetComponent<GameOverScreen>();
+        _clearScreen = FindSceneObjectByName("ClearScreen")?.GetComponent<GameOverScreen>();
+        HideResultScreens();
         if (_presetOutlineRoot == null) { var f = transform.Find("PresetOutlinePreview"); if (f) _presetOutlineRoot = f.gameObject; }
         if (_presetOutlineRoot != null) { DestroyLocal(_presetOutlineRoot); _presetOutlineRoot = null; }
         if (_bonusPreviewRoot == null) { var f = transform.Find("BonusPreview"); if (f) _bonusPreviewRoot = f.gameObject; }
         if (_bonusPreviewRoot != null) { DestroyLocal(_bonusPreviewRoot); _bonusPreviewRoot = null; }
         var controlsHelp = transform.Find("ControlsHelp");
         if (controlsHelp != null) DestroyLocal(controlsHelp.gameObject);
+    }
+
+    Transform FindChildByNameRecursive(Transform root, string objectName)
+    {
+        if (root == null) return null;
+        if (root.name == objectName) return root;
+
+        foreach (Transform child in root)
+        {
+            var found = FindChildByNameRecursive(child, objectName);
+            if (found != null)
+                return found;
+        }
+        return null;
+    }
+
+    Transform FindSceneObjectByName(string objectName)
+    {
+        var local = FindChildByNameRecursive(transform, objectName);
+        if (IsUsableTransform(local)) return local;
+
+        foreach (var candidate in Resources.FindObjectsOfTypeAll<Transform>())
+        {
+            if (!IsUsableTransform(candidate)) continue;
+            if (candidate.name != objectName) continue;
+            if (candidate.gameObject.scene != gameObject.scene) continue;
+            return candidate;
+        }
+        return null;
+    }
+
+    bool IsUsableTransform(Transform target)
+    {
+        if (target == null)
+            return false;
+        try
+        {
+            var go = target.gameObject;
+            return go != null && go.scene.IsValid();
+        }
+        catch (MissingReferenceException)
+        {
+            return false;
+        }
     }
 
     void ClearDetachedBlocks()
@@ -510,12 +814,441 @@ public class BlockTower : MonoBehaviour
 
     void DestroyLocal(GameObject go)
     {
-        if (Application.isPlaying) Destroy(go);
-        else DestroyImmediate(go);
+        if (!Application.isPlaying)
+            return;
+
+        _generatedObjects.Remove(go);
+        Destroy(go);
+    }
+
+    bool IsGeneratedObject(GameObject go)
+    {
+        if (go == null) return false;
+        if (_generatedObjects.Contains(go)) return true;
+#if UNITY_EDITOR
+        return (go.hideFlags & HideFlags.DontSaveInEditor) != 0;
+#else
+        return false;
+#endif
+    }
+
+    void EnsurePlacementZoneObjectVisible()
+    {
+        if (!usePlacementZoneObject || Application.isPlaying)
+            return;
+
+        if (placementZoneTransform == null)
+        {
+            var existing = FindSceneObjectByName("PlacementZone");
+            if (existing != null)
+                placementZoneTransform = existing;
+        }
+        if (placementZoneTransform != null)
+        {
+            _placementZoneObject = placementZoneTransform.gameObject;
+            return;
+        }
+
+        var zone = new GameObject("PlacementZone");
+        float minX = placementMin.x;
+        float maxX = placementMax.x + 1f;
+        float minY = placementMin.y;
+        float maxY = placementMax.y + 1f;
+        var zoneLocalCenter = new Vector3((minX + maxX) * 0.5f, (minY + maxY) * 0.5f, -0.04f);
+        if (_towerRoot != null && !IsGeneratedObject(_towerRoot.gameObject))
+        {
+            zone.transform.SetParent(_towerRoot, false);
+            zone.transform.localPosition = zoneLocalCenter;
+        }
+        else
+        {
+            zone.transform.position = TowerGridLocalToWorld(zoneLocalCenter);
+        }
+        zone.transform.localScale = new Vector3(Mathf.Max(0.1f, maxX - minX), Mathf.Max(0.1f, maxY - minY), 1f);
+
+        var sr = zone.AddComponent<SpriteRenderer>();
+        sr.sprite = CreateBlockSprite();
+        sr.color = new Color(1f, 0.92f, 0.02f, 0.16f);
+        sr.sortingOrder = -5;
+
+        placementZoneTransform = zone.transform;
+        _placementZoneObject = zone;
+    }
+
+    Vector3 TowerGridLocalToWorld(Vector3 local)
+    {
+        if (_towerRoot != null)
+            return _towerRoot.TransformPoint(local);
+        return new Vector3(-columns * 0.5f, -rows * 0.5f, 0f) + local;
+    }
+
+    void SyncPlacementZoneFromObject(bool updateVisuals = true)
+    {
+        _placementExclusions.Clear();
+        if (!usePlacementZoneObject)
+            return;
+
+        if (placementZoneTransform == null)
+        {
+            var existing = FindSceneObjectByName("PlacementZone");
+            if (existing != null)
+                placementZoneTransform = existing;
+        }
+        if (placementZoneTransform == null || _towerRoot == null)
+            return;
+
+        _placementZoneObject = placementZoneTransform.gameObject;
+        RectInt zoneRect = default;
+        if (TryTransformToGridRect(placementZoneTransform, out zoneRect))
+        {
+            placementMin = new Vector2Int(zoneRect.xMin, zoneRect.yMin);
+            placementMax = new Vector2Int(zoneRect.xMax - 1, zoneRect.yMax - 1);
+        }
+
+        foreach (Transform child in placementZoneTransform)
+        {
+            if (child == null || !child.gameObject.activeInHierarchy) continue;
+            if (!child.name.Contains("Exclude")) continue;
+            if (TryTransformToGridRect(child, out var exclusion))
+                _placementExclusions.Add(exclusion);
+        }
+
+        if (updateVisuals && zoneRect.width > 0 && zoneRect.height > 0)
+            UpdatePlacementZoneVisuals(zoneRect);
+    }
+
+    bool TryTransformToGridRect(Transform source, out RectInt rect)
+    {
+        rect = default;
+        if (source == null || _towerRoot == null)
+            return false;
+
+        var halfRight = source.right * (source.lossyScale.x * 0.5f);
+        var halfUp = source.up * (source.lossyScale.y * 0.5f);
+        var corners = new[]
+        {
+            source.position - halfRight - halfUp,
+            source.position - halfRight + halfUp,
+            source.position + halfRight - halfUp,
+            source.position + halfRight + halfUp
+        };
+
+        float minX = float.PositiveInfinity;
+        float minY = float.PositiveInfinity;
+        float maxX = float.NegativeInfinity;
+        float maxY = float.NegativeInfinity;
+        foreach (var corner in corners)
+        {
+            var local = _towerRoot.InverseTransformPoint(corner);
+            minX = Mathf.Min(minX, local.x);
+            minY = Mathf.Min(minY, local.y);
+            maxX = Mathf.Max(maxX, local.x);
+            maxY = Mathf.Max(maxY, local.y);
+        }
+
+        int xMin = Mathf.FloorToInt(minX);
+        int yMin = Mathf.FloorToInt(minY);
+        int xMax = Mathf.CeilToInt(maxX);
+        int yMax = Mathf.CeilToInt(maxY);
+        if (xMax <= xMin || yMax <= yMin)
+            return false;
+
+        rect = new RectInt(xMin, yMin, xMax - xMin, yMax - yMin);
+        return true;
+    }
+
+    void UpdatePlacementZoneVisuals(RectInt zoneRect)
+    {
+        if (_freezePlacementZoneVisuals)
+        {
+            SetPlacementZoneFillsActive(false);
+            return;
+        }
+
+        if (placementZoneTransform == null)
+            return;
+
+        var sourceRenderer = placementZoneTransform.GetComponent<SpriteRenderer>();
+        if (sourceRenderer == null)
+            return;
+
+        string signature = PlacementZoneVisualSignature(zoneRect, sourceRenderer);
+        if (_placementZoneVisualSignature == signature)
+            return;
+
+        ClearPlacementZoneFillObjects();
+        _placementZoneVisualSignature = signature;
+        if (_placementExclusions.Count == 0)
+        {
+            sourceRenderer.enabled = true;
+            return;
+        }
+
+        sourceRenderer.enabled = false;
+        var remaining = new List<RectInt> { zoneRect };
+        foreach (var exclusion in _placementExclusions)
+            remaining = SubtractRectList(remaining, ClipRect(exclusion, zoneRect));
+
+        int index = 0;
+        foreach (var rect in remaining)
+        {
+            if (rect.width <= 0 || rect.height <= 0) continue;
+            var go = new GameObject($"__PlacementZoneFill_{index++}");
+            MarkGeneratedObject(go);
+            go.transform.SetParent(placementZoneTransform, false);
+
+            var fillWorldCenter = TowerGridLocalToWorld(new Vector3(
+                rect.xMin + rect.width * 0.5f,
+                rect.yMin + rect.height * 0.5f,
+                -0.04f));
+            go.transform.position = fillWorldCenter;
+
+            var parentScale = placementZoneTransform.lossyScale;
+            go.transform.localScale = new Vector3(
+                SafeDivideScale(rect.width, parentScale.x),
+                SafeDivideScale(rect.height, parentScale.y),
+                SafeDivideScale(1f, parentScale.z));
+
+            var renderer = go.AddComponent<SpriteRenderer>();
+            renderer.sprite = sourceRenderer.sprite != null ? sourceRenderer.sprite : CreateBlockSprite();
+            renderer.color = sourceRenderer.color;
+            renderer.sortingLayerID = sourceRenderer.sortingLayerID;
+            renderer.sortingOrder = sourceRenderer.sortingOrder;
+            _placementZoneFillObjects.Add(go);
+        }
+    }
+
+    float SafeDivideScale(float value, float scale)
+    {
+        return Mathf.Abs(scale) > 0.0001f ? value / scale : value;
+    }
+
+    string PlacementZoneVisualSignature(RectInt zoneRect, SpriteRenderer sourceRenderer)
+    {
+        var signature = $"{zoneRect.xMin},{zoneRect.yMin},{zoneRect.width},{zoneRect.height}|{sourceRenderer.color}|{sourceRenderer.sortingOrder}";
+        foreach (var exclusion in _placementExclusions)
+            signature += $"|{exclusion.xMin},{exclusion.yMin},{exclusion.width},{exclusion.height}";
+        return signature;
+    }
+
+    void ClearPlacementZoneFillObjects()
+    {
+        for (int i = _placementZoneFillObjects.Count - 1; i >= 0; i--)
+            DestroyPlacementZoneFillObject(_placementZoneFillObjects[i]);
+        _placementZoneFillObjects.Clear();
+
+        if (placementZoneTransform == null) return;
+        var stale = new List<GameObject>();
+        foreach (Transform child in placementZoneTransform)
+            if (child != null && child.name.StartsWith("__PlacementZoneFill_"))
+                stale.Add(child.gameObject);
+        foreach (var go in stale)
+            DestroyPlacementZoneFillObject(go);
+        _placementZoneVisualSignature = null;
+    }
+
+    void SetPlacementZoneFillsActive(bool active)
+    {
+        foreach (var go in _placementZoneFillObjects)
+            if (go != null)
+                go.SetActive(active);
+
+        if (placementZoneTransform == null) return;
+        foreach (Transform child in placementZoneTransform)
+            if (child != null && child.name.StartsWith("__PlacementZoneFill_"))
+                child.gameObject.SetActive(active);
+        if (_towerRoot != null)
+        {
+            foreach (Transform child in _towerRoot)
+                if (child != null && child.name.StartsWith("__PlacementZoneFill_"))
+                    child.gameObject.SetActive(active);
+        }
+    }
+
+    void DestroyPlacementZoneFillObject(GameObject go)
+    {
+        if (go == null) return;
+        _generatedObjects.Remove(go);
+        if (Application.isPlaying)
+            Destroy(go);
+        else
+            DestroyImmediate(go);
+    }
+
+    void BindResultScreens()
+    {
+        if (_gameOverScreen == null)
+            _gameOverScreen = FindSceneObjectByName("GameOverScreen")?.GetComponent<GameOverScreen>();
+        if (_clearScreen == null)
+            _clearScreen = FindSceneObjectByName("ClearScreen")?.GetComponent<GameOverScreen>();
+    }
+
+    void HideResultScreens()
+    {
+        BindResultScreens();
+        _gameOverScreen?.Hide();
+        _clearScreen?.Hide();
+    }
+
+    void EnsureResultScreenObjectsVisible()
+    {
+        if (Application.isPlaying)
+            return;
+
+        var canvas = FindSceneCanvas();
+        if (canvas == null)
+            return;
+
+        _gameOverScreen = EnsureResultScreen(canvas.transform, "GameOverScreen", "GAME OVER");
+        _clearScreen = EnsureResultScreen(canvas.transform, "ClearScreen", "CLEAR");
+    }
+
+    GameOverScreen EnsureResultScreen(Transform canvasTransform, string screenName, string title)
+    {
+        try
+        {
+            if (!IsUsableTransform(canvasTransform))
+                return null;
+
+            var screenTransform = FindSceneObjectByName(screenName);
+            if (!IsUsableTransform(screenTransform))
+            {
+                var go = new GameObject(screenName);
+                go.layer = canvasTransform.gameObject.layer;
+                go.transform.SetParent(canvasTransform, false);
+                screenTransform = go.transform;
+            }
+
+            var rect = screenTransform.GetComponent<RectTransform>();
+            if (rect == null)
+                rect = screenTransform.gameObject.AddComponent<RectTransform>();
+            rect.anchorMin = Vector2.zero;
+            rect.anchorMax = Vector2.one;
+            rect.pivot = new Vector2(0.5f, 0.5f);
+            rect.anchoredPosition = Vector2.zero;
+            rect.sizeDelta = Vector2.zero;
+
+            var image = screenTransform.GetComponent<UnityEngine.UI.Image>();
+            if (image == null)
+                image = screenTransform.gameObject.AddComponent<UnityEngine.UI.Image>();
+            image.color = new Color(0f, 0f, 0f, 0.72f);
+            image.raycastTarget = true;
+
+            var screen = screenTransform.GetComponent<GameOverScreen>();
+            if (screen == null)
+                screen = screenTransform.gameObject.AddComponent<GameOverScreen>();
+
+            EnsureResultLabel(screenTransform, "Title", title, new Vector2(0f, 150f), 72f, Color.white);
+            EnsureResultLabel(screenTransform, "CurrentScore", "SCORE: 0", new Vector2(0f, 45f), 42f, new Color(1f, 0.85f, 0.1f));
+            EnsureResultLabel(screenTransform, "TargetScore", $"TARGET: {targetScore}", new Vector2(0f, -20f), 36f, new Color(0.85f, 0.92f, 1f));
+            EnsureResultLabel(screenTransform, "RestartHint", "Click to Restart", new Vector2(0f, -115f), 26f, new Color(0.75f, 0.75f, 0.75f));
+            screenTransform.gameObject.SetActive(false);
+            return screen;
+        }
+        catch (MissingReferenceException)
+        {
+            return null;
+        }
+    }
+
+    TextMeshProUGUI EnsureResultLabel(Transform parent, string objectName, string text, Vector2 position, float fontSize, Color color)
+    {
+        try
+        {
+            if (!IsUsableTransform(parent))
+                return null;
+
+            Transform labelTransform = null;
+            foreach (Transform child in parent)
+            {
+                if (IsUsableTransform(child) && child.name == objectName)
+                {
+                    labelTransform = child;
+                    break;
+                }
+            }
+
+            if (!IsUsableTransform(labelTransform))
+            {
+                var go = new GameObject(objectName);
+                go.layer = parent.gameObject.layer;
+                go.transform.SetParent(parent, false);
+                labelTransform = go.transform;
+            }
+
+            var rect = labelTransform.GetComponent<RectTransform>();
+            if (rect == null)
+                rect = labelTransform.gameObject.AddComponent<RectTransform>();
+            rect.anchorMin = new Vector2(0.5f, 0.5f);
+            rect.anchorMax = new Vector2(0.5f, 0.5f);
+            rect.pivot = new Vector2(0.5f, 0.5f);
+            rect.anchoredPosition = position;
+            rect.sizeDelta = new Vector2(760f, 100f);
+
+            var label = labelTransform.GetComponent<TextMeshProUGUI>();
+            if (label == null)
+                label = labelTransform.gameObject.AddComponent<TextMeshProUGUI>();
+            if (_canvasScoreText != null && _canvasScoreText.font != null)
+                label.font = _canvasScoreText.font;
+            label.text = text;
+            label.fontSize = fontSize;
+            label.fontStyle = FontStyles.Bold;
+            label.alignment = TextAlignmentOptions.Center;
+            label.color = color;
+            label.raycastTarget = false;
+            label.textWrappingMode = TextWrappingModes.NoWrap;
+            label.overflowMode = TextOverflowModes.Overflow;
+            return label;
+        }
+        catch (MissingReferenceException)
+        {
+            return null;
+        }
+    }
+
+    List<RectInt> SubtractRectList(List<RectInt> sources, RectInt cut)
+    {
+        if (cut.width <= 0 || cut.height <= 0)
+            return sources;
+
+        var result = new List<RectInt>();
+        foreach (var source in sources)
+            result.AddRange(SubtractRect(source, cut));
+        return result;
+    }
+
+    IEnumerable<RectInt> SubtractRect(RectInt source, RectInt cut)
+    {
+        var overlap = ClipRect(cut, source);
+        if (overlap.width <= 0 || overlap.height <= 0)
+        {
+            yield return source;
+            yield break;
+        }
+
+        if (overlap.yMax < source.yMax)
+            yield return new RectInt(source.xMin, overlap.yMax, source.width, source.yMax - overlap.yMax);
+        if (overlap.yMin > source.yMin)
+            yield return new RectInt(source.xMin, source.yMin, source.width, overlap.yMin - source.yMin);
+        if (overlap.xMin > source.xMin)
+            yield return new RectInt(source.xMin, overlap.yMin, overlap.xMin - source.xMin, overlap.height);
+        if (overlap.xMax < source.xMax)
+            yield return new RectInt(overlap.xMax, overlap.yMin, source.xMax - overlap.xMax, overlap.height);
+    }
+
+    RectInt ClipRect(RectInt rect, RectInt bounds)
+    {
+        int xMin = Mathf.Max(rect.xMin, bounds.xMin);
+        int yMin = Mathf.Max(rect.yMin, bounds.yMin);
+        int xMax = Mathf.Min(rect.xMax, bounds.xMax);
+        int yMax = Mathf.Min(rect.yMax, bounds.yMax);
+        return new RectInt(xMin, yMin, Mathf.Max(0, xMax - xMin), Mathf.Max(0, yMax - yMin));
     }
 
     void MarkGeneratedObject(GameObject go)
     {
+        if (go != null)
+            _generatedObjects.Add(go);
 #if UNITY_EDITOR
         if (!Application.isPlaying)
             go.hideFlags = HideFlags.DontSaveInEditor;
@@ -526,8 +1259,11 @@ public class BlockTower : MonoBehaviour
 
     void AddScore(int delta)
     {
+        if (_isGameOver) return;
         _score += delta;
         UpdateScoreDisplay();
+        if (delta > 0)
+            CheckClearCondition();
     }
 
     void AddScore(int delta, Vector3 worldPosition)
@@ -541,6 +1277,8 @@ public class BlockTower : MonoBehaviour
         BindBuilderHud();
         if (_builderScoreValue != null)
             _builderScoreValue.text = _score.ToString();
+        if (_builderTargetScoreValue != null)
+            _builderTargetScoreValue.text = targetScore.ToString();
         if (scoreLabel != null)
             scoreLabel.text = $"SCORE\n{_score}";
     }
@@ -549,6 +1287,14 @@ public class BlockTower : MonoBehaviour
     {
         if (delta == 0 || !Application.isPlaying) return;
         BindBuilderHud();
+        if (_canvasFloatingScoreText != null)
+        {
+            if (_canvasFloatingScoreRoutine != null)
+                StopCoroutine(_canvasFloatingScoreRoutine);
+            _canvasFloatingScoreRoutine = StartCoroutine(AnimateCanvasFloatingScoreText(delta));
+            return;
+        }
+
         if (_builderScorePopupText != null)
         {
             if (_builderScorePopupRoutine != null)
@@ -608,6 +1354,37 @@ public class BlockTower : MonoBehaviour
             Destroy(go);
     }
 
+    IEnumerator AnimateCanvasFloatingScoreText(int delta)
+    {
+        float duration = 0.85f;
+        float elapsed = 0f;
+
+        _canvasFloatingScoreText.gameObject.name = "Floating Score";
+        _canvasFloatingScoreText.text = delta > 0 ? $"+{delta}" : delta.ToString();
+        _canvasFloatingScoreText.color = delta > 0 ? Color.white : Color.red;
+        _canvasFloatingScoreText.alpha = 1f;
+        _canvasFloatingScoreText.gameObject.SetActive(true);
+
+        var rect = _canvasFloatingScoreText.rectTransform;
+        var startPos = rect.anchoredPosition;
+        while (elapsed < duration && _canvasFloatingScoreText != null)
+        {
+            elapsed += Time.deltaTime;
+            float t = Mathf.Clamp01(elapsed / duration);
+            rect.anchoredPosition = startPos + new Vector2(0f, t * 30f);
+            _canvasFloatingScoreText.alpha = 1f - t;
+            yield return null;
+        }
+
+        if (_canvasFloatingScoreText != null)
+        {
+            rect.anchoredPosition = startPos;
+            _canvasFloatingScoreText.text = string.Empty;
+            _canvasFloatingScoreText.alpha = 1f;
+        }
+        _canvasFloatingScoreRoutine = null;
+    }
+
     IEnumerator AnimateBuilderScoreText(int delta)
     {
         float duration = 0.85f;
@@ -661,6 +1438,7 @@ public class BlockTower : MonoBehaviour
     {
         if (!Application.isPlaying) return;
         if (_isGameOver) return;
+        SyncPlacementZoneFromObject();
         CheckTowerBoundaryGameOver();
         if (_isGameOver) return;
 
@@ -713,9 +1491,33 @@ public class BlockTower : MonoBehaviour
     {
         if (_isGameOver) return;
         _isGameOver = true;
+        _freezePlacementZoneVisuals = true;
+        SetPlacementZoneFillsActive(false);
         if (_heldRoot != null) { Destroy(_heldRoot); _heldRoot = null; _isHolding = false; }
         ClearDetachedBlocks();
-        _gameOverScreen?.Show(_score, Rebuild);
+        BindResultScreens();
+        _clearScreen?.Hide();
+        _gameOverScreen?.ShowGameOver(_score, targetScore, Rebuild);
+    }
+
+    void TriggerClear()
+    {
+        if (_isGameOver) return;
+        _isGameOver = true;
+        _freezePlacementZoneVisuals = true;
+        SetPlacementZoneFillsActive(false);
+        if (_heldRoot != null) { Destroy(_heldRoot); _heldRoot = null; _isHolding = false; }
+        ClearDetachedBlocks();
+        BindResultScreens();
+        _gameOverScreen?.Hide();
+        _clearScreen?.ShowClear(_score, targetScore, Rebuild);
+    }
+
+    void CheckClearCondition()
+    {
+        if (_isGameOver) return;
+        if (targetScore > 0 && _score >= targetScore)
+            TriggerClear();
     }
 
     // ── 유틸: 마우스 → 월드 좌표 ─────────────────────────────────────────
@@ -1001,7 +1803,7 @@ public class BlockTower : MonoBehaviour
         if (!_hasFocusedCell) return;
 
         var candidate = _focusedCell + dir;
-        int maxFocusY = Mathf.Max(placementMax.y, HighestOccupiedRow());
+        int maxFocusY = Mathf.Max(PlacementCeilingY(), HighestOccupiedRow());
         int minFocusX = Mathf.Min(placementMin.x, _extractionMinCol);
         int maxFocusX = Mathf.Max(placementMax.x, _extractionMaxCol);
         while (candidate.x >= minFocusX && candidate.x <= maxFocusX &&
@@ -1614,9 +2416,7 @@ public class BlockTower : MonoBehaviour
         _usingKeyboardPlacement = true;
         if (autoFocusCameraOnLift)
             ShowPlacementCameraView(immediate: false);
-        AddScore(1, extractionScorePos);
-        if (_heldMatchesBonus)
-            AddScore(2, _bonusPreviewRoot != null ? _bonusPreviewRoot.transform.position : extractionScorePos);
+        AddScore(_heldMatchesBonus ? 2 : 1, extractionScorePos);
     }
 
     // ── 커서 추적 ─────────────────────────────────────────────────────────
@@ -1774,8 +2574,9 @@ public class BlockTower : MonoBehaviour
 
         int minBaseX = placementMin.x - minRelX;
         int maxBaseX = placementMax.x - maxRelX;
-        int minBaseY = placementMin.y - minRelY;
-        int maxBaseY = placementMax.y - maxRelY;
+        int placementFloorY = PlacementFloorY();
+        int minBaseY = placementFloorY - minRelY;
+        int maxBaseY = PlacementCeilingY() - maxRelY;
 
         return new Vector2Int(
             Mathf.Clamp(baseCell.x, minBaseX, maxBaseX),
@@ -1851,6 +2652,7 @@ public class BlockTower : MonoBehaviour
 
     bool CanPlaceHeldBlocks(Vector2Int baseCell, out List<Vector2Int> targets, out Vector3 snappedWorldPos)
     {
+        SyncPlacementZoneFromObject(updateVisuals: false);
         var detachedCells = CollectStableDetachedCells();
         targets = new List<Vector2Int>(_heldRelPos.Count);
         var snappedLocalPos = new Vector3(baseCell.x + _heldCenter.x, baseCell.y + _heldCenter.y, 0f);
@@ -1860,7 +2662,8 @@ public class BlockTower : MonoBehaviour
         {
             var target = new Vector2Int(baseCell.x + rel.x, baseCell.y + rel.y);
             if (target.x < placementMin.x || target.x > placementMax.x ||
-                target.y < placementMin.y || target.y > placementMax.y) return false;
+                target.y < PlacementFloorY() || target.y > PlacementCeilingY()) return false;
+            if (IsPlacementExcluded(target)) return false;
             if (detachedCells.Contains(target)) return false;
             if (_cells.TryGetValue(target, out var existing) && existing.number >= 6) return false;
             targets.Add(target);
@@ -1889,7 +2692,7 @@ public class BlockTower : MonoBehaviour
         foreach (var t in targets)
         {
             if (_cells.ContainsKey(t) ||
-                t.y == 0 ||
+                t.y == PlacementFloorY() ||
                 IsOccupiedCell(new Vector2Int(t.x, t.y - 1), detachedCells))
             {
                 hasBottomSupport = true;
@@ -1902,6 +2705,36 @@ public class BlockTower : MonoBehaviour
     bool IsOccupiedCell(Vector2Int cell, HashSet<Vector2Int> detachedCells)
     {
         return _cells.ContainsKey(cell) || detachedCells.Contains(cell);
+    }
+
+    bool IsPlacementExcluded(Vector2Int cell)
+    {
+        foreach (var rect in _placementExclusions)
+            if (rect.Contains(cell))
+                return true;
+        return false;
+    }
+
+    int PlacementFloorY()
+    {
+        return Mathf.Max(placementMin.y, _extractionMaxRow + 1);
+    }
+
+    int PlacementCeilingY()
+    {
+        return PlacementFloorY() + Mathf.Max(0, placementMax.y - placementMin.y);
+    }
+
+    int LowestHeldRelativeY()
+    {
+        int minRelY = 0;
+        bool found = false;
+        foreach (var rel in _heldRelPos)
+        {
+            minRelY = found ? Mathf.Min(minRelY, rel.y) : rel.y;
+            found = true;
+        }
+        return minRelY;
     }
 
     void DropHeldToNearestSurfaceAndPlace()
@@ -1919,7 +2752,8 @@ public class BlockTower : MonoBehaviour
     bool TryFindNearestDropBase(Vector2Int startBase, out Vector2Int dropBase)
     {
         startBase = ClampHeldBase(startBase);
-        for (int y = startBase.y; y >= placementMin.y - 4; y--)
+        int minBaseY = PlacementFloorY() - LowestHeldRelativeY();
+        for (int y = startBase.y; y >= minBaseY; y--)
         {
             var candidate = new Vector2Int(startBase.x, y);
             if (CanPlaceHeldBlocks(candidate, out _, out _))
@@ -1941,7 +2775,6 @@ public class BlockTower : MonoBehaviour
             return;
         }
 
-        var placementScorePos = AverageCellWorldPosition(targets);
         _lastPlacedCells.Clear();
         for (int i = 0; i < targets.Count; i++)
         {
@@ -2007,7 +2840,6 @@ public class BlockTower : MonoBehaviour
         }
         else if (autoFocusCameraOnLift)
             ShowPlacementCameraView(immediate: false);
-        AddScore(1, placementScorePos);
         RollBonusTarget();
     }
 
@@ -2085,6 +2917,8 @@ public class BlockTower : MonoBehaviour
     {
         if (_cells.Count == 0) return;
 
+        DetachOriginalTowerBlocksSupportedOnlyByTop();
+
         var components = FindConnectedComponents();
         if (components.Count <= 1) return;
 
@@ -2094,6 +2928,20 @@ public class BlockTower : MonoBehaviour
         {
             if (i == mainIdx) continue;
             DetachComponent(components[i]);
+        }
+    }
+
+    void DetachOriginalTowerBlocksSupportedOnlyByTop()
+    {
+        var components = FindOriginalTowerComponents();
+        if (components.Count <= 1) return;
+
+        int mainIdx = FindMainTowerComponentIndex(components);
+        for (int i = 0; i < components.Count; i++)
+        {
+            if (i == mainIdx) continue;
+            if (TouchesPlacedTopBlock(components[i]))
+                DetachComponent(components[i]);
         }
     }
 
@@ -2167,6 +3015,57 @@ public class BlockTower : MonoBehaviour
             components.Add(component);
         }
         return components;
+    }
+
+    List<List<Vector2Int>> FindOriginalTowerComponents()
+    {
+        var unvisited = new HashSet<Vector2Int>();
+        foreach (var (cell, data) in _cells)
+            if (data.isOriginalTower)
+                unvisited.Add(cell);
+
+        var components = new List<List<Vector2Int>>();
+        while (unvisited.Count > 0)
+        {
+            var en = unvisited.GetEnumerator();
+            en.MoveNext();
+            var start = en.Current;
+            en.Dispose();
+
+            var component = new List<Vector2Int>();
+            var queue = new Queue<Vector2Int>();
+            queue.Enqueue(start);
+            unvisited.Remove(start);
+
+            while (queue.Count > 0)
+            {
+                var c = queue.Dequeue();
+                component.Add(c);
+                foreach (var n in Neighbors(c))
+                {
+                    if (!unvisited.Contains(n)) continue;
+                    if (!_cells.TryGetValue(n, out var data) || !data.isOriginalTower) continue;
+                    unvisited.Remove(n);
+                    queue.Enqueue(n);
+                }
+            }
+            components.Add(component);
+        }
+        return components;
+    }
+
+    bool TouchesPlacedTopBlock(List<Vector2Int> component)
+    {
+        foreach (var cell in component)
+        {
+            foreach (var neighbor in Neighbors(cell))
+            {
+                if (!_cells.TryGetValue(neighbor, out var data)) continue;
+                if (!data.isOriginalTower)
+                    return true;
+            }
+        }
+        return false;
     }
 
     void DetachComponent(List<Vector2Int> component)
@@ -2571,15 +3470,16 @@ public class BlockTower : MonoBehaviour
             _rb.centerOfMass = CalculateCenterOfMass();
 
         UpdateExtractionTowerRowsFromCells();
+        EnsurePlacementZoneObjectVisible();
+        SyncPlacementZoneFromObject();
         CreateFloor();
-        CreateScoreLabel();
-        RollBonusTarget();
-
         CreateBoundaries();
 
-        if (Application.isPlaying)
-            CreateGameOverScreen();
+        if (!Application.isPlaying) return;
 
+        CreateScoreLabel();
+        RollBonusTarget();
+        CreateGameOverScreen();
         FitCamera();
     }
 
@@ -2641,30 +3541,65 @@ public class BlockTower : MonoBehaviour
         float floorWidth = columns + 4f;
 
         GameObject floorGO;
+        bool created = false;
         if (floorTransform != null)
         {
             floorGO = floorTransform.gameObject;
         }
         else
         {
-            floorGO = new GameObject("Floor");
-            MarkGeneratedObject(floorGO);
-            floorGO.transform.SetParent(transform);
-            _generatedFloor = floorGO;
+            if (_generatedFloor == null)
+            {
+                var existing = FindSceneObjectByName("Floor");
+                if (existing != null)
+                    _generatedFloor = existing.gameObject;
+            }
+
+            if (_generatedFloor != null)
+            {
+                floorGO = _generatedFloor;
+            }
+            else
+            {
+                floorGO = new GameObject("Floor");
+                if (Application.isPlaying)
+                    MarkGeneratedObject(floorGO);
+                floorGO.transform.SetParent(transform);
+                _generatedFloor = floorGO;
+                created = true;
+            }
         }
-        floorGO.transform.position   = new Vector3(0f, floorY, 0f);
-        floorGO.transform.localScale = new Vector3(floorWidth, 1f, 1f);
+
+        if (created)
+        {
+            floorGO.transform.position = new Vector3(0f, floorY, 0f);
+            floorGO.transform.localScale = new Vector3(floorWidth, 1f, 1f);
+        }
+        else
+        {
+            _floorY = floorGO.transform.position.y;
+        }
 
         if (!floorGO.TryGetComponent<SpriteRenderer>(out var sr))
             sr = floorGO.AddComponent<SpriteRenderer>();
-        sr.sprite = CreateBlockSprite();
-        sr.color  = new Color(0.2f, 0.2f, 0.2f, 1f);
+        if (sr.sprite == null)
+        {
+            sr.sprite = CreateBlockSprite();
+            sr.color  = new Color(0.2f, 0.2f, 0.2f, 1f);
+        }
 
         if (Application.isPlaying)
         {
+            bool authored = !IsGeneratedObject(floorGO);
             if (!floorGO.TryGetComponent<BoxCollider>(out var col))
+            {
                 col = floorGO.AddComponent<BoxCollider>();
-            col.size           = Vector3.one;
+                col.size = Vector3.one;
+            }
+            else if (!authored)
+            {
+                col.size = Vector3.one;
+            }
             col.sharedMaterial = CreateFrictionMaterial();
         }
     }
@@ -2673,6 +3608,7 @@ public class BlockTower : MonoBehaviour
 
     void CreateBoundaries()
     {
+        SyncPlacementZoneFromObject();
         float lineHeight  = 50f;
         float lineHalfH   = lineHeight * 0.5f;
         float lineWidth   = 0.15f;
@@ -2680,14 +3616,187 @@ public class BlockTower : MonoBehaviour
         float centerY     = _floorY + lineHalfH;
         var   lineColor   = new Color(1f, 0.25f, 0.25f, 0.7f);
 
-        _leftBoundary  = SpawnBoundary("BoundaryLeft",  new Vector3(-offsetX, centerY, 0f), lineWidth, lineHeight, lineColor);
-        _rightBoundary = SpawnBoundary("BoundaryRight", new Vector3( offsetX, centerY, 0f), lineWidth, lineHeight, lineColor);
+        if (_leftBoundary == null)
+        {
+            var existing = FindSceneObjectByName("BoundaryLeft");
+            if (existing != null) _leftBoundary = existing.gameObject;
+        }
+        if (_rightBoundary == null)
+        {
+            var existing = FindSceneObjectByName("BoundaryRight");
+            if (existing != null) _rightBoundary = existing.gameObject;
+        }
+
+        _leftBoundary ??= SpawnBoundary("BoundaryLeft", new Vector3(-offsetX, centerY, 0f), lineWidth, lineHeight, lineColor);
+        _rightBoundary ??= SpawnBoundary("BoundaryRight", new Vector3(offsetX, centerY, 0f), lineWidth, lineHeight, lineColor);
+        ConfigureBoundary(_leftBoundary, lineColor);
+        ConfigureBoundary(_rightBoundary, lineColor);
+        UpdateTowerStackDivider();
+    }
+
+    void ConfigureBoundary(GameObject boundary, Color fallbackColor)
+    {
+        if (boundary == null) return;
+        bool authored = !IsGeneratedObject(boundary);
+
+        if (!boundary.TryGetComponent<SpriteRenderer>(out var sr))
+            sr = boundary.AddComponent<SpriteRenderer>();
+        if (sr.sprite == null)
+        {
+            sr.sprite = CreateBlockSprite();
+            sr.color = fallbackColor;
+        }
+        if (!authored)
+            sr.sortingOrder = 1;
+
+        if (!Application.isPlaying) return;
+
+        if (!boundary.TryGetComponent<Rigidbody>(out var rb))
+            rb = boundary.AddComponent<Rigidbody>();
+        rb.isKinematic = true;
+
+        if (!boundary.TryGetComponent<BoxCollider>(out var col))
+        {
+            col = boundary.AddComponent<BoxCollider>();
+            col.size = Vector3.one;
+        }
+        else if (!authored)
+        {
+            col.size = Vector3.one;
+        }
+        col.isTrigger = true;
+
+        if (!boundary.TryGetComponent<BoundaryLine>(out var bl))
+            bl = boundary.AddComponent<BoundaryLine>();
+        bl.OnBlockTouched = TriggerGameOver;
+    }
+
+    void UpdateTowerStackDivider()
+    {
+        if (_towerRoot == null) return;
+
+        if (_towerStackDivider == null)
+        {
+            var existing = FindSceneObjectByName("TowerStackDivider");
+            if (existing != null)
+                _towerStackDivider = existing.gameObject;
+        }
+
+        bool created = false;
+        if (_towerStackDivider == null)
+        {
+            _towerStackDivider = new GameObject("TowerStackDivider");
+            if (Application.isPlaying)
+                MarkGeneratedObject(_towerStackDivider);
+            _towerStackDivider.transform.SetParent(_towerRoot, false);
+            created = true;
+        }
+
+        float minX = placementMin.x;
+        float maxX = placementMax.x + 1f;
+        float width = Mathf.Max(0.1f, maxX - minX);
+        float y = _extractionMaxRow + 1f;
+
+        var dividerLocalPosition = new Vector3((minX + maxX) * 0.5f, y, 0.02f);
+        if (Application.isPlaying || created || _towerStackDivider.transform.parent == _towerRoot)
+        {
+            _towerStackDivider.transform.SetParent(_towerRoot, false);
+            _towerStackDivider.transform.localPosition = dividerLocalPosition;
+        }
+        else
+        {
+            _towerStackDivider.transform.position = _towerRoot.TransformPoint(dividerLocalPosition);
+        }
+        _towerStackDivider.transform.localScale = new Vector3(width, 0.12f, 1f);
+
+        var renderer = _towerStackDivider.GetComponent<SpriteRenderer>();
+        if (renderer == null)
+            renderer = _towerStackDivider.AddComponent<SpriteRenderer>();
+
+        if (renderer != null)
+        {
+            if (renderer.sprite == null)
+            {
+                renderer.sprite = CreateBlockSprite();
+                renderer.color = new Color(1f, 0f, 0f, 0.85f);
+            }
+            else if (created)
+            {
+                renderer.color = new Color(1f, 0f, 0f, 0.85f);
+            }
+            if (created)
+                renderer.sortingOrder = 2;
+        }
+
+        AlignPlacementZoneBottomToDivider(y);
+    }
+
+    void AlignPlacementZoneBottomToDivider(float dividerLocalY)
+    {
+        if (!usePlacementZoneObject || placementZoneTransform == null || _towerRoot == null)
+            return;
+
+        if (!TryGetTowerLocalBounds(placementZoneTransform, out _, out _, out var minY, out var maxY))
+            return;
+
+        if (float.IsNaN(_placementZoneTopLimitLocal))
+            _placementZoneTopLimitLocal = maxY;
+
+        float currentHeight = Mathf.Max(0.1f, maxY - minY);
+        float maxAllowedTop = Mathf.Max(dividerLocalY + 0.1f, _placementZoneTopLimitLocal);
+        float targetHeight = Mathf.Max(0.1f, maxAllowedTop - dividerLocalY);
+        if (targetHeight < currentHeight - 0.001f)
+        {
+            var scale = placementZoneTransform.localScale;
+            scale.y *= targetHeight / currentHeight;
+            placementZoneTransform.localScale = scale;
+        }
+
+        if (!TryGetTowerLocalBounds(placementZoneTransform, out _, out _, out minY, out _))
+            return;
+
+        float deltaY = dividerLocalY - minY;
+        if (Mathf.Abs(deltaY) < 0.001f)
+            return;
+
+        placementZoneTransform.position += _towerRoot.TransformVector(new Vector3(0f, deltaY, 0f));
+        SyncPlacementZoneFromObject();
+    }
+
+    bool TryGetTowerLocalBounds(Transform source, out float minX, out float maxX, out float minY, out float maxY)
+    {
+        minX = minY = float.PositiveInfinity;
+        maxX = maxY = float.NegativeInfinity;
+        if (source == null || _towerRoot == null)
+            return false;
+
+        var halfRight = source.right * (source.lossyScale.x * 0.5f);
+        var halfUp = source.up * (source.lossyScale.y * 0.5f);
+        var corners = new[]
+        {
+            source.position - halfRight - halfUp,
+            source.position - halfRight + halfUp,
+            source.position + halfRight - halfUp,
+            source.position + halfRight + halfUp
+        };
+
+        foreach (var corner in corners)
+        {
+            var local = _towerRoot.InverseTransformPoint(corner);
+            minX = Mathf.Min(minX, local.x);
+            minY = Mathf.Min(minY, local.y);
+            maxX = Mathf.Max(maxX, local.x);
+            maxY = Mathf.Max(maxY, local.y);
+        }
+
+        return maxX > minX && maxY > minY;
     }
 
     GameObject SpawnBoundary(string name, Vector3 worldPos, float width, float height, Color color)
     {
         var go = new GameObject(name);
-        MarkGeneratedObject(go);
+        if (Application.isPlaying)
+            MarkGeneratedObject(go);
         go.transform.SetParent(transform);
         go.transform.position   = worldPos;
         go.transform.localScale = new Vector3(width, height, 1f);
@@ -2717,10 +3826,8 @@ public class BlockTower : MonoBehaviour
 
     void CreateGameOverScreen()
     {
-        var go = new GameObject("GameOverScreen");
-        MarkGeneratedObject(go);
-        go.transform.SetParent(transform);
-        _gameOverScreen = go.AddComponent<GameOverScreen>();
+        BindResultScreens();
+        HideResultScreens();
     }
 
     // ── 스코어 라벨 ──────────────────────────────────────────────────────
@@ -2738,23 +3845,51 @@ public class BlockTower : MonoBehaviour
     {
         if (!_bonusQueueInitialized)
         {
-            _bonusTargetPreset = RandomBonusPreset();
-            _nextBonusTargetPreset = RandomBonusPreset();
-            _thirdBonusTargetPreset = RandomBonusPreset();
+            _bonusTargetPreset = DrawBonusPreset();
+            _nextBonusTargetPreset = DrawBonusPreset();
+            _thirdBonusTargetPreset = DrawBonusPreset();
             _bonusQueueInitialized = true;
         }
         else
         {
             _bonusTargetPreset = _nextBonusTargetPreset;
             _nextBonusTargetPreset = _thirdBonusTargetPreset;
-            _thirdBonusTargetPreset = RandomBonusPreset();
+            _thirdBonusTargetPreset = DrawBonusPreset();
         }
         CreateOrUpdateBonusPreview();
     }
 
-    TetrominoPreset RandomBonusPreset()
+    void ResetBonusPresetBag()
     {
-        return (TetrominoPreset)Random.Range(0, 7);
+        _bonusPresetBag.Clear();
+        _bonusPresetBagIndex = 0;
+    }
+
+    TetrominoPreset DrawBonusPreset()
+    {
+        if (_bonusPresetBagIndex >= _bonusPresetBag.Count)
+            RefillBonusPresetBag();
+
+        return _bonusPresetBag[_bonusPresetBagIndex++];
+    }
+
+    void RefillBonusPresetBag()
+    {
+        _bonusPresetBag.Clear();
+        _bonusPresetBag.Add(TetrominoPreset.I);
+        _bonusPresetBag.Add(TetrominoPreset.Z);
+        _bonusPresetBag.Add(TetrominoPreset.S);
+        _bonusPresetBag.Add(TetrominoPreset.O);
+        _bonusPresetBag.Add(TetrominoPreset.L);
+        _bonusPresetBag.Add(TetrominoPreset.T);
+        _bonusPresetBag.Add(TetrominoPreset.J);
+
+        for (int i = _bonusPresetBag.Count - 1; i > 0; i--)
+        {
+            int swapIndex = Random.Range(0, i + 1);
+            (_bonusPresetBag[i], _bonusPresetBag[swapIndex]) = (_bonusPresetBag[swapIndex], _bonusPresetBag[i]);
+        }
+        _bonusPresetBagIndex = 0;
     }
 
     void CreateOrUpdateBonusPreview()
@@ -2791,6 +3926,7 @@ public class BlockTower : MonoBehaviour
         SetHudLabelTextOnly(_builderBonusKeyLabel, PresetKeyText(_bonusTargetPreset));
         SetHudLabelTextOnly(_builderBonusNextKeyLabel, PresetKeyText(_nextBonusTargetPreset));
         SetHudLabelTextOnly(_builderBonusThirdKeyLabel, PresetKeyText(_thirdBonusTargetPreset));
+        UpdateCanvasHudText();
         _builderBonusPreviewNeedsRefresh = false;
     }
 
@@ -2809,11 +3945,15 @@ public class BlockTower : MonoBehaviour
             maxY = Mathf.Max(maxY, cell.y);
         }
 
-        float cellSize = 60f;
+        float fallbackContainerWidth = BonusPreviewCellsFallbackWidth(container);
+        float fallbackContainerHeight = BonusPreviewCellsFallbackHeight(container);
+        float containerWidth = ResolvedOrDefault(container.resolvedStyle.width, fallbackContainerWidth);
+        float containerHeight = ResolvedOrDefault(container.resolvedStyle.height, fallbackContainerHeight);
+        float cellSize = BonusPreviewCellSize(container, elements);
         float width = (maxX - minX + 1) * cellSize;
         float height = (maxY - minY + 1) * cellSize;
-        float containerWidth = Mathf.Max(ResolvedOrDefault(container.resolvedStyle.width, 240f), width);
-        float containerHeight = Mathf.Max(ResolvedOrDefault(container.resolvedStyle.height, 180f), height);
+        containerWidth = Mathf.Max(containerWidth, width);
+        containerHeight = Mathf.Max(containerHeight, height);
         float offsetX = (containerWidth - width) * 0.5f;
         float offsetY = (containerHeight - height) * 0.5f;
         container.style.position = Position.Relative;
@@ -2833,10 +3973,40 @@ public class BlockTower : MonoBehaviour
             element.style.position = Position.Absolute;
             element.style.left = offsetX + (cell.x - minX) * cellSize;
             element.style.top = offsetY + (maxY - cell.y) * cellSize;
-            element.style.width = cellSize;
-            element.style.height = cellSize;
             element.style.backgroundColor = color;
         }
+    }
+
+    float BonusPreviewCellSize(VisualElement container, List<VisualElement> elements)
+    {
+        if (elements != null)
+        {
+            foreach (var element in elements)
+            {
+                if (element == null) continue;
+                float width = ResolvedOrDefault(element.resolvedStyle.width, 0f);
+                if (width > 0.01f)
+                    return width;
+            }
+        }
+
+        return container != null && (container.name == "BonusPreview2Cells" || container.name == "BonusPreview3Cells")
+            ? 40f
+            : 60f;
+    }
+
+    float BonusPreviewCellsFallbackWidth(VisualElement container)
+    {
+        return container != null && (container.name == "BonusPreview2Cells" || container.name == "BonusPreview3Cells")
+            ? 160f
+            : 240f;
+    }
+
+    float BonusPreviewCellsFallbackHeight(VisualElement container)
+    {
+        return container != null && (container.name == "BonusPreview2Cells" || container.name == "BonusPreview3Cells")
+            ? 80f
+            : 120f;
     }
 
     float ResolvedOrDefault(float value, float fallback)
@@ -3068,6 +4238,7 @@ public class BlockTower : MonoBehaviour
             _extractionMaxCol = columns - 1;
             _extractionMinRow = 0;
             _extractionMaxRow = rows - 1;
+            UpdateTowerStackDivider();
             return;
         }
 
@@ -3089,6 +4260,7 @@ public class BlockTower : MonoBehaviour
         _extractionMaxCol = maxX;
         _extractionMinRow = minY;
         _extractionMaxRow = maxY;
+        UpdateTowerStackDivider();
     }
 
     // ── 스프라이트 ────────────────────────────────────────────────────────
@@ -3157,13 +4329,21 @@ public class BlockTower : MonoBehaviour
 
     void OnDrawGizmos()
     {
+        if (_towerRoot == null)
+        {
+            var root = towerRootTransform != null ? towerRootTransform : transform.Find("TowerRoot");
+            if (root != null)
+                _towerRoot = root;
+        }
+        SyncPlacementZoneFromObject();
+
         // TowerRoot 기준 오프셋 계산
         var origin = new Vector3(-columns * 0.5f, -rows * 0.5f, 0f);
 
         float x0 = origin.x + placementMin.x;
-        float y0 = origin.y + placementMin.y;
+        float y0 = origin.y + PlacementFloorY();
         float x1 = origin.x + placementMax.x + 1f;
-        float y1 = origin.y + placementMax.y + 1f;
+        float y1 = origin.y + PlacementCeilingY() + 1f;
 
         // 반투명 채우기
         Gizmos.color = new Color(1f, 0.92f, 0.02f, 0.08f);
@@ -3177,6 +4357,18 @@ public class BlockTower : MonoBehaviour
         Gizmos.DrawLine(new Vector3(x1, y0), new Vector3(x1, y1));
         Gizmos.DrawLine(new Vector3(x1, y1), new Vector3(x0, y1));
         Gizmos.DrawLine(new Vector3(x0, y1), new Vector3(x0, y0));
+
+        Gizmos.color = new Color(1f, 0.1f, 0.05f, 0.28f);
+        foreach (var exclusion in _placementExclusions)
+        {
+            float ex0 = origin.x + exclusion.xMin;
+            float ey0 = origin.y + exclusion.yMin;
+            float ex1 = origin.x + exclusion.xMax;
+            float ey1 = origin.y + exclusion.yMax;
+            Gizmos.DrawCube(
+                new Vector3((ex0 + ex1) * 0.5f, (ey0 + ey1) * 0.5f, 0f),
+                new Vector3(ex1 - ex0, ey1 - ey0, 0.01f));
+        }
     }
 
     static Color NumberColor(int n) => n switch
