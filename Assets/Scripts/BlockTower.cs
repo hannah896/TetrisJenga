@@ -149,6 +149,10 @@ public class BlockTower : MonoBehaviour
     readonly Dictionary<Vector2Int, CellData> _cells    = new();
     readonly List<Vector2Int>                  _selected = new();
     readonly HashSet<Vector2Int>               _lastPlacedCells = new();
+    Vector2                                    _lastPlacementCenter;
+    bool                                       _hasLastPlacementCenter;
+    Vector2                                    _lastExtractionCenter;
+    bool                                       _hasLastExtractionCenter;
     readonly List<DetachedComponent>           _detachedComponents = new();
 
     class DetachedComponent
@@ -197,6 +201,7 @@ public class BlockTower : MonoBehaviour
 
     void OnEnable()
     {
+        MigrateSecondaryViewDefaults();
         BindBuilderHud();
         if (!Application.isPlaying)
         {
@@ -206,10 +211,37 @@ public class BlockTower : MonoBehaviour
 
         if (Application.isPlaying)
         {
-            if (_cells.Count > 0) return;
-            if (TryRestoreRuntimeStateFromScene()) return;
+            if (_cells.Count > 0)
+            {
+                EnsureSecondaryViewObjects();
+                return;
+            }
+            if (TryRestoreRuntimeStateFromScene())
+            {
+                EnsureSecondaryViewObjects();
+                return;
+            }
         }
         Rebuild();
+        EnsureSecondaryViewObjects();
+        UpdateSecondaryViewCamera();
+    }
+
+    void OnDisable()
+    {
+        if (secondaryViewCamera != null && secondaryViewCamera.targetTexture == _secondaryViewTexture)
+            secondaryViewCamera.targetTexture = null;
+        if (secondaryViewImage != null && secondaryViewImage.texture == _secondaryViewTexture)
+            secondaryViewImage.texture = null;
+        if (_secondaryViewTexture != null)
+        {
+            _secondaryViewTexture.Release();
+            if (Application.isPlaying)
+                Destroy(_secondaryViewTexture);
+            else
+                DestroyImmediate(_secondaryViewTexture);
+            _secondaryViewTexture = null;
+        }
     }
 
 #if UNITY_EDITOR
@@ -218,6 +250,7 @@ public class BlockTower : MonoBehaviour
         if (Application.isPlaying)
             return;
 
+        MigrateSecondaryViewDefaults();
         UnityEditor.EditorApplication.delayCall += () =>
         {
             if (!this || Application.isPlaying || !gameObject.scene.IsValid())
@@ -232,6 +265,7 @@ public class BlockTower : MonoBehaviour
 
     void EnsureEditorSceneObjectsVisible()
     {
+        MigrateSecondaryViewDefaults();
         var root = towerRootTransform != null ? towerRootTransform : transform.Find("TowerRoot");
         if (root != null)
         {
@@ -242,10 +276,12 @@ public class BlockTower : MonoBehaviour
             SyncPlacementZoneFromObject();
             CreateFloor();
             CreateBoundaries();
+            EnsureSecondaryViewObjects();
             return;
         }
 
         Rebuild();
+        EnsureSecondaryViewObjects();
     }
 
     bool BindBuilderHud()
@@ -625,6 +661,8 @@ public class BlockTower : MonoBehaviour
 
         _selected.Clear();
         _lastPlacedCells.Clear();
+        _hasLastPlacementCenter = false;
+        _hasLastExtractionCenter = false;
         _detachedComponents.Clear();
         _heldRelPos.Clear();
         _heldData.Clear();
@@ -667,6 +705,8 @@ public class BlockTower : MonoBehaviour
         _cells.Clear();
         _selected.Clear();
         _lastPlacedCells.Clear();
+        _hasLastPlacementCenter = false;
+        _hasLastExtractionCenter = false;
         _detachedComponents.Clear();
         _isHolding  = false;
         _isGameOver = false;
@@ -1425,10 +1465,20 @@ public class BlockTower : MonoBehaviour
     [SerializeField] float extractionViewPadding = 1.25f;
     [SerializeField] float placementViewTopOffset = 1f;
 
+    [Header("Cross View Camera")]
+    [SerializeField] Camera secondaryViewCamera;
+    [SerializeField] RawImage secondaryViewImage;
+    [SerializeField] Vector2 secondaryViewPanelSize = new(540f, 360f);
+    [SerializeField] Vector2 secondaryViewPanelPosition = new(40f, 0f);
+    [SerializeField] float secondaryViewOrthographicSize = 3f;
+    [SerializeField] int secondaryViewTextureSize = 768;
+    [SerializeField, HideInInspector] bool secondaryViewDefaultsMigrated;
+
     float _floorY;
     float _cameraTargetY;
     float _cameraTargetSize;
     bool  _hasCameraTarget;
+    RenderTexture _secondaryViewTexture;
     int   _extractionMinCol;
     int   _extractionMaxCol;
     int   _extractionMinRow;
@@ -1479,6 +1529,7 @@ public class BlockTower : MonoBehaviour
         }
 
         UpdateCameraTarget();
+        UpdateSecondaryViewCamera();
         if (_builderBonusPreviewNeedsRefresh || _builderBonusCells == null)
             CreateOrUpdateBonusPreview();
         UpdateBonusPreviewPosition();
@@ -2311,6 +2362,8 @@ public class BlockTower : MonoBehaviour
             (minX + maxX + 1f) * 0.5f,
             (minY + maxY + 1f) * 0.5f,
             0f));
+        _lastExtractionCenter = new Vector2((minX + maxX + 1f) * 0.5f, (minY + maxY + 1f) * 0.5f);
+        _hasLastExtractionCenter = true;
 
         _heldCenter = new Vector2((maxX - minX + 1) * 0.5f, (maxY - minY + 1) * 0.5f);
 
@@ -2415,7 +2468,7 @@ public class BlockTower : MonoBehaviour
         _heldBaseCell = GetDefaultHeldBaseCell();
         _usingKeyboardPlacement = true;
         if (autoFocusCameraOnLift)
-            ShowPlacementCameraView(immediate: false);
+            FocusCameraOnHeldCenter();
         AddScore(_heldMatchesBonus ? 2 : 1, extractionScorePos);
     }
 
@@ -2455,6 +2508,14 @@ public class BlockTower : MonoBehaviour
 
     Vector2Int GetDefaultHeldBaseCell()
     {
+        if (_hasLastPlacementCenter)
+        {
+            var lastBase = new Vector2Int(
+                Mathf.RoundToInt(_lastPlacementCenter.x - _heldCenter.x),
+                Mathf.RoundToInt(_lastPlacementCenter.y - _heldCenter.y));
+            return ClampHeldBase(lastBase);
+        }
+
         float placementCenterX = (placementMin.x + placementMax.x + 1f) * 0.5f;
         int baseX = Mathf.RoundToInt(placementCenterX - _heldCenter.x);
         var baseCell = new Vector2Int(baseX, HighestOccupiedRow() + 1);
@@ -2776,6 +2837,7 @@ public class BlockTower : MonoBehaviour
         }
 
         _lastPlacedCells.Clear();
+        RememberLastPlacementCenter(targets);
         for (int i = 0; i < targets.Count; i++)
         {
             var target = targets[i];
@@ -2841,6 +2903,28 @@ public class BlockTower : MonoBehaviour
         else if (autoFocusCameraOnLift)
             ShowPlacementCameraView(immediate: false);
         RollBonusTarget();
+    }
+
+    void RememberLastPlacementCenter(List<Vector2Int> targets)
+    {
+        if (targets == null || targets.Count == 0)
+        {
+            _hasLastPlacementCenter = false;
+            return;
+        }
+
+        int minX = int.MaxValue, minY = int.MaxValue;
+        int maxX = int.MinValue, maxY = int.MinValue;
+        foreach (var target in targets)
+        {
+            minX = Mathf.Min(minX, target.x);
+            minY = Mathf.Min(minY, target.y);
+            maxX = Mathf.Max(maxX, target.x);
+            maxY = Mathf.Max(maxY, target.y);
+        }
+
+        _lastPlacementCenter = new Vector2((minX + maxX + 1f) * 0.5f, (minY + maxY + 1f) * 0.5f);
+        _hasLastPlacementCenter = true;
     }
 
     Vector3 AverageCellWorldPosition(List<Vector2Int> cells)
@@ -3745,7 +3829,7 @@ public class BlockTower : MonoBehaviour
         float currentHeight = Mathf.Max(0.1f, maxY - minY);
         float maxAllowedTop = Mathf.Max(dividerLocalY + 0.1f, _placementZoneTopLimitLocal);
         float targetHeight = Mathf.Max(0.1f, maxAllowedTop - dividerLocalY);
-        if (targetHeight < currentHeight - 0.001f)
+        if (Mathf.Abs(targetHeight - currentHeight) > 0.001f)
         {
             var scale = placementZoneTransform.localScale;
             scale.y *= targetHeight / currentHeight;
@@ -4068,6 +4152,243 @@ public class BlockTower : MonoBehaviour
     }
 
     // ── 카메라 ────────────────────────────────────────────────────────────
+
+    void EnsureSecondaryViewObjects()
+    {
+        MigrateSecondaryViewDefaults();
+        if (secondaryViewCamera == null)
+        {
+            var existing = FindSceneObjectByName("SubViewCamera");
+            if (existing != null)
+                secondaryViewCamera = existing.GetComponent<Camera>();
+        }
+
+        if (secondaryViewCamera == null)
+        {
+            var go = new GameObject("SubViewCamera");
+            go.transform.SetParent(transform, false);
+            secondaryViewCamera = go.AddComponent<Camera>();
+        }
+
+        ConfigureSecondaryViewCamera();
+        EnsureSecondaryViewPanel();
+        EnsureSecondaryViewTexture();
+    }
+
+    void MigrateSecondaryViewDefaults()
+    {
+        if (secondaryViewDefaultsMigrated)
+            return;
+
+        if (Mathf.Approximately(secondaryViewPanelSize.x, 360f) &&
+            Mathf.Approximately(secondaryViewPanelSize.y, 240f))
+        {
+            secondaryViewPanelSize = new Vector2(540f, 360f);
+        }
+
+        if (secondaryViewOrthographicSize <= 0.01f)
+            secondaryViewOrthographicSize = 3f;
+
+        secondaryViewDefaultsMigrated = true;
+    }
+
+    void ConfigureSecondaryViewCamera()
+    {
+        if (secondaryViewCamera == null) return;
+
+        var main = Camera.main;
+        if (main != null && main != secondaryViewCamera)
+        {
+            secondaryViewCamera.clearFlags = main.clearFlags;
+            secondaryViewCamera.backgroundColor = main.backgroundColor;
+            secondaryViewCamera.cullingMask = main.cullingMask;
+            secondaryViewCamera.orthographic = true;
+            secondaryViewCamera.nearClipPlane = main.nearClipPlane;
+            secondaryViewCamera.farClipPlane = main.farClipPlane;
+            secondaryViewCamera.transform.rotation = main.transform.rotation;
+            secondaryViewCamera.transform.position = new Vector3(main.transform.position.x, main.transform.position.y, main.transform.position.z);
+        }
+        else
+        {
+            secondaryViewCamera.orthographic = true;
+        }
+
+        secondaryViewCamera.depth = -10f;
+        secondaryViewCamera.enabled = Application.isPlaying;
+
+        var listener = secondaryViewCamera.GetComponent<AudioListener>();
+        if (listener != null)
+            listener.enabled = false;
+    }
+
+    void EnsureSecondaryViewPanel()
+    {
+        var canvas = FindSceneCanvas();
+        if (canvas == null) return;
+
+        RectTransform panelRect = null;
+        var existingPanel = FindSceneObjectByName("SubCameraPreviewPanel");
+        if (existingPanel != null)
+            panelRect = existingPanel.GetComponent<RectTransform>();
+
+        bool panelCreated = false;
+        if (panelRect == null)
+        {
+            var panel = new GameObject("SubCameraPreviewPanel", typeof(RectTransform), typeof(CanvasRenderer), typeof(UnityEngine.UI.Image));
+            panel.transform.SetParent(canvas.transform, false);
+            panelRect = panel.GetComponent<RectTransform>();
+            panelCreated = true;
+        }
+
+        panelRect.sizeDelta = secondaryViewPanelSize;
+
+        if (panelCreated)
+        {
+            panelRect.anchorMin = new Vector2(0f, 0.5f);
+            panelRect.anchorMax = new Vector2(0f, 0.5f);
+            panelRect.pivot = new Vector2(0f, 0.5f);
+            panelRect.anchoredPosition = secondaryViewPanelPosition;
+
+            var background = panelRect.GetComponent<UnityEngine.UI.Image>();
+            if (background != null)
+                background.color = new Color(0f, 0f, 0f, 0.78f);
+        }
+
+        if (secondaryViewImage == null)
+        {
+            var imageTransform = FindChildByNameRecursive(panelRect, "SubCameraPreviewImage");
+            if (imageTransform != null)
+                secondaryViewImage = imageTransform.GetComponent<RawImage>();
+        }
+
+        bool imageCreated = false;
+        if (secondaryViewImage == null)
+        {
+            var imageGo = new GameObject("SubCameraPreviewImage", typeof(RectTransform), typeof(CanvasRenderer), typeof(RawImage));
+            imageGo.transform.SetParent(panelRect, false);
+            secondaryViewImage = imageGo.GetComponent<RawImage>();
+            imageCreated = true;
+        }
+
+        if (imageCreated)
+        {
+            var imageRect = secondaryViewImage.rectTransform;
+            imageRect.anchorMin = Vector2.zero;
+            imageRect.anchorMax = Vector2.one;
+            imageRect.pivot = new Vector2(0.5f, 0.5f);
+            imageRect.offsetMin = new Vector2(6f, 6f);
+            imageRect.offsetMax = new Vector2(-6f, -6f);
+            secondaryViewImage.color = Color.white;
+            secondaryViewImage.raycastTarget = false;
+        }
+    }
+
+    void EnsureSecondaryViewTexture()
+    {
+        if (!Application.isPlaying || secondaryViewCamera == null || secondaryViewImage == null)
+            return;
+
+        int width = Mathf.Max(64, secondaryViewTextureSize);
+        int height = Mathf.Max(64, Mathf.RoundToInt(width * Mathf.Max(0.1f, secondaryViewPanelSize.y) / Mathf.Max(0.1f, secondaryViewPanelSize.x)));
+        if (_secondaryViewTexture == null || _secondaryViewTexture.width != width || _secondaryViewTexture.height != height)
+        {
+            if (_secondaryViewTexture != null)
+                _secondaryViewTexture.Release();
+            _secondaryViewTexture = new RenderTexture(width, height, 16, RenderTextureFormat.ARGB32);
+            _secondaryViewTexture.name = "SubViewCameraTexture";
+            _secondaryViewTexture.Create();
+        }
+
+        secondaryViewCamera.targetTexture = _secondaryViewTexture;
+        secondaryViewImage.texture = _secondaryViewTexture;
+    }
+
+    void UpdateSecondaryViewCamera()
+    {
+        if (!Application.isPlaying || _towerRoot == null)
+            return;
+
+        EnsureSecondaryViewObjects();
+        if (secondaryViewCamera == null)
+            return;
+
+        float targetX = 0f;
+        float targetY;
+        float targetSize;
+        bool showExtractionView = _isHolding;
+        float aspect = SecondaryViewAspect();
+        bool hasView = showExtractionView
+            ? TryCalculateRowsCameraView(_extractionMinRow, _extractionMaxRow, extractionViewPadding, aspect, out targetY, out targetSize)
+            : TryCalculatePlacementCameraView(aspect, out targetY, out targetSize);
+
+        if (!hasView)
+            return;
+
+        if (showExtractionView && _hasLastExtractionCenter)
+        {
+            var extractionWorldCenter = _towerRoot.TransformPoint(new Vector3(_lastExtractionCenter.x, _lastExtractionCenter.y, 0f));
+            targetX = extractionWorldCenter.x;
+            targetY = extractionWorldCenter.y;
+        }
+
+        var main = Camera.main;
+        float z = main != null ? main.transform.position.z : secondaryViewCamera.transform.position.z;
+        if (secondaryViewOrthographicSize > 0.01f)
+            targetSize = secondaryViewOrthographicSize;
+        secondaryViewCamera.orthographic = true;
+        secondaryViewCamera.orthographicSize = targetSize;
+        secondaryViewCamera.transform.position = new Vector3(targetX, targetY, z);
+    }
+
+    float SecondaryViewAspect()
+    {
+        if (secondaryViewImage != null)
+        {
+            var rect = secondaryViewImage.rectTransform.rect;
+            if (rect.width > 1f && rect.height > 1f)
+                return rect.width / rect.height;
+        }
+
+        return Mathf.Max(0.1f, secondaryViewPanelSize.x) / Mathf.Max(0.1f, secondaryViewPanelSize.y);
+    }
+
+    bool TryCalculateRowsCameraView(int minGridY, int maxGridY, float padding, float aspect, out float centerY, out float size)
+    {
+        centerY = 0f;
+        size = 0f;
+        if (_towerRoot == null)
+            return false;
+
+        float halfW = columns * 0.5f + 3.5f;
+        float sizeForWidth = halfW / Mathf.Max(0.1f, aspect);
+        float bottom = _towerRoot.position.y + minGridY - padding;
+        float top = _towerRoot.position.y + maxGridY + 1f + padding;
+        centerY = (bottom + top) * 0.5f;
+        float halfH = (top - bottom) * 0.5f;
+        size = Mathf.Max(sizeForWidth, halfH);
+        return size > 0.01f;
+    }
+
+    bool TryCalculatePlacementCameraView(float aspect, out float centerY, out float size)
+    {
+        centerY = 0f;
+        size = 0f;
+        if (_towerRoot == null)
+            return false;
+
+        int targetGridY = _hasLastPlacementCenter
+            ? Mathf.RoundToInt(_lastPlacementCenter.y)
+            : HighestOccupiedRow() + 1;
+
+        var main = Camera.main;
+        float currentSize = main != null ? main.orthographicSize : 6f;
+        float worldY = _towerRoot.position.y + targetGridY + 0.5f + placementViewTopOffset;
+        centerY = Mathf.Max(_floorY + currentSize, worldY);
+
+        float halfW = columns * 0.5f + 3.5f;
+        size = Mathf.Max(currentSize, halfW / Mathf.Max(0.1f, aspect));
+        return true;
+    }
 
     void FitCamera()
     {
