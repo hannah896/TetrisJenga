@@ -41,6 +41,7 @@ public class BlockTower : MonoBehaviour
     [SerializeField, Range(0f, 0.5f)] float placementFailShakeDistance = 0.12f;
     [SerializeField, Range(1, 8)]     int   placementFailShakeCount = 3;
     [SerializeField] Color placedBlockColor = new(0.55f, 0.58f, 0.60f, 1f);
+    [SerializeField] BlockNumberSpriteSet numberSpriteSet;
 
     [Header("Keyboard Controls")]
     [SerializeField] bool keyboardControlsEnabled = true;
@@ -141,6 +142,7 @@ public class BlockTower : MonoBehaviour
         public bool           isOriginalTower;
         public GameObject     go;
         public SpriteRenderer sr;
+        public SpriteRenderer numberSpriteRenderer;
         public SpriteRenderer outline;
         public TextMeshPro    label;
         public List<SpriteRenderer> previewBlurRenderers;
@@ -646,6 +648,7 @@ public class BlockTower : MonoBehaviour
                 isOriginalTower = blockCell.IsOriginalTower,
                 go = child.gameObject,
                 sr = sr,
+                numberSpriteRenderer = child.Find("NumberSprite")?.GetComponent<SpriteRenderer>(),
                 outline = outline,
                 label = label
             };
@@ -657,7 +660,10 @@ public class BlockTower : MonoBehaviour
         _rb = root.GetComponent<Rigidbody>();
         _cells.Clear();
         foreach (var pair in restored)
+        {
             _cells[pair.Key] = pair.Value;
+            UpdateCellDataVisuals(pair.Value);
+        }
 
         _selected.Clear();
         _lastPlacedCells.Clear();
@@ -1522,7 +1528,7 @@ public class BlockTower : MonoBehaviour
             if (cam != null)
             {
                 _hasCameraTarget = false;
-                float minY = _floorY + cam.orthographicSize;
+                float minY = _floorY + CurrentCameraHalfHeight(cam);
                 float newY = Mathf.Max(cam.transform.position.y + Mathf.Sign(scroll) * scrollSpeed, minY);
                 cam.transform.position = new Vector3(cam.transform.position.x, newY, cam.transform.position.z);
             }
@@ -1620,8 +1626,9 @@ public class BlockTower : MonoBehaviour
         bool hasPreset = ReadTetrominoPresetPressed(keyboard, out var preset);
         bool hasTab = keyboard.tabKey.wasPressedThisFrame;
         bool hasPresetRotate = ReadPresetRotationPressed(keyboard);
+        bool hasPresetHalfTurn = ReadHalfTurnPressed(keyboard);
 
-        if (!hasMove && !hasConfirm && !hasCancel && !hasPreset && !hasTab && !hasPresetRotate) return;
+        if (!hasMove && !hasConfirm && !hasCancel && !hasPreset && !hasTab && !hasPresetRotate && !hasPresetHalfTurn) return;
 
         if (hasCancel)
         {
@@ -1636,7 +1643,7 @@ public class BlockTower : MonoBehaviour
 
         if (_presetSelectionActive)
         {
-            HandlePresetSelectionInput(hasMove, dir, hasConfirm, hasPreset, preset, hasTab, hasPresetRotate);
+            HandlePresetSelectionInput(hasMove, dir, hasConfirm, hasPreset, preset, hasTab, hasPresetRotate, hasPresetHalfTurn);
             return;
         }
 
@@ -1669,8 +1676,15 @@ public class BlockTower : MonoBehaviour
             MoveHeldBase(dir);
         }
 
-        if (ReadHeldRotationPressed(keyboard, out var clockwise))
+        if (ReadHalfTurnPressed(keyboard))
+        {
+            RotateHeldBlocks(clockwise: true);
+            RotateHeldBlocks(clockwise: true);
+        }
+        else if (ReadHeldRotationPressed(keyboard, out var clockwise))
+        {
             RotateHeldBlocks(clockwise);
+        }
 
         if (ConfirmPressed(keyboard))
             DropHeldToNearestSurfaceAndPlace();
@@ -1756,6 +1770,11 @@ public class BlockTower : MonoBehaviour
     bool ReadPresetRotationPressed(Keyboard keyboard)
     {
         return keyboard.leftCtrlKey.wasPressedThisFrame || keyboard.rightCtrlKey.wasPressedThisFrame;
+    }
+
+    bool ReadHalfTurnPressed(Keyboard keyboard)
+    {
+        return keyboard.leftShiftKey.wasPressedThisFrame || keyboard.rightShiftKey.wasPressedThisFrame;
     }
 
     bool ReadMovePressed(Keyboard keyboard, out Vector2Int dir)
@@ -1937,7 +1956,8 @@ public class BlockTower : MonoBehaviour
         bool hasPreset,
         TetrominoPreset preset,
         bool hasTab,
-        bool hasPresetRotate)
+        bool hasPresetRotate,
+        bool hasPresetHalfTurn)
     {
         if (hasTab)
         {
@@ -1947,8 +1967,20 @@ public class BlockTower : MonoBehaviour
 
         if (hasPreset)
         {
-            _presetSelectionPreset = preset;
-            _presetSelectionRotation = 0;
+            if (_presetSelectionPreset == preset)
+                _presetSelectionRotation = (_presetSelectionRotation + 1) % 4;
+            else
+            {
+                _presetSelectionPreset = preset;
+                _presetSelectionRotation = 0;
+            }
+            ApplyPresetSelection();
+            return;
+        }
+
+        if (hasPresetHalfTurn)
+        {
+            _presetSelectionRotation = (_presetSelectionRotation + 2) % 4;
             ApplyPresetSelection();
             return;
         }
@@ -2331,7 +2363,15 @@ public class BlockTower : MonoBehaviour
         if (isFocused)
             color = Color.Lerp(color, focusedCellColor, 0.8f);
 
-        data.sr.color = color;
+        if (data.numberSpriteRenderer != null && data.numberSpriteRenderer.enabled)
+        {
+            data.sr.color = Color.clear;
+            data.numberSpriteRenderer.color = Color.white;
+        }
+        else
+        {
+            data.sr.color = color;
+        }
         ApplyCellOutline(data, isFocused, showSelectedOutline);
     }
 
@@ -2405,8 +2445,7 @@ public class BlockTower : MonoBehaviour
                     bc.IsOriginalTower = data.isOriginalTower;
                 }
 
-                data.sr.color = NumberColor(data.number);
-                data.label.text = data.number.ToString();
+                UpdateCellDataVisuals(data);
             }
         }
 
@@ -2867,7 +2906,6 @@ public class BlockTower : MonoBehaviour
             }
 
             data.sr.sortingOrder = 0;
-            data.sr.color = PlacedNumberColor(data.number);
             if (data.label == null)
                 data.label = SpawnLabel(data.number, data.go.transform);
 
@@ -2878,6 +2916,7 @@ public class BlockTower : MonoBehaviour
                 bc.IsOriginalTower = data.isOriginalTower;
             }
 
+            UpdateCellDataVisuals(data);
             _cells[target] = data;
             _lastPlacedCells.Add(target);
         }
@@ -3604,6 +3643,8 @@ public class BlockTower : MonoBehaviour
 
     void UpdateCellDataVisuals(CellData data)
     {
+        EnsureNumberSpriteSet();
+
         var blockCell = data.go.GetComponent<BlockCell>();
         if (blockCell != null)
         {
@@ -3612,9 +3653,75 @@ public class BlockTower : MonoBehaviour
         }
 
         if (data.label != null)
+        {
             data.label.text = data.number.ToString();
+            data.label.fontSize = 6f;
+        }
         if (data.sr != null)
-            data.sr.color = data.isOriginalTower ? NumberColor(data.number) : PlacedNumberColor(data.number);
+        {
+            var numberSprite = numberSpriteSet != null ? numberSpriteSet.GetSprite(data.number) : null;
+            if (data.isOriginalTower && numberSprite != null)
+            {
+                data.sr.sprite = CreateBlockSprite();
+                data.sr.color = Color.clear;
+                data.sr.drawMode = SpriteDrawMode.Simple;
+                var numberRenderer = EnsureNumberSpriteRenderer(data);
+                numberRenderer.sprite = numberSprite;
+                numberRenderer.enabled = true;
+                numberRenderer.color = Color.white;
+                numberRenderer.sortingOrder = data.sr.sortingOrder + 1;
+                FitNumberSpriteToCell(numberRenderer);
+            }
+            else
+            {
+                if (data.numberSpriteRenderer != null)
+                    data.numberSpriteRenderer.enabled = false;
+                data.sr.sprite = CreateBlockSprite();
+                data.sr.color = data.isOriginalTower ? NumberColor(data.number) : PlacedNumberColor(data.number);
+                data.sr.drawMode = SpriteDrawMode.Simple;
+            }
+        }
+    }
+
+    SpriteRenderer EnsureNumberSpriteRenderer(CellData data)
+    {
+        if (data.numberSpriteRenderer != null)
+            return data.numberSpriteRenderer;
+
+        var existing = data.go.transform.Find("NumberSprite");
+        if (existing != null)
+            data.numberSpriteRenderer = existing.GetComponent<SpriteRenderer>();
+
+        if (data.numberSpriteRenderer != null)
+            return data.numberSpriteRenderer;
+
+        var go = new GameObject("NumberSprite");
+        MarkGeneratedObject(go);
+        go.transform.SetParent(data.go.transform, false);
+        go.transform.localPosition = Vector3.zero;
+        data.numberSpriteRenderer = go.AddComponent<SpriteRenderer>();
+        return data.numberSpriteRenderer;
+    }
+
+    void FitNumberSpriteToCell(SpriteRenderer renderer)
+    {
+        if (renderer == null || renderer.sprite == null)
+            return;
+
+        renderer.drawMode = SpriteDrawMode.Simple;
+        var size = renderer.sprite.bounds.size;
+        float maxSide = Mathf.Max(size.x, size.y);
+        float scale = maxSide > 0.0001f ? 1f / maxSide : 1f;
+        renderer.transform.localScale = Vector3.one * scale;
+        renderer.transform.localPosition = Vector3.zero;
+    }
+
+    void EnsureNumberSpriteSet()
+    {
+        if (numberSpriteSet != null)
+            return;
+
+        numberSpriteSet = GetComponent<BlockNumberSpriteSet>();
     }
 
     // ── 바닥 ─────────────────────────────────────────────────────────────
@@ -3992,9 +4099,10 @@ public class BlockTower : MonoBehaviour
         if (_bonusPreviewRoot == null) return;
 
         var cam = Camera.main;
-        if (cam == null || !cam.orthographic) return;
+        if (cam == null) return;
 
-        var pos = cam.ViewportToWorldPoint(new Vector3(0.76f, 0.78f, -cam.transform.position.z));
+        float distance = Mathf.Abs(CameraPlaneZ() - cam.transform.position.z);
+        var pos = cam.ViewportToWorldPoint(new Vector3(0.76f, 0.78f, distance));
         _bonusPreviewRoot.transform.position = new Vector3(pos.x, pos.y, 0f);
         _bonusPreviewRoot.transform.localScale = Vector3.one;
     }
@@ -4138,7 +4246,7 @@ public class BlockTower : MonoBehaviour
         rect.sizeDelta = Vector2.one;
 
         tmp.text             = number.ToString();
-        tmp.fontSize         = 4f;
+        tmp.fontSize         = 6f;
         tmp.alignment        = TextAlignmentOptions.Center;
         tmp.color            = Color.white;
         tmp.fontStyle        = FontStyles.Bold;
@@ -4202,15 +4310,16 @@ public class BlockTower : MonoBehaviour
             secondaryViewCamera.clearFlags = main.clearFlags;
             secondaryViewCamera.backgroundColor = main.backgroundColor;
             secondaryViewCamera.cullingMask = main.cullingMask;
-            secondaryViewCamera.orthographic = true;
+            secondaryViewCamera.orthographic = false;
             secondaryViewCamera.nearClipPlane = main.nearClipPlane;
             secondaryViewCamera.farClipPlane = main.farClipPlane;
+            secondaryViewCamera.fieldOfView = main.fieldOfView;
             secondaryViewCamera.transform.rotation = main.transform.rotation;
             secondaryViewCamera.transform.position = new Vector3(main.transform.position.x, main.transform.position.y, main.transform.position.z);
         }
         else
         {
-            secondaryViewCamera.orthographic = true;
+            secondaryViewCamera.orthographic = false;
         }
 
         secondaryViewCamera.depth = -10f;
@@ -4332,11 +4441,12 @@ public class BlockTower : MonoBehaviour
         }
 
         var main = Camera.main;
-        float z = main != null ? main.transform.position.z : secondaryViewCamera.transform.position.z;
         if (secondaryViewOrthographicSize > 0.01f)
             targetSize = secondaryViewOrthographicSize;
-        secondaryViewCamera.orthographic = true;
-        secondaryViewCamera.orthographicSize = targetSize;
+        secondaryViewCamera.orthographic = false;
+        if (main != null)
+            secondaryViewCamera.fieldOfView = main.fieldOfView;
+        float z = CameraZForHalfHeight(secondaryViewCamera, targetSize);
         secondaryViewCamera.transform.position = new Vector3(targetX, targetY, z);
     }
 
@@ -4381,7 +4491,7 @@ public class BlockTower : MonoBehaviour
             : HighestOccupiedRow() + 1;
 
         var main = Camera.main;
-        float currentSize = main != null ? main.orthographicSize : 6f;
+        float currentSize = main != null ? CurrentCameraHalfHeight(main) : 6f;
         float worldY = _towerRoot.position.y + targetGridY + 0.5f + placementViewTopOffset;
         centerY = Mathf.Max(_floorY + currentSize, worldY);
 
@@ -4393,7 +4503,8 @@ public class BlockTower : MonoBehaviour
     void FitCamera()
     {
         var cam = Camera.main;
-        if (cam == null || !cam.orthographic) return;
+        if (cam == null) return;
+        cam.orthographic = false;
 
         FitCameraToGridRows(0, rows - 1, extractionViewPadding, immediate: true);
     }
@@ -4401,7 +4512,8 @@ public class BlockTower : MonoBehaviour
     void FitCameraToGridRows(int minGridY, int maxGridY, float padding, bool immediate)
     {
         var cam = Camera.main;
-        if (cam == null || !cam.orthographic) return;
+        if (cam == null) return;
+        cam.orthographic = false;
 
         float aspect = (float)Screen.width / Screen.height;
 
@@ -4418,8 +4530,7 @@ public class BlockTower : MonoBehaviour
         _cameraTargetSize = Mathf.Max(sizeForWidth, halfH);
         if (immediate)
         {
-            cam.orthographicSize = _cameraTargetSize;
-            cam.transform.position = new Vector3(0f, _cameraTargetY, cam.transform.position.z);
+            ApplyCameraView(cam, 0f, _cameraTargetY, _cameraTargetSize);
             _hasCameraTarget = false;
             return;
         }
@@ -4481,29 +4592,31 @@ public class BlockTower : MonoBehaviour
     void FocusCameraOnHeldCenter()
     {
         var cam = Camera.main;
-        if (cam == null || !cam.orthographic || _towerRoot == null) return;
+        if (cam == null || _towerRoot == null) return;
+        cam.orthographic = false;
 
         float worldY = _towerRoot.position.y + _heldBaseCell.y + _heldCenter.y;
-        float minY = _floorY + cam.orthographicSize;
+        float halfHeight = CurrentCameraHalfHeight(cam);
+        float minY = _floorY + halfHeight;
         _cameraTargetY = Mathf.Max(minY, worldY);
-        _cameraTargetSize = cam.orthographicSize;
+        _cameraTargetSize = halfHeight;
         _hasCameraTarget = true;
     }
 
     void FocusCameraOnGridY(int gridY, bool immediate, float padding)
     {
         var cam = Camera.main;
-        if (cam == null || !cam.orthographic) return;
+        if (cam == null) return;
+        cam.orthographic = false;
 
         float worldY = _towerRoot.position.y + gridY + 0.5f;
-        float minY = _floorY + cam.orthographicSize;
+        float halfHeight = CurrentCameraHalfHeight(cam);
+        float minY = _floorY + halfHeight;
         _cameraTargetY = Mathf.Max(minY, worldY + padding);
-        _cameraTargetSize = cam.orthographicSize;
+        _cameraTargetSize = halfHeight;
         if (immediate)
         {
-            var pos = cam.transform.position;
-            cam.orthographicSize = _cameraTargetSize;
-            cam.transform.position = new Vector3(pos.x, _cameraTargetY, pos.z);
+            ApplyCameraView(cam, cam.transform.position.x, _cameraTargetY, _cameraTargetSize);
             _hasCameraTarget = false;
             return;
         }
@@ -4516,21 +4629,52 @@ public class BlockTower : MonoBehaviour
         if (!_hasCameraTarget) return;
 
         var cam = Camera.main;
-        if (cam == null || !cam.orthographic) return;
+        if (cam == null) return;
+        cam.orthographic = false;
 
         var pos = cam.transform.position;
         float t = 1f - Mathf.Exp(-cameraFocusSpeed * Time.deltaTime);
         float nextY = Mathf.Lerp(pos.y, _cameraTargetY, t);
         float nextSize = _cameraTargetSize > 0f
-            ? Mathf.Lerp(cam.orthographicSize, _cameraTargetSize, t)
-            : cam.orthographicSize;
-        cam.orthographicSize = nextSize;
-        cam.transform.position = new Vector3(pos.x, nextY, pos.z);
+            ? Mathf.Lerp(CurrentCameraHalfHeight(cam), _cameraTargetSize, t)
+            : CurrentCameraHalfHeight(cam);
+        ApplyCameraView(cam, pos.x, nextY, nextSize);
 
         bool reachedY = Mathf.Abs(nextY - _cameraTargetY) < 0.01f;
         bool reachedSize = _cameraTargetSize <= 0f || Mathf.Abs(nextSize - _cameraTargetSize) < 0.01f;
         if (reachedY && reachedSize)
             _hasCameraTarget = false;
+    }
+
+    void ApplyCameraView(Camera cam, float x, float y, float halfHeight)
+    {
+        if (cam == null) return;
+        cam.orthographic = false;
+        cam.transform.position = new Vector3(x, y, CameraZForHalfHeight(cam, halfHeight));
+    }
+
+    float CurrentCameraHalfHeight(Camera cam)
+    {
+        if (cam == null)
+            return 6f;
+        if (cam.orthographic)
+            return cam.orthographicSize;
+
+        float distance = Mathf.Abs(CameraPlaneZ() - cam.transform.position.z);
+        float fovRad = Mathf.Max(1f, cam.fieldOfView) * Mathf.Deg2Rad;
+        return Mathf.Max(0.1f, distance * Mathf.Tan(fovRad * 0.5f));
+    }
+
+    float CameraZForHalfHeight(Camera cam, float halfHeight)
+    {
+        float fovRad = Mathf.Max(1f, cam != null ? cam.fieldOfView : 60f) * Mathf.Deg2Rad;
+        float distance = Mathf.Max(0.1f, halfHeight) / Mathf.Tan(fovRad * 0.5f);
+        return CameraPlaneZ() - distance;
+    }
+
+    float CameraPlaneZ()
+    {
+        return _towerRoot != null ? _towerRoot.position.z : 0f;
     }
 
     int HighestOccupiedRow()
