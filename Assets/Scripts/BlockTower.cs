@@ -668,11 +668,11 @@ public class BlockTower : MonoBehaviour
         _selected.Clear();
         _lastPlacedCells.Clear();
         _hasLastPlacementCenter = false;
-        _hasLastExtractionCenter = false;
         _detachedComponents.Clear();
         _heldRelPos.Clear();
         _heldData.Clear();
         _heldSourceCells.Clear();
+        _hasLastExtractionCenter = false;
         _isHolding = false;
         _isGameOver = false;
         _freezePlacementZoneVisuals = false;
@@ -712,8 +712,8 @@ public class BlockTower : MonoBehaviour
         _selected.Clear();
         _lastPlacedCells.Clear();
         _hasLastPlacementCenter = false;
-        _hasLastExtractionCenter = false;
         _detachedComponents.Clear();
+        _hasLastExtractionCenter = false;
         _isHolding  = false;
         _isGameOver = false;
         _freezePlacementZoneVisuals = false;
@@ -2035,12 +2035,14 @@ public class BlockTower : MonoBehaviour
         _presetOutlineRoot = new GameObject("PresetOutlinePreview");
         MarkGeneratedObject(_presetOutlineRoot);
         _presetOutlineRoot.transform.SetParent(_towerRoot, false);
+        SetNoPostLayer(_presetOutlineRoot);
 
         foreach (var cell in cells)
         {
             var go = new GameObject($"PresetOutline_{cell.x}_{cell.y}");
             MarkGeneratedObject(go);
             go.transform.SetParent(_presetOutlineRoot.transform, false);
+            SetNoPostLayer(go);
             go.transform.localPosition = new Vector3(cell.x + 0.5f, cell.y + 0.5f, 0.04f);
             go.transform.localScale = Vector3.one * selectedOutlineScale;
 
@@ -2049,6 +2051,16 @@ public class BlockTower : MonoBehaviour
             sr.color = selectedOutlineColor;
             sr.sortingOrder = 5;
         }
+    }
+
+    static void SetNoPostLayer(GameObject go)
+    {
+        if (go == null)
+            return;
+
+        int layer = LayerMask.NameToLayer("BlockTowerNoPost");
+        if (layer >= 0)
+            go.layer = layer;
     }
 
     void UpdatePresetOutlineFeedback()
@@ -2363,13 +2375,21 @@ public class BlockTower : MonoBehaviour
         if (isFocused)
             color = Color.Lerp(color, focusedCellColor, 0.8f);
 
-        if (data.numberSpriteRenderer != null && data.numberSpriteRenderer.enabled)
+        bool hasNumberSprite = data.numberSpriteRenderer != null &&
+                               data.numberSpriteRenderer.enabled &&
+                               data.numberSpriteRenderer.sprite != null;
+        if (hasNumberSprite)
         {
             data.sr.color = Color.clear;
             data.numberSpriteRenderer.color = Color.white;
         }
         else
         {
+            if (data.numberSpriteRenderer != null)
+            {
+                data.numberSpriteRenderer.enabled = false;
+                data.numberSpriteRenderer.sprite = null;
+            }
             data.sr.color = color;
         }
         ApplyCellOutline(data, isFocused, showSelectedOutline);
@@ -2402,8 +2422,6 @@ public class BlockTower : MonoBehaviour
             (minX + maxX + 1f) * 0.5f,
             (minY + maxY + 1f) * 0.5f,
             0f));
-        _lastExtractionCenter = new Vector2((minX + maxX + 1f) * 0.5f, (minY + maxY + 1f) * 0.5f);
-        _hasLastExtractionCenter = true;
 
         _heldCenter = new Vector2((maxX - minX + 1) * 0.5f, (maxY - minY + 1) * 0.5f);
 
@@ -2411,6 +2429,8 @@ public class BlockTower : MonoBehaviour
         _heldData.Clear();
         _heldSourceCells.Clear();
         _heldStartScore = _score;
+        _lastExtractionCenter = new Vector2((minX + maxX + 1f) * 0.5f, (minY + maxY + 1f) * 0.5f);
+        _hasLastExtractionCenter = true;
         foreach (var c in _selected)
             _heldRelPos.Add(new Vector2Int(c.x - minX, c.y - minY));
         _heldMatchesBonus = ShapeMatchesPreset(_heldRelPos, _bonusTargetPreset);
@@ -3675,7 +3695,10 @@ public class BlockTower : MonoBehaviour
             else
             {
                 if (data.numberSpriteRenderer != null)
+                {
                     data.numberSpriteRenderer.enabled = false;
+                    data.numberSpriteRenderer.sprite = null;
+                }
                 data.sr.sprite = CreateBlockSprite();
                 data.sr.color = data.isOriginalTower ? NumberColor(data.number) : PlacedNumberColor(data.number);
                 data.sr.drawMode = SpriteDrawMode.Simple;
