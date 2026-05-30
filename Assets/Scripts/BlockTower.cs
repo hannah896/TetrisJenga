@@ -154,7 +154,6 @@ public class BlockTower : MonoBehaviour
     Vector2                                    _lastPlacementCenter;
     bool                                       _hasLastPlacementCenter;
     Vector2                                    _lastExtractionCenter;
-    bool                                       _hasLastExtractionCenter;
     readonly List<DetachedComponent>           _detachedComponents = new();
 
     class DetachedComponent
@@ -672,7 +671,6 @@ public class BlockTower : MonoBehaviour
         _heldRelPos.Clear();
         _heldData.Clear();
         _heldSourceCells.Clear();
-        _hasLastExtractionCenter = false;
         _isHolding = false;
         _isGameOver = false;
         _freezePlacementZoneVisuals = false;
@@ -713,7 +711,6 @@ public class BlockTower : MonoBehaviour
         _lastPlacedCells.Clear();
         _hasLastPlacementCenter = false;
         _detachedComponents.Clear();
-        _hasLastExtractionCenter = false;
         _isHolding  = false;
         _isGameOver = false;
         _freezePlacementZoneVisuals = false;
@@ -2422,7 +2419,6 @@ public class BlockTower : MonoBehaviour
             (minX + maxX + 1f) * 0.5f,
             (minY + maxY + 1f) * 0.5f,
             0f));
-
         _heldCenter = new Vector2((maxX - minX + 1) * 0.5f, (maxY - minY + 1) * 0.5f);
 
         _heldRelPos.Clear();
@@ -2430,7 +2426,6 @@ public class BlockTower : MonoBehaviour
         _heldSourceCells.Clear();
         _heldStartScore = _score;
         _lastExtractionCenter = new Vector2((minX + maxX + 1f) * 0.5f, (minY + maxY + 1f) * 0.5f);
-        _hasLastExtractionCenter = true;
         foreach (var c in _selected)
             _heldRelPos.Add(new Vector2Int(c.x - minX, c.y - minY));
         _heldMatchesBonus = ShapeMatchesPreset(_heldRelPos, _bonusTargetPreset);
@@ -4447,24 +4442,17 @@ public class BlockTower : MonoBehaviour
         float targetX = 0f;
         float targetY;
         float targetSize;
-        bool showExtractionView = _isHolding;
+        bool showTowerOverview = _isHolding;
         float aspect = SecondaryViewAspect();
-        bool hasView = showExtractionView
-            ? TryCalculateRowsCameraView(_extractionMinRow, _extractionMaxRow, extractionViewPadding, aspect, out targetY, out targetSize)
+        bool hasView = showTowerOverview
+            ? TryCalculateOccupiedRowsCameraView(extractionViewPadding, aspect, out targetY, out targetSize)
             : TryCalculatePlacementCameraView(aspect, out targetY, out targetSize);
 
         if (!hasView)
             return;
 
-        if (showExtractionView && _hasLastExtractionCenter)
-        {
-            var extractionWorldCenter = _towerRoot.TransformPoint(new Vector3(_lastExtractionCenter.x, _lastExtractionCenter.y, 0f));
-            targetX = extractionWorldCenter.x;
-            targetY = extractionWorldCenter.y;
-        }
-
         var main = Camera.main;
-        if (secondaryViewOrthographicSize > 0.01f)
+        if (!showTowerOverview && secondaryViewOrthographicSize > 0.01f)
             targetSize = secondaryViewOrthographicSize;
         secondaryViewCamera.orthographic = false;
         if (main != null)
@@ -4483,6 +4471,24 @@ public class BlockTower : MonoBehaviour
         }
 
         return Mathf.Max(0.1f, secondaryViewPanelSize.x) / Mathf.Max(0.1f, secondaryViewPanelSize.y);
+    }
+
+    bool TryCalculateOccupiedRowsCameraView(float padding, float aspect, out float centerY, out float size)
+    {
+        centerY = 0f;
+        size = 0f;
+        if (_towerRoot == null || _cells.Count == 0)
+            return false;
+
+        int minY = int.MaxValue;
+        int maxY = int.MinValue;
+        foreach (var cell in _cells.Keys)
+        {
+            minY = Mathf.Min(minY, cell.y);
+            maxY = Mathf.Max(maxY, cell.y);
+        }
+
+        return TryCalculateRowsCameraView(minY, maxY, padding, aspect, out centerY, out size);
     }
 
     bool TryCalculateRowsCameraView(int minGridY, int maxGridY, float padding, float aspect, out float centerY, out float size)
