@@ -1,0 +1,43 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bbb281ee3bf0b054c82ac2347e9e782c, type: 3}
+  m_Name: UIResources
+  m_EditorClassIdentifier: Unity.Addressables.Editor::UnityEditor.AddressableAssets.Settings.AddressableAssetGroup
+  m_GroupName: UIResources
+  m_GUID: a99eeca75e12dd045b9db4dcf8480c2b
+  m_SerializeEntries:
+  - m_GUID: 04cccdbedb64dbb4aabbb6438e4b4eb6
+    m_Address: GameplayUIImageLibrary
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 754759d5ad4414e4eb4e188c81fca3a9
+    m_Address: LobbyUIImageLibrary
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: e84876a0d46d3de4382a45385ca58ee8
+    m_Address: SettingUIImageLibrary
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: feee63bcb81689a49b7f9edfe2c34354
+    m_Address: StageUIImageLibrary
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  m_ReadOnly: 0
+  m_Settings: {fileID: 11400000, guid: 7ddc95e14037a1e45b2f3bd53480fefc, type: 2}
+  m_SchemaSet:
+    m_Schemas:
+    - {fileID: 11400000, guid: 704889ee7742e57428f4f85abf73e7f7, type: 2}
+    - {fileID: 11400000, guid: 80d10496fc53f7c4ba679bc94f974f43, type: 2}
