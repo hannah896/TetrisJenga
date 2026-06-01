@@ -1,0 +1,196 @@
+/* =========================================================
+   공통 테마 — 모든 씬 UI가 import 해서 사용한다.
+   기준 해상도: 1920 x 1080 (PanelSettings: Scale With Screen Size)
+   ========================================================= */
+
+.ui-root {
+    width: 100%;
+    height: 100%;
+    -unity-font-definition: url("project://database/Assets/00.Resources/Font/DNFBitBitv2.ttf?fileID=12800000&guid=f696af773a4d9964880d5f416fe7512a&type=3#DNFBitBitv2");
+    -unity-font-style: bold;
+    color: #1f1f1f;
+    overflow: hidden;
+}
+
+.fill {
+    position: absolute;
+    left: 0;
+    top: 0;
+    right: 0;
+    bottom: 0;
+}
+
+.hidden {
+    display: none;
+}
+
+/* ---------- 공통 버튼 ---------- */
+.btn {
+    -unity-text-align: middle-center;
+    -unity-font-style: bold;
+    border-width: 0;
+    border-radius: 14px;
+    -unity-background-scale-mode: scale-to-fit;
+    transition-duration: 0.08s;
+    transition-property: scale, background-color;
+}
+
+.btn:hover {
+    scale: 1.03 1.03;
+}
+
+.btn:active {
+    scale: 0.97 0.97;
+}
+
+.btn--disabled {
+    opacity: 0.45;
+}
+
+/* ---------- 하단 툴팁 바 (메뉴/스테이지 공통) ---------- */
+.tooltip-bar {
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    height: 50px;
+    padding-left: 28px;
+    padding-right: 28px;
+    background-color: rgba(20, 20, 20, 0.88);
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+}
+
+.tooltip-bar__text {
+    color: #f2f2f2;
+    font-size: 22px;
+    -unity-text-align: middle-center;
+}
+
+/* =========================================================
+   설정 팝업 (모든 씬 공통) — 피그마 SettingUI 기준
+   ========================================================= */
+.setting-overlay {
+    position: absolute;
+    left: 0;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(249, 213, 213, 0.94);
+    align-items: center;
+    justify-content: center;
+}
+
+.setting-panel {
+    width: 1132px;
+    height: 916px;
+    background-color: #9d6e6e;
+    border-radius: 28px;
+    padding: 80px;
+    align-items: stretch;
+    justify-content: flex-start;
+}
+
+.setting-row {
+    flex-direction: row;
+    align-items: center;
+    margin-bottom: 48px;
+    height: 124px;
+}
+
+.setting-row__label {
+    width: 221px;
+    height: 124px;
+    background-color: #82595a;
+    border-radius: 12px;
+    -unity-text-align: middle-center;
+    color: #f5ecec;
+    font-size: 40px;
+    padding-left: 24px;
+    padding-right: 24px;
+}
+
+.setting-row__label--wide {
+    width: 670px;
+    -unity-text-align: middle-left;
+}
+
+.setting-row__spacer {
+    flex-grow: 1;
+}
+
+/* 프리셋 가이드 토글 */
+.setting-toggle {
+    width: 140px;
+    height: 124px;
+    align-items: center;
+    justify-content: center;
+}
+
+.setting-toggle .unity-toggle__input {
+    flex-grow: 0;
+}
+
+.setting-toggle .unity-toggle__checkmark {
+    width: 72px;
+    height: 66px;
+    border-radius: 8px;
+    background-color: #5a3b3b;
+    border-width: 0;
+}
+
+.setting-toggle:checked .unity-toggle__checkmark {
+    background-color: #b5403f;
+}
+
+/* 슬라이더 */
+.setting-slider {
+    flex-grow: 1;
+    margin-left: 34px;
+    height: 124px;
+    justify-content: center;
+}
+
+.setting-slider .unity-base-slider__tracker {
+    height: 33px;
+    border-radius: 16px;
+    border-width: 0;
+    background-color: #6e4a4a;
+}
+
+.setting-slider .unity-base-slider__dragger {
+    width: 55px;
+    height: 90px;
+    border-radius: 10px;
+    border-width: 0;
+    background-color: #f5ecec;
+    margin-top: -45px;
+}
+
+.setting-slider .unity-base-slider__drag-container {
+    height: 33px;
+}
+
+/* 하단 버튼 행 */
+.setting-button-row {
+    flex-direction: row;
+    justify-content: space-between;
+    margin-top: 60px;
+    margin-bottom: 0;
+}
+
+.setting-button {
+    width: 326px;
+    height: 123px;
+    background-color: #82595a;
+    border-radius: 14px;
+    color: #f5ecec;
+    font-size: 44px;
+    -unity-text-align: middle-center;
+    -unity-font-style: bold;
+    border-width: 0;
+}
+
+.setting-button:hover {
+    background-color: #95696a;
+}
