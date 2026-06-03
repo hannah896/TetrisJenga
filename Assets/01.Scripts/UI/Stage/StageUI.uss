@@ -1,5 +1,5 @@
 /* =========================================================
-   StageScene UI — 스테이지 선택 / 미리보기
+   StageScene UI — 스크롤 맵 + 스테이지 선택
    기준 해상도: 1920 x 1080
    ========================================================= */
 
@@ -7,6 +7,88 @@
     background-color: #f9a8a8;
     -unity-background-scale-mode: scale-and-crop;
 }
+
+/* ---- 좌측 맵 뷰 컨테이너 ---- */
+
+.stage-view {
+    position: absolute;
+    left: 28px;
+    top: 25px;
+    width: 1127px;
+    height: 1022px;
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+.stage-map-scroll {
+    position: absolute;
+    left: 0;
+    top: 0;
+    right: 0;
+    bottom: 0;
+}
+
+/* 실제 스크롤 콘텐츠 영역. SplineContainer 좌표계와 매핑:
+   X: 0~1  →  0~1127px
+   Y: 0(아래)~1(위)  →  3000~0px  (Y 축 반전)
+   높이를 바꾸면 StageUIController의 mapHeight도 같이 바꿔야 한다. */
+.stage-map {
+    width: 1127px;
+    height: 3000px;
+    background-color: #3a2e22;
+    -unity-background-scale-mode: scale-and-crop;
+}
+
+/* ---- 스테이지 노드 버튼 ---- */
+
+.stage-node-btn {
+    position: absolute;
+    width: 80px;
+    height: 80px;
+    border-radius: 40px;
+    background-color: #e8b84b;
+    border-width: 0;
+    padding: 0;
+    justify-content: center;
+    align-items: center;
+    transition-duration: 0.1s;
+    transition-property: scale;
+}
+
+.stage-node-btn:hover {
+    scale: 1.1;
+}
+
+.stage-node-btn--locked {
+    background-color: #555555;
+    opacity: 0.5;
+}
+
+.stage-node-btn--cleared {
+    background-color: #4caf50;
+}
+
+.stage-node-btn--current {
+    background-color: #e8b84b;
+}
+
+.stage-node-btn--selected {
+    border-width: 4px;
+    border-color: white;
+    scale: 1.15;
+}
+
+.stage-node-btn__label {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    -unity-text-align: middle-center;
+    color: white;
+    font-size: 26px;
+    -unity-font-style: bold;
+}
+
+/* ---- 우측 패널 (타이틀 / 미리보기 / 설명 / 버튼) ---- */
 
 .stage-title-box {
     position: absolute;
@@ -27,25 +109,6 @@
     -unity-text-align: middle-center;
 }
 
-/* 좌측 큰 스테이지 뷰 (RenderTexture 영역) */
-.stage-view {
-    position: absolute;
-    left: 28px;
-    top: 25px;
-    width: 1127px;
-    height: 1022px;
-    background-color: #a88080;
-    border-radius: 12px;
-    align-items: center;
-    justify-content: center;
-}
-
-.stage-view__label {
-    color: rgba(255, 255, 255, 0.55);
-    font-size: 44px;
-}
-
-/* 우상단 미리보기 */
 .stage-preview {
     position: absolute;
     left: 1265px;
@@ -60,10 +123,11 @@
 
 .stage-preview__label {
     color: rgba(255, 255, 255, 0.6);
-    font-size: 40px;
+    font-size: 30px;
+    white-space: normal;
+    -unity-text-align: middle-center;
 }
 
-/* 우측 설명 박스 */
 .stage-explain {
     position: absolute;
     left: 1223px;
@@ -79,12 +143,11 @@
 
 .stage-explain__text {
     color: #f0f0f0;
-    font-size: 40px;
+    font-size: 36px;
     white-space: normal;
     -unity-text-align: middle-center;
 }
 
-/* 플레이 스타트 버튼 */
 .stage-start-btn {
     position: absolute;
     left: 1350px;

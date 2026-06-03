@@ -14,10 +14,12 @@ public class StageUIImageLibrarySO : ScriptableObject
     [Tooltip("Stage Scene 타이틀 박스")]
     public Sprite title;
 
-    [Header("뷰 / 프리뷰")]
-    [Tooltip("스테이지 뷰 영역 배경 (실제로는 RenderTexture로 대체될 수 있음)")]
-    public Sprite stageView;
-    [Tooltip("스테이지 미리보기 이미지")]
+    [Header("스크롤 맵")]
+    [Tooltip("스크롤 맵 내부 배경 이미지 (화면 2~3배 높이 이미지 권장)")]
+    public Sprite mapBackground;
+
+    [Header("우측 패널")]
+    [Tooltip("스테이지 미리보기 이미지 (선택 전 기본)")]
     public Sprite previewImage;
 
     [Header("설명 / 버튼")]
