@@ -1,0 +1,67 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements" editor-extension-mode="False">
+    <Style src="../Common/UITheme.uss" />
+    <Style src="StageUI.uss" />
+
+    <ui:VisualElement name="root" class="ui-root">
+
+        <ui:VisualElement name="stage-screen" class="fill stage-bg">
+
+            <!-- 좌측: 스크롤 맵 -->
+            <ui:VisualElement name="stage-view" class="stage-view">
+                <ui:ScrollView name="stage-map-scroll" class="stage-map-scroll"
+                               mode="Vertical"
+                               horizontal-scroller-visibility="Hidden"
+                               vertical-scroller-visibility="Hidden">
+                    <!-- stage-map 높이는 USS에서 3000px 고정.
+                         StageUIController가 SplineContainer 기반으로
+                         StageMapElement(거품 경로)와 노드 버튼을 동적으로 추가. -->
+                    <ui:VisualElement name="stage-map" class="stage-map" />
+                </ui:ScrollView>
+            </ui:VisualElement>
+
+            <!-- 우상단: 타이틀 -->
+            <ui:VisualElement name="stage-title" class="stage-title-box">
+                <ui:Label text="Stage Scene" class="stage-title-box__text" />
+            </ui:VisualElement>
+
+            <!-- 우측: 선택된 스테이지 정보 패널 -->
+            <ui:VisualElement name="preview-image" class="stage-preview">
+                <ui:Label name="preview-label" text="스테이지를 선택하세요" class="stage-preview__label" />
+            </ui:VisualElement>
+
+            <ui:VisualElement name="explain-box" class="stage-explain">
+                <ui:Label name="explain-text" text="난이도, 부가설명 등" class="stage-explain__text" />
+            </ui:VisualElement>
+
+            <ui:Button name="start-button" text="플레이 스타트" class="btn stage-start-btn" />
+
+            <ui:VisualElement class="tooltip-bar">
+                <ui:Label text="스테이지 선택 후 플레이   ESC: 설정   우클릭: 뒤로" class="tooltip-bar__text" />
+            </ui:VisualElement>
+        </ui:VisualElement>
+
+        <!-- ===================== 설정 팝업 (공통) ===================== -->
+        <ui:VisualElement name="setting-popup" class="setting-overlay hidden">
+            <ui:VisualElement class="setting-panel">
+                <ui:VisualElement class="setting-row">
+                    <ui:Label text="프리셋 가이드 창 여부" class="setting-row__label setting-row__label--wide" />
+                    <ui:VisualElement class="setting-row__spacer" />
+                    <ui:Toggle name="preset-guide-toggle" class="setting-toggle" />
+                </ui:VisualElement>
+                <ui:VisualElement class="setting-row">
+                    <ui:Label text="BGM" class="setting-row__label" />
+                    <ui:Slider name="bgm-slider" low-value="0" high-value="1" value="1" class="setting-slider" />
+                </ui:VisualElement>
+                <ui:VisualElement class="setting-row">
+                    <ui:Label text="SFX" class="setting-row__label" />
+                    <ui:Slider name="sfx-slider" low-value="0" high-value="1" value="1" class="setting-slider" />
+                </ui:VisualElement>
+                <ui:VisualElement class="setting-button-row">
+                    <ui:Button name="setting-restart-button" text="Restart" class="setting-button" />
+                    <ui:Button name="setting-back-button" text="Back" class="setting-button" />
+                </ui:VisualElement>
+            </ui:VisualElement>
+        </ui:VisualElement>
+
+    </ui:VisualElement>
+</ui:UXML>

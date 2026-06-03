@@ -1,0 +1,35 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bbb281ee3bf0b054c82ac2347e9e782c, type: 3}
+  m_Name: LobbyResources
+  m_EditorClassIdentifier: Unity.Addressables.Editor::UnityEditor.AddressableAssets.Settings.AddressableAssetGroup
+  m_GroupName: LobbyResources
+  m_GUID: 06bfc9681d5cbfd498a53334920e3f38
+  m_SerializeEntries:
+  - m_GUID: 7f9cc55263bbfb34ab5d65308193bcf0
+    m_Address: UI
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - Lobby
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: d7f7ca54d1dbacc48974979d5d5e4d78
+    m_Address: Main Camera
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - Lobby
+    FlaggedDuringContentUpdateRestriction: 0
+  m_ReadOnly: 0
+  m_Settings: {fileID: 11400000, guid: 7ddc95e14037a1e45b2f3bd53480fefc, type: 2}
+  m_SchemaSet:
+    m_Schemas:
+    - {fileID: 11400000, guid: e3f27ca7a1e832941ac668d311a5a5af, type: 2}
+    - {fileID: 11400000, guid: 0fbf2ca1fc9867340874998801b3f64f, type: 2}

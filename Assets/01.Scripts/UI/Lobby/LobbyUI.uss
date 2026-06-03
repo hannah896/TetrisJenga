@@ -1,0 +1,147 @@
+/* =========================================================
+   LobbyScene UI — 로비 + 모드 선택
+   기준 해상도: 1920 x 1080
+   ========================================================= */
+
+.screen-bg {
+    background-color: #d4d4d4;
+    -unity-background-scale-mode: scale-and-crop;
+}
+
+/* ---------------- 로비 화면 ---------------- */
+.lobby-title {
+    position: absolute;
+    left: 465px;
+    top: 137px;
+    width: 1059px;
+    height: 442px;
+    color: #1a1a1a;
+    font-size: 200px;
+    white-space: normal;
+    -unity-text-align: middle-center;
+    -unity-font-style: bold;
+}
+
+.lobby-play-btn {
+    position: absolute;
+    left: 720px;
+    top: 766px;
+    width: 480px;
+    height: 149px;
+    background-color: #8c8c8c;
+    color: #f5f5f5;
+    font-size: 56px;
+}
+
+.lobby-play-btn:hover {
+    background-color: #9a9a9a;
+}
+
+.lobby-exit-btn {
+    position: absolute;
+    left: 1780px;
+    top: 1005px;
+    width: 140px;
+    height: 75px;
+    background-color: #8c8c8c;
+    color: #f5f5f5;
+    font-size: 30px;
+    border-radius: 8px;
+}
+
+.lobby-exit-btn:hover {
+    background-color: #9a9a9a;
+}
+
+/* ---------------- 모드 선택 화면 ---------------- */
+.mode-title-box {
+    position: absolute;
+    left: 0;
+    top: 42px;
+    width: 479px;
+    height: 148px;
+    background-color: #7d7d7d;
+    border-top-right-radius: 18px;
+    border-bottom-right-radius: 18px;
+    align-items: center;
+    justify-content: center;
+}
+
+.mode-title-box__text {
+    color: #f5f5f5;
+    font-size: 52px;
+    -unity-text-align: middle-center;
+}
+
+.mode-btn {
+    position: absolute;
+    height: 223px;
+    background-color: #7d7d7d;
+    color: #f5f5f5;
+    font-size: 64px;
+    -unity-text-align: middle-center;
+    border-radius: 16px;
+}
+
+.mode-btn:hover {
+    background-color: #8c8c8c;
+}
+
+.mode-btn--endless {
+    left: 79px;
+    top: 241px;
+    width: 742px;
+}
+
+.mode-btn--story {
+    left: 174px;
+    top: 515px;
+    width: 742px;
+}
+
+.mode-btn--multi {
+    left: 250px;
+    top: 790px;
+    width: 754px;
+    height: 218px;
+    font-size: 48px;
+}
+
+/* 프리뷰 패널 */
+.preview-image {
+    position: absolute;
+    left: 1216px;
+    top: 69px;
+    width: 647px;
+    height: 669px;
+    background-color: #5e5e5e;
+    border-radius: 18px;
+    align-items: center;
+    justify-content: center;
+}
+
+.preview-image__label {
+    color: #e8e8e8;
+    font-size: 44px;
+    -unity-text-align: middle-center;
+}
+
+.mode-explain {
+    position: absolute;
+    left: 1187px;
+    top: 759px;
+    width: 704px;
+    height: 208px;
+    background-color: #7d7d7d;
+    border-radius: 16px;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+}
+
+.mode-explain__text {
+    color: #f0f0f0;
+    font-size: 40px;
+    white-space: normal;
+    -unity-text-align: middle-center;
+}
