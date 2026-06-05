@@ -1296,11 +1296,6 @@ public class BlockTower : MonoBehaviour
 
         ClearPlacementZoneFillObjects();
         _placementZoneVisualSignature = signature;
-        if (_placementExclusions.Count == 0)
-        {
-            sourceRenderer.enabled = true;
-            return;
-        }
 
         sourceRenderer.enabled = false;
         var remaining = new List<RectInt> { zoneRect };
@@ -4746,6 +4741,7 @@ public class BlockTower : MonoBehaviour
 
         AlignPlacementZoneWidthToDivider();
         AlignPlacementZoneBottomToDivider(y);
+        SyncPlacementZoneFromObject();
     }
 
     void AlignPlacementZoneWidthToDivider()
@@ -4777,6 +4773,31 @@ public class BlockTower : MonoBehaviour
             placementZoneTransform.position += _towerRoot.TransformVector(new Vector3(deltaX, 0f, 0f));
 
         ClampPlacementZoneTransformInsideDividerX();
+        ForcePlacementZoneRectToDividerX();
+    }
+
+    void ForcePlacementZoneRectToDividerX()
+    {
+        if (placementZoneTransform == null || _towerStackDivider == null || _towerRoot == null)
+            return;
+
+        if (!TryGetTowerLocalBounds(_towerStackDivider.transform, out var dividerMinX, out var dividerMaxX, out _, out _))
+            return;
+        if (!TryGetTowerLocalBounds(placementZoneTransform, out var zoneMinX, out var zoneMaxX, out _, out _))
+            return;
+
+        float dividerWidth = Mathf.Max(0.1f, dividerMaxX - dividerMinX);
+        float zoneWidth = Mathf.Max(0.001f, zoneMaxX - zoneMinX);
+        var scale = placementZoneTransform.localScale;
+        scale.x *= dividerWidth / zoneWidth;
+        placementZoneTransform.localScale = scale;
+
+        if (!TryGetTowerLocalBounds(placementZoneTransform, out zoneMinX, out zoneMaxX, out _, out _))
+            return;
+
+        float dividerCenterX = (dividerMinX + dividerMaxX) * 0.5f;
+        float zoneCenterX = (zoneMinX + zoneMaxX) * 0.5f;
+        placementZoneTransform.position += _towerRoot.TransformVector(new Vector3(dividerCenterX - zoneCenterX, 0f, 0f));
     }
 
     void ClampPlacementZoneTransformInsideDividerX()

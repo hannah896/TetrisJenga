@@ -6,10 +6,13 @@ public class GoldFishProjectile : MonoBehaviour
     [SerializeField] float speed = 5f;
     [SerializeField] Vector2 initialDirection = new(1f, 1f);
     [SerializeField] float stuckSeconds = 0.6f;
+    [SerializeField] float stallRecoverySeconds = 0.15f;
 
     Rigidbody _rb;
     float _stuckTimer;
+    float _stallTimer;
     bool _finished;
+    Vector3 _lastTravelDirection = Vector3.right;
     readonly Dictionary<Collider, Vector3> _cellContactNormals = new();
 
     void OnEnable()
@@ -38,7 +41,8 @@ public class GoldFishProjectile : MonoBehaviour
                         | RigidbodyConstraints.FreezeRotationY;
 
         var dir = initialDirection.sqrMagnitude > 0.001f ? initialDirection.normalized : Vector2.one.normalized;
-        _rb.linearVelocity = new Vector3(dir.x, dir.y, 0f) * speed;
+        _lastTravelDirection = new Vector3(dir.x, dir.y, 0f).normalized;
+        _rb.linearVelocity = _lastTravelDirection * speed;
     }
 
     void FixedUpdate()
@@ -49,7 +53,20 @@ public class GoldFishProjectile : MonoBehaviour
         var velocity = _rb.linearVelocity;
         velocity.z = 0f;
         if (velocity.sqrMagnitude > 0.001f)
+        {
+            _lastTravelDirection = velocity.normalized;
             _rb.linearVelocity = velocity.normalized * speed;
+            _stallTimer = 0f;
+        }
+        else
+        {
+            _stallTimer += Time.fixedDeltaTime;
+            if (_stallTimer >= stallRecoverySeconds)
+            {
+                _rb.linearVelocity = _lastTravelDirection * speed;
+                _stallTimer = 0f;
+            }
+        }
 
         _stuckTimer = IsPressedBetweenCellColliders()
             ? _stuckTimer + Time.fixedDeltaTime
@@ -74,7 +91,10 @@ public class GoldFishProjectile : MonoBehaviour
         var reflected = Vector3.Reflect(_rb.linearVelocity.normalized, normal.normalized);
         reflected.z = 0f;
         if (reflected.sqrMagnitude > 0.001f)
+        {
+            _lastTravelDirection = reflected.normalized;
             _rb.linearVelocity = reflected.normalized * speed;
+        }
     }
 
     void OnCollisionStay(Collision collision)
@@ -127,12 +147,19 @@ public class GoldFishProjectile : MonoBehaviour
         {
             for (int j = i + 1; j < normals.Count; j++)
             {
-                if (Vector3.Dot(normals[i], normals[j]) <= -0.65f)
+                if (IsVerticalCrushPair(normals[i], normals[j]))
                     return true;
             }
         }
 
         return false;
+    }
+
+    static bool IsVerticalCrushPair(Vector3 a, Vector3 b)
+    {
+        return Mathf.Abs(a.y) >= 0.65f &&
+               Mathf.Abs(b.y) >= 0.65f &&
+               Vector3.Dot(a, b) <= -0.65f;
     }
 
     static void SetNoPostLayer(GameObject root)
