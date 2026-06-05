@@ -70,6 +70,7 @@ public class BlockTower : MonoBehaviour
     [SerializeField, Range(0.85f, 1f)] float blockColliderScale = 0.92f;
 
     [Header("Special Blocks")]
+    [SerializeField] Sprite bombObscureSprite;
     [SerializeField] Color bombObscureColor = new(0.45f, 0.45f, 0.45f, 0.92f);
     [SerializeField] int goldFishDeadlineScore = 20;
 
@@ -2727,7 +2728,7 @@ public class BlockTower : MonoBehaviour
 
     void TriggerBombAt(Vector2Int center)
     {
-        foreach (var offset in BombCrossOffsets())
+        foreach (var offset in BombBoxOffsets())
         {
             var cell = center + offset;
             _bombConcealedCells.Add(cell);
@@ -2741,13 +2742,13 @@ public class BlockTower : MonoBehaviour
         }
     }
 
-    static IEnumerable<Vector2Int> BombCrossOffsets()
+    static IEnumerable<Vector2Int> BombBoxOffsets()
     {
-        yield return Vector2Int.zero;
-        yield return Vector2Int.up;
-        yield return Vector2Int.down;
-        yield return Vector2Int.left;
-        yield return Vector2Int.right;
+        for (int y = -1; y <= 1; y++)
+        {
+            for (int x = -1; x <= 1; x++)
+                yield return new Vector2Int(x, y);
+        }
     }
 
     void EnsureBombObscureBlock(Vector2Int cell)
@@ -2759,13 +2760,18 @@ public class BlockTower : MonoBehaviour
         MarkGeneratedObject(go);
         go.transform.SetParent(transform, worldPositionStays: true);
         go.transform.position = TowerGridLocalToWorld(new Vector3(cell.x + 0.5f, cell.y + 0.5f, -0.08f));
-        go.transform.localScale = Vector3.one * blockBodyScale;
+        go.transform.localScale = Vector3.one;
 
         var sr = go.AddComponent<SpriteRenderer>();
-        sr.sprite = CreateBlockSprite();
+        sr.sprite = BombObscureSprite();
         sr.color = bombObscureColor;
         sr.sortingOrder = 30;
         _bombObscureBlocks[cell] = go;
+    }
+
+    Sprite BombObscureSprite()
+    {
+        return bombObscureSprite != null ? bombObscureSprite : CreateBlockSprite();
     }
 
     // ── 블럭 들어올리기 ───────────────────────────────────────────────────
@@ -4434,7 +4440,7 @@ public class BlockTower : MonoBehaviour
                     data.numberSpriteRenderer.enabled = false;
                     data.numberSpriteRenderer.sprite = null;
                 }
-                data.sr.sprite = CreateBlockSprite();
+                data.sr.sprite = BombObscureSprite();
                 data.sr.color = bombObscureColor;
                 data.sr.drawMode = SpriteDrawMode.Simple;
             }
