@@ -2,6 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 using UnityEngine.UIElements;
 using TMPro;
@@ -68,8 +69,16 @@ public class BlockTower : MonoBehaviour
     [SerializeField, Range(0.85f, 1f)] float blockBodyScale = 0.94f;
     [SerializeField, Range(0.85f, 1f)] float blockColliderScale = 0.92f;
 
+    [Header("Special Blocks")]
+    [SerializeField] Color bombObscureColor = new(0.45f, 0.45f, 0.45f, 0.92f);
+    [SerializeField] int goldFishDeadlineScore = 20;
+
     [Header("Score")]
     [SerializeField] int targetScore = 30;
+
+    [Header("Initial Tower Numbers")]
+    [SerializeField] int initialTowerNumberTotal = 160;
+    [SerializeField] bool randomizeInitialTowerNumbersOnPlay = true;
 
     [Header("Scene References (optional)")]
     [SerializeField] Transform   towerRootTransform;
@@ -134,6 +143,7 @@ public class BlockTower : MonoBehaviour
     readonly List<TetrominoPreset> _bonusPresetBag = new();
     int            _bonusPresetBagIndex;
     bool           _freezePlacementZoneVisuals;
+    bool           _initialTowerNumbersRandomizedThisPlay;
 
     // ── 셀 데이터 ─────────────────────────────────────────────────────────
     class CellData
@@ -146,9 +156,12 @@ public class BlockTower : MonoBehaviour
         public SpriteRenderer outline;
         public TextMeshPro    label;
         public List<SpriteRenderer> previewBlurRenderers;
+        public BlockCell.CellKind kind;
+        public bool concealedByBomb;
     }
 
     readonly Dictionary<Vector2Int, CellData> _cells    = new();
+    readonly Dictionary<Vector2Int, CellData> _iceCells = new();
     readonly List<Vector2Int>                  _selected = new();
     readonly HashSet<Vector2Int>               _lastPlacedCells = new();
     Vector2                                    _lastPlacementCenter;
@@ -163,6 +176,7 @@ public class BlockTower : MonoBehaviour
         public float detachedAt;
         public int scorePenalty;
         public bool resolved;
+        public bool iceDamageApplied;
     }
 
     class HeldSourceCell
@@ -170,7 +184,11 @@ public class BlockTower : MonoBehaviour
         public Vector2Int cell;
         public int number;
         public bool isOriginalTower;
+        public BlockCell.CellKind kind;
     }
+
+    readonly HashSet<Vector2Int> _bombConcealedCells = new();
+    readonly Dictionary<Vector2Int, GameObject> _bombObscureBlocks = new();
 
     // ── 들기 상태 ─────────────────────────────────────────────────────────
     bool             _isHolding;
@@ -212,18 +230,36 @@ public class BlockTower : MonoBehaviour
 
         if (Application.isPlaying)
         {
+            _initialTowerNumbersRandomizedThisPlay = false;
             if (_cells.Count > 0)
             {
-                EnsureSecondaryViewObjects();
+                SetupRuntimeSceneObjectsAfterTowerRestore();
                 return;
             }
             if (TryRestoreRuntimeStateFromScene())
             {
-                EnsureSecondaryViewObjects();
+                SetupRuntimeSceneObjectsAfterTowerRestore();
                 return;
             }
         }
-        Rebuild();
+        RebuildEmptyTowerOnly();
+        EnsureSecondaryViewObjects();
+        UpdateSecondaryViewCamera();
+    }
+
+    void SetupRuntimeSceneObjectsAfterTowerRestore()
+    {
+        RandomizeInitialTowerNumbersIfNeeded();
+        foreach (var pair in _cells)
+            UpdateCellDataVisuals(pair.Value);
+        RenameTowerCellsSequentially();
+        EnsurePlacementZoneObjectVisible();
+        SyncPlacementZoneFromObject();
+        CreateFloor();
+        CreateBoundaries();
+        CreateScoreLabel();
+        CreateGameOverScreen();
+        FitCamera();
         EnsureSecondaryViewObjects();
         UpdateSecondaryViewCamera();
     }
@@ -281,7 +317,7 @@ public class BlockTower : MonoBehaviour
             return;
         }
 
-        Rebuild();
+        EnsurePlacementZoneObjectVisible();
         EnsureSecondaryViewObjects();
     }
 
@@ -483,12 +519,12 @@ public class BlockTower : MonoBehaviour
         if (canvas == null)
             return;
 
-        _canvasBonusKeyText ??= CreateCanvasBonusKeyText(canvas.transform, "BonusPreview1KeyText", new Vector2(600f, 340f));
-        _canvasBonusNextKeyText ??= CreateCanvasBonusKeyText(canvas.transform, "BonusPreview2KeyText", new Vector2(600f, 170f));
-        _canvasBonusThirdKeyText ??= CreateCanvasBonusKeyText(canvas.transform, "BonusPreview3KeyText", new Vector2(600f, 0f));
-        ConfigureCanvasBonusKeyText(_canvasBonusKeyText, canvas.transform, new Vector2(600f, 340f));
-        ConfigureCanvasBonusKeyText(_canvasBonusNextKeyText, canvas.transform, new Vector2(600f, 170f));
-        ConfigureCanvasBonusKeyText(_canvasBonusThirdKeyText, canvas.transform, new Vector2(600f, 0f));
+        _canvasBonusKeyText ??= CreateCanvasBonusKeyText(canvas.transform, "BonusPreview1KeyText", new Vector2(875f, 340f));
+        _canvasBonusNextKeyText ??= CreateCanvasBonusKeyText(canvas.transform, "BonusPreview2KeyText", new Vector2(875f, 170f));
+        _canvasBonusThirdKeyText ??= CreateCanvasBonusKeyText(canvas.transform, "BonusPreview3KeyText", new Vector2(875f, 0f));
+        ConfigureCanvasBonusKeyText(_canvasBonusKeyText, canvas.transform, new Vector2(875f, 340f));
+        ConfigureCanvasBonusKeyText(_canvasBonusNextKeyText, canvas.transform, new Vector2(875f, 170f));
+        ConfigureCanvasBonusKeyText(_canvasBonusThirdKeyText, canvas.transform, new Vector2(875f, 0f));
     }
 
     Canvas FindSceneCanvas()
@@ -623,25 +659,46 @@ public class BlockTower : MonoBehaviour
         if (root == null) return false;
 
         var restored = new Dictionary<Vector2Int, CellData>();
-        foreach (Transform child in root)
+        var restoredIce = new Dictionary<Vector2Int, CellData>();
+        var sceneCells = CollectSceneCellTransforms(root);
+        foreach (var child in sceneCells)
         {
             var blockCell = child.GetComponent<BlockCell>();
             var sr = child.GetComponent<SpriteRenderer>();
             if (blockCell == null || sr == null) continue;
 
-            var local = child.localPosition;
+            var local = root.InverseTransformPoint(child.position);
             var cell = new Vector2Int(
                 Mathf.RoundToInt(local.x - 0.5f),
                 Mathf.RoundToInt(local.y - 0.5f));
-            if (restored.ContainsKey(cell)) continue;
 
-            var outline = child.Find("FocusOutline")?.GetComponent<SpriteRenderer>();
-            if (outline == null)
+            bool isIce = blockCell.Kind == BlockCell.CellKind.Ice;
+            if (isIce)
+            {
+                if (restoredIce.ContainsKey(cell)) continue;
+            }
+            else if (restored.ContainsKey(cell)) continue;
+
+            var outline = isIce ? null : child.Find("FocusOutline")?.GetComponent<SpriteRenderer>();
+            if (!isIce && outline == null)
                 outline = SpawnCellOutline(child);
-            outline.enabled = false;
+            if (outline != null)
+                outline.enabled = false;
 
             var label = child.GetComponentInChildren<TextMeshPro>();
-            restored[cell] = new CellData
+            if (label == null)
+                label = SpawnLabel(Mathf.Max(1, Mathf.RoundToInt(blockCell.Weight)), child);
+            var box = child.GetComponent<BoxCollider>();
+            if (box == null)
+                box = child.gameObject.AddComponent<BoxCollider>();
+            box.size = Vector3.one * LocalColliderSize();
+            box.sharedMaterial = CreateFrictionMaterial();
+            box.enabled = Application.isPlaying;
+
+            if (Application.isPlaying && isIce)
+                MakeIceCellStatic(child);
+
+            var data = new CellData
             {
                 number = Mathf.Max(1, Mathf.RoundToInt(blockCell.Weight)),
                 isOriginalTower = blockCell.IsOriginalTower,
@@ -649,25 +706,46 @@ public class BlockTower : MonoBehaviour
                 sr = sr,
                 numberSpriteRenderer = child.Find("NumberSprite")?.GetComponent<SpriteRenderer>(),
                 outline = outline,
-                label = label
+                label = label,
+                kind = blockCell.Kind,
+                concealedByBomb = _bombConcealedCells.Contains(cell)
             };
+
+            if (isIce)
+                restoredIce[cell] = data;
+            else
+                restored[cell] = data;
         }
 
-        if (restored.Count == 0) return false;
+        if (restored.Count == 0)
+            return false;
 
         _towerRoot = root;
         _rb = root.GetComponent<Rigidbody>();
+        ConfigureTowerRigidbody();
         _cells.Clear();
+        _iceCells.Clear();
         foreach (var pair in restored)
-        {
             _cells[pair.Key] = pair.Value;
+        foreach (var pair in restoredIce)
+            _iceCells[pair.Key] = pair.Value;
+
+        RandomizeInitialTowerNumbersIfNeeded();
+
+        foreach (var pair in _cells)
+        {
             UpdateCellDataVisuals(pair.Value);
         }
+        foreach (var pair in _iceCells)
+            UpdateCellDataVisuals(pair.Value);
+        RenameTowerCellsSequentially();
 
         _selected.Clear();
         _lastPlacedCells.Clear();
         _hasLastPlacementCenter = false;
         _detachedComponents.Clear();
+        _bombConcealedCells.Clear();
+        _bombObscureBlocks.Clear();
         _heldRelPos.Clear();
         _heldData.Clear();
         _heldSourceCells.Clear();
@@ -686,7 +764,7 @@ public class BlockTower : MonoBehaviour
         ResetBonusPresetBag();
         HideResultScreens();
 
-        if (_generatedFloor == null) { var f = transform.Find("Floor"); if (f) _generatedFloor = f.gameObject; }
+        if (_generatedFloor == null) { var f = FindSceneObjectByName("Floor"); if (f) _generatedFloor = f.gameObject; }
         if (_generatedScoreLabel == null) { var f = transform.Find("ScoreLabel"); if (f) _generatedScoreLabel = f.gameObject; }
         if (scoreLabel == null && _generatedScoreLabel != null)
             scoreLabel = _generatedScoreLabel.GetComponent<TextMeshPro>();
@@ -699,14 +777,149 @@ public class BlockTower : MonoBehaviour
         return true;
     }
 
-    void Rebuild()
+    List<Transform> CollectSceneCellTransforms(Transform towerRoot)
     {
+        var cells = new List<Transform>();
+        if (towerRoot != null)
+        {
+            foreach (Transform child in towerRoot)
+                cells.Add(child);
+        }
+
+        foreach (Transform child in transform)
+        {
+            if (child == towerRoot) continue;
+            var blockCell = child.GetComponent<BlockCell>();
+            if (blockCell != null && blockCell.Kind == BlockCell.CellKind.Ice)
+                cells.Add(child);
+        }
+
+        return cells;
+    }
+
+    void MakeIceCellStatic(Transform ice)
+    {
+        if (ice == null)
+            return;
+
+        var rb = ice.GetComponent<Rigidbody>();
+        if (rb != null)
+            Destroy(rb);
+
+        var worldPosition = ice.position;
+        ice.SetParent(transform, worldPositionStays: true);
+        ice.position = worldPosition;
+        ice.localScale = Vector3.one;
+
+        if (ice.TryGetComponent<SpriteRenderer>(out var sr))
+        {
+            sr.enabled = true;
+            sr.color = new Color(sr.color.r, sr.color.g, sr.color.b, 1f);
+            sr.drawMode = SpriteDrawMode.Simple;
+            sr.sortingOrder = Mathf.Max(sr.sortingOrder, 1);
+        }
+
+        if (ice.TryGetComponent<BoxCollider>(out var box))
+        {
+            box.enabled = true;
+            box.isTrigger = false;
+            box.size = Vector3.one;
+            box.center = Vector3.zero;
+        }
+
+        var outline = ice.Find("FocusOutline");
+        if (outline != null)
+            DestroyLocal(outline.gameObject);
+
+        var damage = ice.GetComponent<IceBlockCollisionDamage>();
+        if (damage == null)
+            damage = ice.gameObject.AddComponent<IceBlockCollisionDamage>();
+        damage.Initialize(this);
+    }
+
+    void RandomizeInitialTowerNumbersIfNeeded()
+    {
+        if (!Application.isPlaying || !randomizeInitialTowerNumbersOnPlay || _initialTowerNumbersRandomizedThisPlay || _cells.Count == 0)
+            return;
+
+        var cells = new List<CellData>();
+        foreach (var data in _cells.Values)
+            if (data.kind == BlockCell.CellKind.Normal)
+                cells.Add(data);
+        int count = cells.Count;
+        if (count == 0)
+            return;
+        int minTotal = count * 2;
+        int maxTotal = count * 6;
+        int targetTotal = Mathf.Clamp(initialTowerNumberTotal, minTotal, maxTotal);
+
+        var numbers = new int[count];
+        for (int i = 0; i < count; i++)
+            numbers[i] = 2;
+
+        int remaining = targetTotal - minTotal;
+        while (remaining > 0)
+        {
+            var available = new List<int>();
+            for (int i = 0; i < count; i++)
+                if (numbers[i] < 6)
+                    available.Add(i);
+
+            if (available.Count == 0)
+                break;
+
+            int index = available[Random.Range(0, available.Count)];
+            numbers[index]++;
+            remaining--;
+        }
+
+        for (int i = 0; i < count; i++)
+            cells[i].number = numbers[i];
+        _initialTowerNumbersRandomizedThisPlay = true;
+    }
+
+    void RenameTowerCellsSequentially()
+    {
+        var orderedCells = new List<KeyValuePair<Vector2Int, CellData>>(_cells);
+        orderedCells.Sort((a, b) =>
+        {
+            int yCompare = a.Key.y.CompareTo(b.Key.y);
+            return yCompare != 0 ? yCompare : a.Key.x.CompareTo(b.Key.x);
+        });
+
+        for (int i = 0; i < orderedCells.Count; i++)
+        {
+            var go = orderedCells[i].Value.go;
+            if (go != null)
+                go.name = $"Cell({i + 1})";
+        }
+    }
+
+    void RebuildEmptyTowerOnly()
+    {
+        if (TryRestoreRuntimeStateFromScene())
+        {
+            EnsurePlacementZoneObjectVisible();
+            SyncPlacementZoneFromObject();
+            CreateFloor();
+            CreateBoundaries();
+
+            if (Application.isPlaying)
+            {
+                CreateScoreLabel();
+                CreateGameOverScreen();
+                FitCamera();
+            }
+            return;
+        }
+
         if (_heldRoot != null) { DestroyLocal(_heldRoot); _heldRoot = null; }
         _heldRelPos.Clear();
         _heldData.Clear();
         _heldSourceCells.Clear();
         ClearGenerated();
         _cells.Clear();
+        _iceCells.Clear();
         _selected.Clear();
         _lastPlacedCells.Clear();
         _hasLastPlacementCenter = false;
@@ -737,6 +950,17 @@ public class BlockTower : MonoBehaviour
         BuildTower();
     }
 
+    void Rebuild()
+    {
+        if (Application.isPlaying)
+        {
+            SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
+            return;
+        }
+
+        RebuildEmptyTowerOnly();
+    }
+
     void ClearGenerated()
     {
         ClearDetachedBlocks();
@@ -748,7 +972,7 @@ public class BlockTower : MonoBehaviour
         }
         if (_towerRoot != null)
         {
-            if (towerRootTransform == null && IsGeneratedObject(_towerRoot.gameObject))
+            if (towerRootTransform == null && IsGeneratedObject(_towerRoot.gameObject) && !HasBlockCellChildren(_towerRoot))
             {
                 DestroyLocal(_towerRoot.gameObject);
             }
@@ -758,7 +982,7 @@ public class BlockTower : MonoBehaviour
                 foreach (Transform t in _towerRoot) children.Add(t);
                 foreach (var t in children)
                 {
-                    if (t != null && IsGeneratedObject(t.gameObject))
+                    if (t != null && IsGeneratedObject(t.gameObject) && t.GetComponent<BlockCell>() == null)
                         DestroyLocal(t.gameObject);
                 }
             }
@@ -783,6 +1007,17 @@ public class BlockTower : MonoBehaviour
         if (_bonusPreviewRoot != null) { DestroyLocal(_bonusPreviewRoot); _bonusPreviewRoot = null; }
         var controlsHelp = transform.Find("ControlsHelp");
         if (controlsHelp != null) DestroyLocal(controlsHelp.gameObject);
+    }
+
+    bool HasBlockCellChildren(Transform root)
+    {
+        if (root == null)
+            return false;
+
+        foreach (Transform child in root)
+            if (child != null && child.GetComponent<BlockCell>() != null)
+                return true;
+        return false;
     }
 
     Transform FindChildByNameRecursive(Transform root, string objectName)
@@ -812,6 +1047,20 @@ public class BlockTower : MonoBehaviour
             return candidate;
         }
         return null;
+    }
+
+    Transform FindBlockTowerChild(string objectName)
+    {
+        var direct = transform.Find(objectName);
+        if (IsUsableTransform(direct))
+            return direct;
+        return FindSceneObjectByName(objectName);
+    }
+
+    void ParentToBlockTowerPreserveWorld(Transform child)
+    {
+        if (child != null && child.parent != transform)
+            child.SetParent(transform, worldPositionStays: true);
     }
 
     bool IsUsableTransform(Transform target)
@@ -882,12 +1131,13 @@ public class BlockTower : MonoBehaviour
 
         if (placementZoneTransform == null)
         {
-            var existing = FindSceneObjectByName("PlacementZone");
+            var existing = FindBlockTowerChild("PlacementZone");
             if (existing != null)
                 placementZoneTransform = existing;
         }
         if (placementZoneTransform != null)
         {
+            ParentToBlockTowerPreserveWorld(placementZoneTransform);
             _placementZoneObject = placementZoneTransform.gameObject;
             return;
         }
@@ -898,15 +1148,8 @@ public class BlockTower : MonoBehaviour
         float minY = placementMin.y;
         float maxY = placementMax.y + 1f;
         var zoneLocalCenter = new Vector3((minX + maxX) * 0.5f, (minY + maxY) * 0.5f, -0.04f);
-        if (_towerRoot != null && !IsGeneratedObject(_towerRoot.gameObject))
-        {
-            zone.transform.SetParent(_towerRoot, false);
-            zone.transform.localPosition = zoneLocalCenter;
-        }
-        else
-        {
-            zone.transform.position = TowerGridLocalToWorld(zoneLocalCenter);
-        }
+        zone.transform.SetParent(transform, worldPositionStays: true);
+        zone.transform.position = TowerGridLocalToWorld(zoneLocalCenter);
         zone.transform.localScale = new Vector3(Mathf.Max(0.1f, maxX - minX), Mathf.Max(0.1f, maxY - minY), 1f);
 
         var sr = zone.AddComponent<SpriteRenderer>();
@@ -933,26 +1176,27 @@ public class BlockTower : MonoBehaviour
 
         if (placementZoneTransform == null)
         {
-            var existing = FindSceneObjectByName("PlacementZone");
+            var existing = FindBlockTowerChild("PlacementZone");
             if (existing != null)
                 placementZoneTransform = existing;
         }
         if (placementZoneTransform == null || _towerRoot == null)
             return;
 
+        ParentToBlockTowerPreserveWorld(placementZoneTransform);
         _placementZoneObject = placementZoneTransform.gameObject;
         RectInt zoneRect = default;
         if (TryTransformToGridRect(placementZoneTransform, out zoneRect))
         {
+            zoneRect = MatchRectToDividerX(zoneRect);
             placementMin = new Vector2Int(zoneRect.xMin, zoneRect.yMin);
             placementMax = new Vector2Int(zoneRect.xMax - 1, zoneRect.yMax - 1);
         }
 
-        foreach (Transform child in placementZoneTransform)
+        ParentPlacementExclusionsToBlockTower();
+        foreach (var exclusionTransform in FindPlacementExclusionTransforms())
         {
-            if (child == null || !child.gameObject.activeInHierarchy) continue;
-            if (!child.name.Contains("Exclude")) continue;
-            if (TryTransformToGridRect(child, out var exclusion))
+            if (TryTransformToGridRect(exclusionTransform, out var exclusion))
                 _placementExclusions.Add(exclusion);
         }
 
@@ -960,44 +1204,67 @@ public class BlockTower : MonoBehaviour
             UpdatePlacementZoneVisuals(zoneRect);
     }
 
+    void ParentPlacementExclusionsToBlockTower()
+    {
+        if (placementZoneTransform == null)
+            return;
+
+        var exclusions = new List<Transform>();
+        foreach (Transform child in placementZoneTransform)
+        {
+            if (child == null) continue;
+            if (!child.name.Contains("Exclude")) continue;
+            exclusions.Add(child);
+        }
+
+        foreach (var exclusion in exclusions)
+            ParentToBlockTowerPreserveWorld(exclusion);
+    }
+
+    List<Transform> FindPlacementExclusionTransforms()
+    {
+        var exclusions = new List<Transform>();
+        foreach (Transform child in transform)
+        {
+            if (child == null || !child.gameObject.activeInHierarchy) continue;
+            if (!child.name.Contains("Exclude")) continue;
+            exclusions.Add(child);
+        }
+        return exclusions;
+    }
+
     bool TryTransformToGridRect(Transform source, out RectInt rect)
     {
         rect = default;
-        if (source == null || _towerRoot == null)
+        if (!TryGetTowerLocalBounds(source, out var minX, out var maxX, out var minY, out var maxY))
             return false;
 
-        var halfRight = source.right * (source.lossyScale.x * 0.5f);
-        var halfUp = source.up * (source.lossyScale.y * 0.5f);
-        var corners = new[]
-        {
-            source.position - halfRight - halfUp,
-            source.position - halfRight + halfUp,
-            source.position + halfRight - halfUp,
-            source.position + halfRight + halfUp
-        };
-
-        float minX = float.PositiveInfinity;
-        float minY = float.PositiveInfinity;
-        float maxX = float.NegativeInfinity;
-        float maxY = float.NegativeInfinity;
-        foreach (var corner in corners)
-        {
-            var local = _towerRoot.InverseTransformPoint(corner);
-            minX = Mathf.Min(minX, local.x);
-            minY = Mathf.Min(minY, local.y);
-            maxX = Mathf.Max(maxX, local.x);
-            maxY = Mathf.Max(maxY, local.y);
-        }
-
-        int xMin = Mathf.FloorToInt(minX);
-        int yMin = Mathf.FloorToInt(minY);
-        int xMax = Mathf.CeilToInt(maxX);
-        int yMax = Mathf.CeilToInt(maxY);
+        const float gridEpsilon = 0.001f;
+        int xMin = Mathf.FloorToInt(minX + gridEpsilon);
+        int yMin = Mathf.FloorToInt(minY + gridEpsilon);
+        int xMax = Mathf.CeilToInt(maxX - gridEpsilon);
+        int yMax = Mathf.CeilToInt(maxY - gridEpsilon);
         if (xMax <= xMin || yMax <= yMin)
             return false;
 
         rect = new RectInt(xMin, yMin, xMax - xMin, yMax - yMin);
         return true;
+    }
+
+    RectInt MatchRectToDividerX(RectInt rect)
+    {
+        if (rect.width <= 0 || _towerStackDivider == null || _towerRoot == null)
+            return rect;
+
+        if (!TryGetTowerLocalBounds(_towerStackDivider.transform, out var dividerMinX, out var dividerMaxX, out _, out _))
+            return rect;
+
+        int minX = Mathf.CeilToInt(dividerMinX - 0.001f);
+        int maxX = Mathf.FloorToInt(dividerMaxX + 0.001f);
+        if (maxX <= minX)
+            return new RectInt(minX, rect.yMin, 0, rect.height);
+
+        return new RectInt(minX, rect.yMin, maxX - minX, rect.height);
     }
 
     void UpdatePlacementZoneVisuals(RectInt zoneRect)
@@ -1014,6 +1281,14 @@ public class BlockTower : MonoBehaviour
         var sourceRenderer = placementZoneTransform.GetComponent<SpriteRenderer>();
         if (sourceRenderer == null)
             return;
+
+        zoneRect = MatchRectToDividerX(zoneRect);
+        if (zoneRect.width <= 0 || zoneRect.height <= 0)
+        {
+            sourceRenderer.enabled = false;
+            ClearPlacementZoneFillObjects();
+            return;
+        }
 
         string signature = PlacementZoneVisualSignature(zoneRect, sourceRenderer);
         if (_placementZoneVisualSignature == signature)
@@ -1315,6 +1590,11 @@ public class BlockTower : MonoBehaviour
         SpawnFloatingScoreText(delta);
     }
 
+    public void AwardGoldFishDeadlineScore(Vector3 worldPosition)
+    {
+        AddScore(goldFishDeadlineScore, worldPosition);
+    }
+
     void UpdateScoreDisplay()
     {
         BindBuilderHud();
@@ -1489,7 +1769,11 @@ public class BlockTower : MonoBehaviour
 
     void Update()
     {
-        if (!Application.isPlaying) return;
+        if (!Application.isPlaying)
+        {
+            UpdateEditorPlacementZonePreview();
+            return;
+        }
         if (_isGameOver) return;
         SyncPlacementZoneFromObject();
         CheckTowerBoundaryGameOver();
@@ -1537,6 +1821,33 @@ public class BlockTower : MonoBehaviour
             CreateOrUpdateBonusPreview();
         UpdateBonusPreviewPosition();
         UpdatePresetOutlineFeedback();
+    }
+
+    void UpdateEditorPlacementZonePreview()
+    {
+        if (!usePlacementZoneObject || !gameObject.scene.IsValid())
+            return;
+
+        _freezePlacementZoneVisuals = false;
+
+        if (_towerRoot == null)
+        {
+            var root = towerRootTransform != null ? towerRootTransform : transform.Find("TowerRoot");
+            if (root != null)
+                _towerRoot = root;
+        }
+
+        if (placementZoneTransform == null)
+        {
+            var existing = FindBlockTowerChild("PlacementZone");
+            if (existing != null)
+                placementZoneTransform = existing;
+        }
+
+        if (_towerRoot == null || placementZoneTransform == null)
+            return;
+
+        SyncPlacementZoneFromObject();
     }
 
     // ── 게임오버 ─────────────────────────────────────────────────────────
@@ -2056,8 +2367,11 @@ public class BlockTower : MonoBehaviour
             return;
 
         int layer = LayerMask.NameToLayer("BlockTowerNoPost");
-        if (layer >= 0)
-            go.layer = layer;
+        if (layer < 0)
+            return;
+
+        foreach (var transform in go.GetComponentsInChildren<Transform>(true))
+            transform.gameObject.layer = layer;
     }
 
     void UpdatePresetOutlineFeedback()
@@ -2328,13 +2642,16 @@ public class BlockTower : MonoBehaviour
     {
         if (!_cells.TryGetValue(cell, out var data)) return;
         if (!data.isOriginalTower) return;
+        if (data.kind == BlockCell.CellKind.Ice) return;
         _selected.Add(cell);
         ApplyCellVisual(cell);
     }
 
     bool IsExtractableCell(Vector2Int cell)
     {
-        return _cells.TryGetValue(cell, out var data) && data.isOriginalTower;
+        return _cells.TryGetValue(cell, out var data) &&
+               data.isOriginalTower &&
+               data.kind != BlockCell.CellKind.Ice;
     }
 
     void TryDeselect(Vector2Int cell)
@@ -2366,7 +2683,18 @@ public class BlockTower : MonoBehaviour
         bool isSelected = _selected.Contains(cell);
         bool isFocused = !_presetSelectionActive && _hasFocusedCell && _focusedCell == cell;
         bool showSelectedOutline = isSelected && !_presetSelectionActive;
+        if (data.concealedByBomb)
+        {
+            if (data.sr != null)
+                data.sr.color = bombObscureColor;
+            ApplyCellOutline(data, false, false);
+            return;
+        }
         var color = data.isOriginalTower ? NumberColor(data.number) : PlacedNumberColor(data.number);
+        if (data.kind == BlockCell.CellKind.Bomb)
+            color = Color.black;
+        else if (data.kind == BlockCell.CellKind.Ice)
+            color = new Color(0.44f, 0.78f, 0.92f, 1f);
         if (isSelected)
             color = Color.Lerp(color, Color.white, 0.45f);
         if (isFocused)
@@ -2400,6 +2728,49 @@ public class BlockTower : MonoBehaviour
         data.outline.color = isFocused ? focusedOutlineColor : selectedOutlineColor;
         data.outline.transform.localScale = Vector3.one * (isFocused ? focusedOutlineScale : selectedOutlineScale);
         data.outline.sortingOrder = isFocused ? 4 : 3;
+    }
+
+    void TriggerBombAt(Vector2Int center)
+    {
+        foreach (var offset in BombCrossOffsets())
+        {
+            var cell = center + offset;
+            _bombConcealedCells.Add(cell);
+            EnsureBombObscureBlock(cell);
+            if (_cells.TryGetValue(cell, out var data))
+            {
+                data.concealedByBomb = true;
+                UpdateCellDataVisuals(data);
+                ApplyCellVisual(cell);
+            }
+        }
+    }
+
+    static IEnumerable<Vector2Int> BombCrossOffsets()
+    {
+        yield return Vector2Int.zero;
+        yield return Vector2Int.up;
+        yield return Vector2Int.down;
+        yield return Vector2Int.left;
+        yield return Vector2Int.right;
+    }
+
+    void EnsureBombObscureBlock(Vector2Int cell)
+    {
+        if (_bombObscureBlocks.ContainsKey(cell))
+            return;
+
+        var go = new GameObject($"BombObscure_{cell.x}_{cell.y}");
+        MarkGeneratedObject(go);
+        go.transform.SetParent(transform, worldPositionStays: true);
+        go.transform.position = TowerGridLocalToWorld(new Vector3(cell.x + 0.5f, cell.y + 0.5f, -0.08f));
+        go.transform.localScale = Vector3.one * blockBodyScale;
+
+        var sr = go.AddComponent<SpriteRenderer>();
+        sr.sprite = CreateBlockSprite();
+        sr.color = bombObscureColor;
+        sr.sortingOrder = 30;
+        _bombObscureBlocks[cell] = go;
     }
 
     // ── 블럭 들어올리기 ───────────────────────────────────────────────────
@@ -2436,15 +2807,19 @@ public class BlockTower : MonoBehaviour
             {
                 cell = pair.Key,
                 number = pair.Value.number,
-                isOriginalTower = pair.Value.isOriginalTower
+                isOriginalTower = pair.Value.isOriginalTower,
+                kind = pair.Value.kind
             });
         }
 
         var changedCells = new List<Vector2Int>();
+        var bombCells = new List<Vector2Int>();
         foreach (var cell in _selected)
         {
             if (!_cells.TryGetValue(cell, out var data)) continue;
             changedCells.Add(cell);
+            if (data.kind == BlockCell.CellKind.Bomb)
+                bombCells.Add(cell);
             data.number--;
             if (data.number <= 0)
             {
@@ -2458,6 +2833,7 @@ public class BlockTower : MonoBehaviour
                 {
                     bc.Weight = data.number;
                     bc.IsOriginalTower = data.isOriginalTower;
+                    bc.Kind = data.kind;
                 }
 
                 UpdateCellDataVisuals(data);
@@ -2468,6 +2844,8 @@ public class BlockTower : MonoBehaviour
         _hasFocusedCell = false;
         foreach (var cell in changedCells)
             ApplyCellVisual(cell);
+        foreach (var bombCell in bombCells)
+            TriggerBombAt(bombCell);
 
         _heldRoot = new GameObject("HeldBlocks");
         MarkGeneratedObject(_heldRoot);
@@ -2780,14 +3158,18 @@ public class BlockTower : MonoBehaviour
                 target.y < PlacementFloorY() || target.y > PlacementCeilingY()) return false;
             if (IsPlacementExcluded(target)) return false;
             if (detachedCells.Contains(target)) return false;
-            if (_cells.TryGetValue(target, out var existing) && existing.number >= 6) return false;
+            if (_cells.TryGetValue(target, out var existing))
+            {
+                if (existing.kind == BlockCell.CellKind.Ice) return false;
+                if (existing.number >= 6) return false;
+            }
             targets.Add(target);
         }
 
         bool adjacent = false;
         foreach (var t in targets)
         {
-            if (_cells.ContainsKey(t))
+            if (IsMergeableCell(t))
             {
                 adjacent = true;
                 break;
@@ -2795,7 +3177,7 @@ public class BlockTower : MonoBehaviour
 
             foreach (var n in Neighbors(t))
             {
-                if (IsOccupiedCell(n, detachedCells)) { adjacent = true; break; }
+                if (IsMergeableCell(n) || detachedCells.Contains(n)) { adjacent = true; break; }
             }
             if (adjacent) break;
         }
@@ -2806,9 +3188,10 @@ public class BlockTower : MonoBehaviour
         bool hasBottomSupport = false;
         foreach (var t in targets)
         {
-            if (_cells.ContainsKey(t) ||
+            if (IsMergeableCell(t) ||
                 t.y == PlacementFloorY() ||
-                IsOccupiedCell(new Vector2Int(t.x, t.y - 1), detachedCells))
+                IsMergeableCell(new Vector2Int(t.x, t.y - 1)) ||
+                detachedCells.Contains(new Vector2Int(t.x, t.y - 1)))
             {
                 hasBottomSupport = true;
                 break;
@@ -2820,6 +3203,12 @@ public class BlockTower : MonoBehaviour
     bool IsOccupiedCell(Vector2Int cell, HashSet<Vector2Int> detachedCells)
     {
         return _cells.ContainsKey(cell) || detachedCells.Contains(cell);
+    }
+
+    bool IsMergeableCell(Vector2Int cell)
+    {
+        return _cells.TryGetValue(cell, out var data) &&
+               data.kind != BlockCell.CellKind.Ice;
     }
 
     bool IsPlacementExcluded(Vector2Int cell)
@@ -2903,9 +3292,9 @@ public class BlockTower : MonoBehaviour
                 existing.number = Mathf.Min(6, existing.number + 1);
                 UpdateCellDataVisuals(existing);
                 ApplyCellVisual(target);
+                _lastPlacedCells.Add(target);
                 if (data.go != null)
                     Destroy(data.go);
-                _lastPlacedCells.Add(target);
                 continue;
             }
 
@@ -3040,7 +3429,11 @@ public class BlockTower : MonoBehaviour
 
         foreach (var source in _heldSourceCells)
         {
-            _cells[source.cell] = SpawnCell(source.cell, source.number, source.isOriginalTower);
+            var data = SpawnCell(source.cell, source.number, source.isOriginalTower);
+            data.kind = source.kind;
+            data.concealedByBomb = _bombConcealedCells.Contains(source.cell);
+            UpdateCellDataVisuals(data);
+            _cells[source.cell] = data;
             ApplyCellVisual(source.cell);
         }
         _score = _heldStartScore;
@@ -3285,7 +3678,19 @@ public class BlockTower : MonoBehaviour
 
             bool canTryReattach = Time.time - detached.detachedAt >= detachedMinAirTime &&
                                   stable >= detachedReattachStableTime;
+            if (canTryReattach && ApplyIceColumnDamageToDetached(detached))
+            {
+                detached.resolved = true;
+                _detachedComponents.Remove(detached);
+                yield break;
+            }
             if (canTryReattach && TryAbsorbDetachedComponent(detached.root, detached.rb))
+            {
+                detached.resolved = true;
+                _detachedComponents.Remove(detached);
+                yield break;
+            }
+            if (canTryReattach && TriggerDetachedBombLanding(detached))
             {
                 detached.resolved = true;
                 _detachedComponents.Remove(detached);
@@ -3318,7 +3723,21 @@ public class BlockTower : MonoBehaviour
                 continue;
             }
 
-            if (CanTryReattach(detached) && TryAbsorbDetachedComponent(detached.root, detached.rb))
+            bool canTryReattach = CanTryReattach(detached);
+            if (canTryReattach && ApplyIceColumnDamageToDetached(detached))
+            {
+                detached.resolved = true;
+                _detachedComponents.RemoveAt(i);
+                continue;
+            }
+
+            if (canTryReattach && TryAbsorbDetachedComponent(detached.root, detached.rb))
+            {
+                detached.resolved = true;
+                _detachedComponents.RemoveAt(i);
+                continue;
+            }
+            if (canTryReattach && TriggerDetachedBombLanding(detached))
             {
                 detached.resolved = true;
                 _detachedComponents.RemoveAt(i);
@@ -3339,6 +3758,60 @@ public class BlockTower : MonoBehaviour
         if (detached.root != null)
             Destroy(detached.root);
         AddScore(-Mathf.Max(0, detached.scorePenalty), scorePosition);
+    }
+
+    bool TriggerDetachedBombLanding(DetachedComponent detached)
+    {
+        if (detached == null || detached.root == null)
+            return false;
+
+        bool triggered = false;
+        foreach (Transform child in detached.root.transform)
+        {
+            if (child == null) continue;
+            var blockCell = child.GetComponent<BlockCell>();
+            if (blockCell == null || blockCell.Kind != BlockCell.CellKind.Bomb) continue;
+            if (TryWorldToGridCell(child.position, out var cell))
+            {
+                TriggerBombAt(cell);
+                triggered = true;
+            }
+        }
+
+        if (!triggered)
+            return false;
+
+        Destroy(detached.root);
+        return true;
+    }
+
+    bool ApplyIceColumnDamageToDetached(DetachedComponent detached)
+    {
+        if (detached == null || detached.root == null || detached.iceDamageApplied)
+            return false;
+
+        var children = new List<Transform>();
+        foreach (Transform child in detached.root.transform)
+            children.Add(child);
+
+        bool changed = false;
+        var damagedIce = new HashSet<Vector2Int>();
+        foreach (var child in children)
+        {
+            if (child == null) continue;
+            if (!TryWorldToGridCell(child.position, out var cell)) continue;
+            if (!TryFindIceBelowInColumn(cell, out var iceCell)) continue;
+            if (!damagedIce.Add(iceCell)) continue;
+            if (ApplyIceDamageInternal(iceCell, _iceCells[iceCell].go, _iceCells[iceCell].go != null ? _iceCells[iceCell].go.GetComponent<BlockCell>() : null))
+                changed = true;
+        }
+
+        if (!changed)
+            return false;
+
+        detached.iceDamageApplied = true;
+
+        return false;
     }
 
     HashSet<Vector2Int> CollectStableDetachedCells()
@@ -3397,6 +3870,9 @@ public class BlockTower : MonoBehaviour
         foreach (var child in children)
         {
             if (!TryWorldToGridCell(child.position, out var cell)) return false;
+            if (_cells.TryGetValue(cell, out var existing) && existing.kind == BlockCell.CellKind.Ice)
+                return false;
+
             if (_cells.ContainsKey(cell) || !used.Add(cell))
             {
                 duplicates.Add(child);
@@ -3426,12 +3902,17 @@ public class BlockTower : MonoBehaviour
             {
                 number = Mathf.Max(1, blockCell?.Weight is float w ? Mathf.RoundToInt(w) : 1),
                 isOriginalTower = blockCell != null && blockCell.IsOriginalTower,
+                kind = blockCell != null ? blockCell.Kind : BlockCell.CellKind.Normal,
+                concealedByBomb = _bombConcealedCells.Contains(cell),
                 go = child.gameObject,
                 sr = sr,
                 outline = child.Find("FocusOutline")?.GetComponent<SpriteRenderer>(),
                 label = label
             };
             _cells[cell] = data;
+            ApplyIceColumnLandingDamage(cell, data);
+            if (data.go == null)
+                continue;
             ApplyCellVisual(cell);
         }
 
@@ -3455,11 +3936,239 @@ public class BlockTower : MonoBehaviour
             foreach (var neighbor in Neighbors(cell))
             {
                 if (detachedCells.Contains(neighbor)) continue;
-                if (_cells.ContainsKey(neighbor))
+                if (IsMergeableCell(neighbor))
                     return true;
             }
         }
         return false;
+    }
+
+    void ApplyIceColumnLandingDamage(Vector2Int landedCell, CellData landedData)
+    {
+        if (landedData == null || landedData.kind == BlockCell.CellKind.Ice)
+            return;
+
+        if (TryFindIceBelowInColumn(landedCell, out var iceCell))
+            ApplyIceDamageInternal(iceCell, _iceCells[iceCell].go, _iceCells[iceCell].go != null ? _iceCells[iceCell].go.GetComponent<BlockCell>() : null);
+    }
+
+    public bool ApplyIceContactDamage(BlockCell blockCell)
+    {
+        if (blockCell == null || blockCell.Kind == BlockCell.CellKind.Ice)
+            return false;
+
+        Vector2Int? runtimeCell = null;
+        foreach (var pair in _cells)
+        {
+            var data = pair.Value;
+            if (data.go == null || data.go != blockCell.gameObject)
+                continue;
+
+            runtimeCell = pair.Key;
+            break;
+        }
+
+        if (runtimeCell.HasValue && _cells.TryGetValue(runtimeCell.Value, out var runtimeData))
+        {
+            runtimeData.number--;
+            if (runtimeData.number <= 0)
+            {
+                _cells.Remove(runtimeCell.Value);
+                Destroy(runtimeData.go);
+            }
+            else
+            {
+                UpdateCellDataVisuals(runtimeData);
+                ApplyCellVisual(runtimeCell.Value);
+            }
+            return true;
+        }
+
+        int number = Mathf.Max(1, Mathf.RoundToInt(blockCell.Weight)) - 1;
+        if (number <= 0)
+        {
+            Destroy(blockCell.gameObject);
+            return true;
+        }
+
+        UpdateLooseBlockNumberVisual(blockCell, number);
+        return true;
+    }
+
+    public bool ApplyIceColumnContactDamage(Vector3 iceWorldPosition)
+    {
+        if (_towerRoot == null)
+            return false;
+
+        var local = _towerRoot.InverseTransformPoint(iceWorldPosition);
+        int iceX = Mathf.RoundToInt(local.x - 0.5f);
+        int iceY = Mathf.RoundToInt(local.y - 0.5f);
+
+        Vector2Int? targetCell = null;
+        int bestY = int.MaxValue;
+        foreach (var pair in _cells)
+        {
+            if (pair.Key.x != iceX || pair.Key.y <= iceY)
+                continue;
+
+            if (pair.Key.y < bestY)
+            {
+                bestY = pair.Key.y;
+                targetCell = pair.Key;
+            }
+        }
+
+        if (!targetCell.HasValue || !_cells.TryGetValue(targetCell.Value, out var data))
+            return false;
+
+        data.number--;
+        if (data.number <= 0)
+        {
+            _cells.Remove(targetCell.Value);
+            if (data.go != null)
+                Destroy(data.go);
+        }
+        else
+        {
+            UpdateCellDataVisuals(data);
+            ApplyCellVisual(targetCell.Value);
+        }
+        return true;
+    }
+
+    public bool ApplyIceDamage(BlockCell iceBlockCell, Vector3 iceWorldPosition)
+    {
+        if (iceBlockCell == null || iceBlockCell.Kind != BlockCell.CellKind.Ice)
+            return ApplyIceDamageAtWorldPosition(iceWorldPosition);
+
+        Vector2Int? iceCell = null;
+        foreach (var pair in _iceCells)
+        {
+            if (pair.Value.go == iceBlockCell.gameObject)
+            {
+                iceCell = pair.Key;
+                break;
+            }
+        }
+
+        return ApplyIceDamageInternal(iceCell, iceBlockCell.gameObject, iceBlockCell);
+    }
+
+    bool ApplyIceDamageAtWorldPosition(Vector3 iceWorldPosition)
+    {
+        if (_towerRoot == null)
+            return false;
+
+        var local = _towerRoot.InverseTransformPoint(iceWorldPosition);
+        var cell = new Vector2Int(
+            Mathf.RoundToInt(local.x - 0.5f),
+            Mathf.RoundToInt(local.y - 0.5f));
+
+        if (_iceCells.TryGetValue(cell, out var data))
+            return ApplyIceDamageInternal(cell, data.go, data.go != null ? data.go.GetComponent<BlockCell>() : null);
+
+        return false;
+    }
+
+    bool ApplyIceDamageInternal(Vector2Int? iceCell, GameObject iceObject, BlockCell iceBlockCell)
+    {
+        if (iceObject == null || iceBlockCell == null)
+            return false;
+
+        int number = Mathf.Max(1, Mathf.RoundToInt(iceBlockCell.Weight)) - 1;
+        if (number <= 0)
+        {
+            if (iceCell.HasValue)
+                _iceCells.Remove(iceCell.Value);
+            Destroy(iceObject);
+            return true;
+        }
+
+        iceBlockCell.Weight = number;
+        var label = iceObject.GetComponentInChildren<TextMeshPro>();
+        if (label != null)
+        {
+            label.text = number.ToString();
+            label.fontSize = 6f;
+            label.gameObject.SetActive(true);
+        }
+
+        if (iceCell.HasValue && _iceCells.TryGetValue(iceCell.Value, out var data))
+        {
+            data.number = number;
+            UpdateCellDataVisuals(data);
+        }
+
+        return true;
+    }
+
+    void UpdateLooseBlockNumberVisual(BlockCell blockCell, int number)
+    {
+        if (blockCell == null)
+            return;
+
+        blockCell.Weight = number;
+
+        var label = blockCell.GetComponentInChildren<TextMeshPro>();
+        if (label != null)
+        {
+            label.text = number.ToString();
+            label.fontSize = 6f;
+            label.gameObject.SetActive(true);
+        }
+
+        var sr = blockCell.GetComponent<SpriteRenderer>();
+        if (sr == null)
+            return;
+
+        EnsureNumberSpriteSet();
+        var numberSprite = numberSpriteSet != null ? numberSpriteSet.GetSprite(number) : null;
+        var numberRenderer = EnsureStandaloneNumberSpriteRenderer(blockCell.transform);
+
+        if (numberSprite != null)
+        {
+            sr.color = Color.clear;
+            numberRenderer.sprite = numberSprite;
+            numberRenderer.enabled = true;
+            numberRenderer.color = Color.white;
+            numberRenderer.sortingOrder = sr.sortingOrder + 1;
+            FitNumberSpriteToCell(numberRenderer);
+        }
+        else
+        {
+            if (numberRenderer != null)
+            {
+                numberRenderer.enabled = false;
+                numberRenderer.sprite = null;
+            }
+
+            sr.color = blockCell.IsOriginalTower ? NumberColor(number) : PlacedNumberColor(number);
+        }
+    }
+
+    bool HasIceBelowInColumn(Vector2Int landedCell)
+    {
+        return TryFindIceBelowInColumn(landedCell, out _);
+    }
+
+    bool TryFindIceBelowInColumn(Vector2Int landedCell, out Vector2Int iceCell)
+    {
+        iceCell = default;
+        bool found = false;
+        int bestY = int.MinValue;
+        foreach (var pair in _iceCells)
+        {
+            if (pair.Key.x == landedCell.x &&
+                pair.Key.y < landedCell.y &&
+                pair.Key.y > bestY)
+            {
+                bestY = pair.Key.y;
+                iceCell = pair.Key;
+                found = true;
+            }
+        }
+
+        return found;
     }
 
     Vector3 CalculateCenterOfMass()
@@ -3468,6 +4177,9 @@ public class BlockTower : MonoBehaviour
         Vector2 weightedSum = Vector2.zero;
         foreach (var (cell, data) in _cells)
         {
+            if (data.kind == BlockCell.CellKind.Ice)
+                continue;
+
             var localPos = new Vector2(cell.x + 0.5f, cell.y + 0.5f);
             weightedSum += localPos * data.number;
             totalWeight += data.number;
@@ -3510,13 +4222,18 @@ public class BlockTower : MonoBehaviour
         maxX = float.MinValue;
         int minY = int.MaxValue;
 
-        foreach (var cell in _cells.Keys)
-            minY = Mathf.Min(minY, cell.y);
+        foreach (var pair in _cells)
+        {
+            if (pair.Value.kind == BlockCell.CellKind.Ice) continue;
+            minY = Mathf.Min(minY, pair.Key.y);
+        }
 
         if (minY == int.MaxValue) return false;
 
-        foreach (var cell in _cells.Keys)
+        foreach (var pair in _cells)
         {
+            if (pair.Value.kind == BlockCell.CellKind.Ice) continue;
+            var cell = pair.Key;
             if (cell.y != minY) continue;
             minX = Mathf.Min(minX, cell.x);
             maxX = Mathf.Max(maxX, cell.x + 1f);
@@ -3564,45 +4281,63 @@ public class BlockTower : MonoBehaviour
 
     void BuildTower()
     {
+        if (TryRestoreRuntimeStateFromScene())
+        {
+            EnsurePlacementZoneObjectVisible();
+            SyncPlacementZoneFromObject();
+            CreateFloor();
+            CreateBoundaries();
+
+            if (!Application.isPlaying) return;
+
+            CreateScoreLabel();
+            CreateGameOverScreen();
+            FitCamera();
+            return;
+        }
+
         GameObject towerRootGO;
+        bool createdTowerRoot = false;
         if (towerRootTransform != null)
         {
             towerRootGO = towerRootTransform.gameObject;
         }
         else
         {
-            towerRootGO = new GameObject("TowerRoot");
-            MarkGeneratedObject(towerRootGO);
-            towerRootGO.transform.SetParent(transform);
+            var existingRoot = transform.Find("TowerRoot");
+            if (existingRoot != null)
+            {
+                towerRootGO = existingRoot.gameObject;
+            }
+            else
+            {
+                towerRootGO = new GameObject("TowerRoot");
+                MarkGeneratedObject(towerRootGO);
+                towerRootGO.transform.SetParent(transform);
+                createdTowerRoot = true;
+            }
         }
-        towerRootGO.transform.position = new Vector3(-columns * 0.5f, -rows * 0.5f, 0f);
+        if (createdTowerRoot)
+            towerRootGO.transform.position = new Vector3(-columns * 0.5f, -rows * 0.5f, 0f);
         _towerRoot = towerRootGO.transform;
 
         if (Application.isPlaying)
-        {
-            if (!towerRootGO.TryGetComponent(out _rb))
-                _rb = towerRootGO.AddComponent<Rigidbody>();
-            _rb.useGravity             = true;
-            _rb.isKinematic            = false;
-            _rb.interpolation          = RigidbodyInterpolation.Interpolate;
-            _rb.collisionDetectionMode = CollisionDetectionMode.ContinuousSpeculative;
-            _rb.linearDamping          = 0.3f;
-            _rb.angularDamping         = 2f;
-            _rb.constraints            = RigidbodyConstraints.FreezePositionZ
-                                       | RigidbodyConstraints.FreezeRotationX
-                                       | RigidbodyConstraints.FreezeRotationY;
-        }
+            ConfigureTowerRigidbody();
 
         for (int row = 0; row < rows; row++)
         {
             for (int col = 0; col < columns; col++)
             {
-                int number = Random.Range(2, 7);
                 var cell   = new Vector2Int(col, row);
 
-                _cells[cell] = SpawnCell(cell, number, isOriginalTower: true);
+                _cells[cell] = SpawnCell(cell, 2, isOriginalTower: true);
             }
         }
+
+        RandomizeInitialTowerNumbersIfNeeded();
+        foreach (var pair in _cells)
+            UpdateCellDataVisuals(pair.Value);
+        RenameTowerCellsSequentially();
 
         if (Application.isPlaying)
             _rb.centerOfMass = CalculateCenterOfMass();
@@ -3619,6 +4354,24 @@ public class BlockTower : MonoBehaviour
         RollBonusTarget();
         CreateGameOverScreen();
         FitCamera();
+    }
+
+    void ConfigureTowerRigidbody()
+    {
+        if (!Application.isPlaying || _towerRoot == null)
+            return;
+
+        if (!_towerRoot.TryGetComponent(out _rb))
+            _rb = _towerRoot.gameObject.AddComponent<Rigidbody>();
+        _rb.useGravity             = true;
+        _rb.isKinematic            = false;
+        _rb.interpolation          = RigidbodyInterpolation.Interpolate;
+        _rb.collisionDetectionMode = CollisionDetectionMode.ContinuousSpeculative;
+        _rb.linearDamping          = 0.3f;
+        _rb.angularDamping         = 2f;
+        _rb.constraints            = RigidbodyConstraints.FreezePositionZ
+                                   | RigidbodyConstraints.FreezeRotationX
+                                   | RigidbodyConstraints.FreezeRotationY;
     }
 
     CellData SpawnCell(Vector2Int cell, int number, bool isOriginalTower)
@@ -3640,6 +4393,7 @@ public class BlockTower : MonoBehaviour
         var bc = go.AddComponent<BlockCell>();
         bc.Weight = number;
         bc.IsOriginalTower = isOriginalTower;
+        bc.Kind = BlockCell.CellKind.Normal;
 
         var outline = SpawnCellOutline(go.transform);
         var label = SpawnLabel(number, go.transform);
@@ -3650,7 +4404,8 @@ public class BlockTower : MonoBehaviour
             go = go,
             sr = sr,
             outline = outline,
-            label = label
+            label = label,
+            kind = BlockCell.CellKind.Normal
         };
         UpdateCellDataVisuals(data);
         return data;
@@ -3665,17 +4420,49 @@ public class BlockTower : MonoBehaviour
         {
             blockCell.Weight = data.number;
             blockCell.IsOriginalTower = data.isOriginalTower;
+            blockCell.Kind = data.kind;
         }
 
         if (data.label != null)
         {
-            data.label.text = data.number.ToString();
+            data.label.text = data.kind == BlockCell.CellKind.Bomb ? "X" : data.number.ToString();
             data.label.fontSize = 6f;
+            data.label.gameObject.SetActive(!data.concealedByBomb);
         }
         if (data.sr != null)
         {
             var numberSprite = numberSpriteSet != null ? numberSpriteSet.GetSprite(data.number) : null;
-            if (data.isOriginalTower && numberSprite != null)
+            if (data.concealedByBomb)
+            {
+                if (data.numberSpriteRenderer != null)
+                {
+                    data.numberSpriteRenderer.enabled = false;
+                    data.numberSpriteRenderer.sprite = null;
+                }
+                data.sr.sprite = CreateBlockSprite();
+                data.sr.color = bombObscureColor;
+                data.sr.drawMode = SpriteDrawMode.Simple;
+            }
+            else if (data.kind == BlockCell.CellKind.Bomb)
+            {
+                if (data.numberSpriteRenderer != null)
+                {
+                    data.numberSpriteRenderer.enabled = false;
+                    data.numberSpriteRenderer.sprite = null;
+                }
+                data.sr.sprite = CreateBlockSprite();
+                data.sr.color = Color.black;
+                data.sr.drawMode = SpriteDrawMode.Simple;
+            }
+            else if (data.kind == BlockCell.CellKind.Ice)
+            {
+                if (data.numberSpriteRenderer != null)
+                {
+                    data.numberSpriteRenderer.enabled = false;
+                    data.numberSpriteRenderer.sprite = null;
+                }
+            }
+            else if (data.isOriginalTower && numberSprite != null)
             {
                 data.sr.sprite = CreateBlockSprite();
                 data.sr.color = Color.clear;
@@ -3703,22 +4490,28 @@ public class BlockTower : MonoBehaviour
 
     SpriteRenderer EnsureNumberSpriteRenderer(CellData data)
     {
-        if (data.numberSpriteRenderer != null)
-            return data.numberSpriteRenderer;
-
-        var existing = data.go.transform.Find("NumberSprite");
-        if (existing != null)
-            data.numberSpriteRenderer = existing.GetComponent<SpriteRenderer>();
-
-        if (data.numberSpriteRenderer != null)
-            return data.numberSpriteRenderer;
-
-        var go = new GameObject("NumberSprite");
-        MarkGeneratedObject(go);
-        go.transform.SetParent(data.go.transform, false);
-        go.transform.localPosition = Vector3.zero;
-        data.numberSpriteRenderer = go.AddComponent<SpriteRenderer>();
+        data.numberSpriteRenderer = EnsureStandaloneNumberSpriteRenderer(data.go.transform);
         return data.numberSpriteRenderer;
+    }
+
+    SpriteRenderer EnsureStandaloneNumberSpriteRenderer(Transform parent)
+    {
+        var existing = parent.Find("NumberSpriteImage");
+        if (existing != null && existing.TryGetComponent<SpriteRenderer>(out var existingRenderer))
+            return existingRenderer;
+
+        var old = parent.Find("NumberSprite");
+        if (old != null && old.TryGetComponent<SpriteRenderer>(out var oldRenderer))
+        {
+            oldRenderer.enabled = false;
+            oldRenderer.sprite = null;
+        }
+
+        var go = new GameObject("NumberSpriteImage");
+        MarkGeneratedObject(go);
+        go.transform.SetParent(parent, false);
+        go.transform.localPosition = new Vector3(0f, 0f, -0.01f);
+        return go.AddComponent<SpriteRenderer>();
     }
 
     void FitNumberSpriteToCell(SpriteRenderer renderer)
@@ -3728,9 +4521,9 @@ public class BlockTower : MonoBehaviour
 
         renderer.drawMode = SpriteDrawMode.Simple;
         var size = renderer.sprite.bounds.size;
-        float maxSide = Mathf.Max(size.x, size.y);
-        float scale = maxSide > 0.0001f ? 1f / maxSide : 1f;
-        renderer.transform.localScale = Vector3.one * scale;
+        float scaleX = size.x > 0.0001f ? 1f / size.x : 1f;
+        float scaleY = size.y > 0.0001f ? 1f / size.y : 1f;
+        renderer.transform.localScale = new Vector3(scaleX, scaleY, 1f);
         renderer.transform.localPosition = Vector3.zero;
     }
 
@@ -3809,6 +4602,10 @@ public class BlockTower : MonoBehaviour
             {
                 col.size = Vector3.one;
             }
+            col.enabled = true;
+            col.isTrigger = false;
+            if (col.size.y < 1f)
+                col.size = new Vector3(col.size.x, 1f, Mathf.Max(col.size.z, 1f));
             col.sharedMaterial = CreateFrictionMaterial();
         }
     }
@@ -3884,9 +4681,11 @@ public class BlockTower : MonoBehaviour
     {
         if (_towerRoot == null) return;
 
+        SyncPlacementZoneFromObject(updateVisuals: false);
+
         if (_towerStackDivider == null)
         {
-            var existing = FindSceneObjectByName("TowerStackDivider");
+            var existing = FindBlockTowerChild("TowerStackDivider");
             if (existing != null)
                 _towerStackDivider = existing.gameObject;
         }
@@ -3897,8 +4696,12 @@ public class BlockTower : MonoBehaviour
             _towerStackDivider = new GameObject("TowerStackDivider");
             if (Application.isPlaying)
                 MarkGeneratedObject(_towerStackDivider);
-            _towerStackDivider.transform.SetParent(_towerRoot, false);
+            _towerStackDivider.transform.SetParent(transform, worldPositionStays: true);
             created = true;
+        }
+        else
+        {
+            ParentToBlockTowerPreserveWorld(_towerStackDivider.transform);
         }
 
         float minX = placementMin.x;
@@ -3906,17 +4709,21 @@ public class BlockTower : MonoBehaviour
         float width = Mathf.Max(0.1f, maxX - minX);
         float y = _extractionMaxRow + 1f;
 
+        bool authoredDivider = !created && !IsGeneratedObject(_towerStackDivider);
         var dividerLocalPosition = new Vector3((minX + maxX) * 0.5f, y, 0.02f);
-        if (Application.isPlaying || created || _towerStackDivider.transform.parent == _towerRoot)
+        if (authoredDivider)
         {
-            _towerStackDivider.transform.SetParent(_towerRoot, false);
-            _towerStackDivider.transform.localPosition = dividerLocalPosition;
+            var authoredLocal = _towerRoot.InverseTransformPoint(_towerStackDivider.transform.position);
+            authoredLocal.y = y;
+            _towerStackDivider.transform.position = _towerRoot.TransformPoint(authoredLocal);
         }
         else
         {
+            ParentToBlockTowerPreserveWorld(_towerStackDivider.transform);
             _towerStackDivider.transform.position = _towerRoot.TransformPoint(dividerLocalPosition);
         }
-        _towerStackDivider.transform.localScale = new Vector3(width, 0.12f, 1f);
+        if (!authoredDivider)
+            _towerStackDivider.transform.localScale = new Vector3(width, 0.12f, 1f);
 
         var renderer = _towerStackDivider.GetComponent<SpriteRenderer>();
         if (renderer == null)
@@ -3937,7 +4744,59 @@ public class BlockTower : MonoBehaviour
                 renderer.sortingOrder = 2;
         }
 
+        AlignPlacementZoneWidthToDivider();
         AlignPlacementZoneBottomToDivider(y);
+    }
+
+    void AlignPlacementZoneWidthToDivider()
+    {
+        if (!usePlacementZoneObject || placementZoneTransform == null || _towerStackDivider == null || _towerRoot == null)
+            return;
+
+        if (!TryGetTowerLocalBounds(_towerStackDivider.transform, out var dividerMinX, out var dividerMaxX, out _, out _))
+            return;
+        if (!TryGetTowerLocalBounds(placementZoneTransform, out var zoneMinX, out var zoneMaxX, out _, out _))
+            return;
+
+        float dividerWidth = Mathf.Max(0.1f, dividerMaxX - dividerMinX);
+        float zoneWidth = Mathf.Max(0.001f, zoneMaxX - zoneMinX);
+        if (Mathf.Abs(dividerWidth - zoneWidth) > 0.001f)
+        {
+            var scale = placementZoneTransform.localScale;
+            scale.x *= dividerWidth / zoneWidth;
+            placementZoneTransform.localScale = scale;
+        }
+
+        if (!TryGetTowerLocalBounds(placementZoneTransform, out zoneMinX, out zoneMaxX, out _, out _))
+            return;
+
+        float dividerCenterX = (dividerMinX + dividerMaxX) * 0.5f;
+        float zoneCenterX = (zoneMinX + zoneMaxX) * 0.5f;
+        float deltaX = dividerCenterX - zoneCenterX;
+        if (Mathf.Abs(deltaX) > 0.001f)
+            placementZoneTransform.position += _towerRoot.TransformVector(new Vector3(deltaX, 0f, 0f));
+
+        ClampPlacementZoneTransformInsideDividerX();
+    }
+
+    void ClampPlacementZoneTransformInsideDividerX()
+    {
+        if (placementZoneTransform == null || _towerStackDivider == null || _towerRoot == null)
+            return;
+
+        if (!TryGetTowerLocalBounds(_towerStackDivider.transform, out var dividerMinX, out var dividerMaxX, out _, out _))
+            return;
+        if (!TryGetTowerLocalBounds(placementZoneTransform, out var zoneMinX, out var zoneMaxX, out _, out _))
+            return;
+
+        float deltaX = 0f;
+        if (zoneMinX < dividerMinX)
+            deltaX = dividerMinX - zoneMinX;
+        if (zoneMaxX + deltaX > dividerMaxX)
+            deltaX += dividerMaxX - (zoneMaxX + deltaX);
+
+        if (Mathf.Abs(deltaX) > 0.001f)
+            placementZoneTransform.position += _towerRoot.TransformVector(new Vector3(deltaX, 0f, 0f));
     }
 
     void AlignPlacementZoneBottomToDivider(float dividerLocalY)
@@ -3948,12 +4807,12 @@ public class BlockTower : MonoBehaviour
         if (!TryGetTowerLocalBounds(placementZoneTransform, out _, out _, out var minY, out var maxY))
             return;
 
-        if (float.IsNaN(_placementZoneTopLimitLocal))
+        if (float.IsNaN(_placementZoneTopLimitLocal) || !Application.isPlaying)
             _placementZoneTopLimitLocal = maxY;
 
-        float currentHeight = Mathf.Max(0.1f, maxY - minY);
-        float maxAllowedTop = Mathf.Max(dividerLocalY + 0.1f, _placementZoneTopLimitLocal);
-        float targetHeight = Mathf.Max(0.1f, maxAllowedTop - dividerLocalY);
+        float targetTop = Mathf.Max(_placementZoneTopLimitLocal, dividerLocalY + 0.1f);
+        float currentHeight = Mathf.Max(0.001f, maxY - minY);
+        float targetHeight = Mathf.Max(0.1f, targetTop - dividerLocalY);
         if (Mathf.Abs(targetHeight - currentHeight) > 0.001f)
         {
             var scale = placementZoneTransform.localScale;
@@ -3966,7 +4825,10 @@ public class BlockTower : MonoBehaviour
 
         float deltaY = dividerLocalY - minY;
         if (Mathf.Abs(deltaY) < 0.001f)
+        {
+            SyncPlacementZoneFromObject();
             return;
+        }
 
         placementZoneTransform.position += _towerRoot.TransformVector(new Vector3(0f, deltaY, 0f));
         SyncPlacementZoneFromObject();
@@ -3979,15 +4841,46 @@ public class BlockTower : MonoBehaviour
         if (source == null || _towerRoot == null)
             return false;
 
-        var halfRight = source.right * (source.lossyScale.x * 0.5f);
-        var halfUp = source.up * (source.lossyScale.y * 0.5f);
-        var corners = new[]
+        Vector3[] corners;
+        var spriteRenderer = source.GetComponent<SpriteRenderer>();
+        if (spriteRenderer != null && spriteRenderer.sprite != null)
         {
-            source.position - halfRight - halfUp,
-            source.position - halfRight + halfUp,
-            source.position + halfRight - halfUp,
-            source.position + halfRight + halfUp
-        };
+            var bounds = spriteRenderer.sprite.bounds;
+            var min = bounds.min;
+            var max = bounds.max;
+            corners = new[]
+            {
+                source.TransformPoint(new Vector3(min.x, min.y, 0f)),
+                source.TransformPoint(new Vector3(min.x, max.y, 0f)),
+                source.TransformPoint(new Vector3(max.x, min.y, 0f)),
+                source.TransformPoint(new Vector3(max.x, max.y, 0f))
+            };
+        }
+        else if (source.TryGetComponent<Renderer>(out var renderer))
+        {
+            var bounds = renderer.bounds;
+            var min = bounds.min;
+            var max = bounds.max;
+            corners = new[]
+            {
+                new Vector3(min.x, min.y, source.position.z),
+                new Vector3(min.x, max.y, source.position.z),
+                new Vector3(max.x, min.y, source.position.z),
+                new Vector3(max.x, max.y, source.position.z)
+            };
+        }
+        else
+        {
+            var halfRight = source.right * (source.lossyScale.x * 0.5f);
+            var halfUp = source.up * (source.lossyScale.y * 0.5f);
+            corners = new[]
+            {
+                source.position - halfRight - halfUp,
+                source.position - halfRight + halfUp,
+                source.position + halfRight - halfUp,
+                source.position + halfRight + halfUp
+            };
+        }
 
         foreach (var corner in corners)
         {
@@ -4477,28 +5370,55 @@ public class BlockTower : MonoBehaviour
     {
         centerY = 0f;
         size = 0f;
+        if (!TryCalculateOccupiedGridBounds(out var minX, out var maxX, out var minY, out var maxY))
+            return false;
+
+        return TryCalculateGridBoundsCameraView(minX, maxX, minY, maxY, padding, aspect, out centerY, out size);
+    }
+
+    bool TryCalculateOccupiedGridBounds(out int minX, out int maxX, out int minY, out int maxY)
+    {
+        minX = int.MaxValue;
+        maxX = int.MinValue;
+        minY = int.MaxValue;
+        maxY = int.MinValue;
+
         if (_towerRoot == null || _cells.Count == 0)
             return false;
 
-        int minY = int.MaxValue;
-        int maxY = int.MinValue;
         foreach (var cell in _cells.Keys)
         {
+            minX = Mathf.Min(minX, cell.x);
+            maxX = Mathf.Max(maxX, cell.x);
             minY = Mathf.Min(minY, cell.y);
             maxY = Mathf.Max(maxY, cell.y);
         }
 
-        return TryCalculateRowsCameraView(minY, maxY, padding, aspect, out centerY, out size);
+        return minX <= maxX && minY <= maxY;
     }
 
     bool TryCalculateRowsCameraView(int minGridY, int maxGridY, float padding, float aspect, out float centerY, out float size)
+    {
+        int minGridX = _extractionMinCol;
+        int maxGridX = _extractionMaxCol;
+        if (minGridX > maxGridX)
+        {
+            minGridX = 0;
+            maxGridX = columns - 1;
+        }
+        return TryCalculateGridBoundsCameraView(minGridX, maxGridX, minGridY, maxGridY, padding, aspect, out centerY, out size);
+    }
+
+    bool TryCalculateGridBoundsCameraView(int minGridX, int maxGridX, int minGridY, int maxGridY, float padding, float aspect, out float centerY, out float size)
     {
         centerY = 0f;
         size = 0f;
         if (_towerRoot == null)
             return false;
 
-        float halfW = columns * 0.5f + 3.5f;
+        float left = _towerRoot.position.x + minGridX - padding;
+        float right = _towerRoot.position.x + maxGridX + 1f + padding;
+        float halfW = Mathf.Max(columns * 0.5f + 1f, (right - left) * 0.5f);
         float sizeForWidth = halfW / Mathf.Max(0.1f, aspect);
         float bottom = _towerRoot.position.y + minGridY - padding;
         float top = _towerRoot.position.y + maxGridY + 1f + padding;
@@ -4535,6 +5455,16 @@ public class BlockTower : MonoBehaviour
         if (cam == null) return;
         cam.orthographic = false;
 
+        float aspect = (float)Screen.width / Mathf.Max(1, Screen.height);
+        if (TryCalculateOccupiedRowsCameraView(extractionViewPadding, aspect, out var centerY, out var halfHeight))
+        {
+            _cameraTargetY = centerY;
+            _cameraTargetSize = halfHeight;
+            ApplyCameraView(cam, 0f, _cameraTargetY, _cameraTargetSize, adjustFieldOfView: true);
+            _hasCameraTarget = false;
+            return;
+        }
+
         FitCameraToGridRows(0, rows - 1, extractionViewPadding, immediate: true);
     }
 
@@ -4559,7 +5489,7 @@ public class BlockTower : MonoBehaviour
         _cameraTargetSize = Mathf.Max(sizeForWidth, halfH);
         if (immediate)
         {
-            ApplyCameraView(cam, 0f, _cameraTargetY, _cameraTargetSize);
+            ApplyCameraView(cam, 0f, _cameraTargetY, _cameraTargetSize, adjustFieldOfView: true);
             _hasCameraTarget = false;
             return;
         }
@@ -4675,11 +5605,26 @@ public class BlockTower : MonoBehaviour
             _hasCameraTarget = false;
     }
 
-    void ApplyCameraView(Camera cam, float x, float y, float halfHeight)
+    void ApplyCameraView(Camera cam, float x, float y, float halfHeight, bool adjustFieldOfView = false)
     {
         if (cam == null) return;
         cam.orthographic = false;
+        if (adjustFieldOfView)
+            cam.fieldOfView = FieldOfViewForHalfHeight(cam, halfHeight);
         cam.transform.position = new Vector3(x, y, CameraZForHalfHeight(cam, halfHeight));
+    }
+
+    float FieldOfViewForHalfHeight(Camera cam, float halfHeight)
+    {
+        if (cam == null)
+            return 60f;
+
+        float distance = Mathf.Abs(CameraPlaneZ() - cam.transform.position.z);
+        if (distance <= 0.001f)
+            return cam.fieldOfView;
+
+        float fov = 2f * Mathf.Atan(Mathf.Max(0.01f, halfHeight) / distance) * Mathf.Rad2Deg;
+        return Mathf.Clamp(fov, 20f, 100f);
     }
 
     float CurrentCameraHalfHeight(Camera cam)
@@ -4823,46 +5768,6 @@ public class BlockTower : MonoBehaviour
 
     void OnDrawGizmos()
     {
-        if (_towerRoot == null)
-        {
-            var root = towerRootTransform != null ? towerRootTransform : transform.Find("TowerRoot");
-            if (root != null)
-                _towerRoot = root;
-        }
-        SyncPlacementZoneFromObject();
-
-        // TowerRoot 기준 오프셋 계산
-        var origin = new Vector3(-columns * 0.5f, -rows * 0.5f, 0f);
-
-        float x0 = origin.x + placementMin.x;
-        float y0 = origin.y + PlacementFloorY();
-        float x1 = origin.x + placementMax.x + 1f;
-        float y1 = origin.y + PlacementCeilingY() + 1f;
-
-        // 반투명 채우기
-        Gizmos.color = new Color(1f, 0.92f, 0.02f, 0.08f);
-        Gizmos.DrawCube(
-            new Vector3((x0 + x1) * 0.5f, (y0 + y1) * 0.5f, 0f),
-            new Vector3(x1 - x0, y1 - y0, 0.01f));
-
-        // 테두리
-        Gizmos.color = new Color(1f, 0.92f, 0.02f, 0.9f);
-        Gizmos.DrawLine(new Vector3(x0, y0), new Vector3(x1, y0));
-        Gizmos.DrawLine(new Vector3(x1, y0), new Vector3(x1, y1));
-        Gizmos.DrawLine(new Vector3(x1, y1), new Vector3(x0, y1));
-        Gizmos.DrawLine(new Vector3(x0, y1), new Vector3(x0, y0));
-
-        Gizmos.color = new Color(1f, 0.1f, 0.05f, 0.28f);
-        foreach (var exclusion in _placementExclusions)
-        {
-            float ex0 = origin.x + exclusion.xMin;
-            float ey0 = origin.y + exclusion.yMin;
-            float ex1 = origin.x + exclusion.xMax;
-            float ey1 = origin.y + exclusion.yMax;
-            Gizmos.DrawCube(
-                new Vector3((ex0 + ex1) * 0.5f, (ey0 + ey1) * 0.5f, 0f),
-                new Vector3(ex1 - ex0, ey1 - ey0, 0.01f));
-        }
     }
 
     static Color NumberColor(int n) => n switch

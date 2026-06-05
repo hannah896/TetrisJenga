@@ -155,6 +155,7 @@ public sealed class PostProcessingExclusionCamera : MonoBehaviour
     static bool ShouldExcludeRenderer(Renderer renderer)
     {
         return renderer.GetComponentInParent<BlockCell>() != null
+            || renderer.GetComponentInParent<GoldFishProjectile>() != null
             || renderer.gameObject.name.StartsWith("PresetOutline_", System.StringComparison.Ordinal)
             || HasAncestorNamed(renderer.transform, "PresetOutlinePreview");
     }

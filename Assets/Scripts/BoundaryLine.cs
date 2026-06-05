@@ -16,6 +16,9 @@ public class BoundaryLine : MonoBehaviour
 
     void TryTriggerGameOver(Collider other)
     {
+        if (other.GetComponentInParent<GoldFishProjectile>() != null)
+            return;
+
         var rb = other.attachedRigidbody;
         if (rb != null && !rb.isKinematic)
             OnBlockTouched?.Invoke();

@@ -1,0 +1,147 @@
+using System.Collections.Generic;
+using UnityEngine;
+
+public class GoldFishProjectile : MonoBehaviour
+{
+    [SerializeField] float speed = 5f;
+    [SerializeField] Vector2 initialDirection = new(1f, 1f);
+    [SerializeField] float stuckSeconds = 0.6f;
+
+    Rigidbody _rb;
+    float _stuckTimer;
+    bool _finished;
+    readonly Dictionary<Collider, Vector3> _cellContactNormals = new();
+
+    void OnEnable()
+    {
+        SetNoPostLayer(gameObject);
+    }
+
+    void OnValidate()
+    {
+        SetNoPostLayer(gameObject);
+    }
+
+    void Awake()
+    {
+        SetNoPostLayer(gameObject);
+
+        _rb = GetComponent<Rigidbody>();
+        if (_rb == null)
+            _rb = gameObject.AddComponent<Rigidbody>();
+
+        _rb.useGravity = false;
+        _rb.isKinematic = false;
+        _rb.collisionDetectionMode = CollisionDetectionMode.ContinuousDynamic;
+        _rb.constraints = RigidbodyConstraints.FreezePositionZ
+                        | RigidbodyConstraints.FreezeRotationX
+                        | RigidbodyConstraints.FreezeRotationY;
+
+        var dir = initialDirection.sqrMagnitude > 0.001f ? initialDirection.normalized : Vector2.one.normalized;
+        _rb.linearVelocity = new Vector3(dir.x, dir.y, 0f) * speed;
+    }
+
+    void FixedUpdate()
+    {
+        if (_finished || _rb == null)
+            return;
+
+        var velocity = _rb.linearVelocity;
+        velocity.z = 0f;
+        if (velocity.sqrMagnitude > 0.001f)
+            _rb.linearVelocity = velocity.normalized * speed;
+
+        _stuckTimer = IsPressedBetweenCellColliders()
+            ? _stuckTimer + Time.fixedDeltaTime
+            : 0f;
+
+        if (_stuckTimer >= stuckSeconds)
+            Destroy(gameObject);
+    }
+
+    void OnCollisionEnter(Collision collision)
+    {
+        if (_finished || _rb == null || collision.contactCount == 0)
+            return;
+
+        var normal = collision.GetContact(0).normal;
+        normal.z = 0f;
+        if (normal.sqrMagnitude <= 0.001f)
+            return;
+
+        RecordCellContact(collision, normal);
+
+        var reflected = Vector3.Reflect(_rb.linearVelocity.normalized, normal.normalized);
+        reflected.z = 0f;
+        if (reflected.sqrMagnitude > 0.001f)
+            _rb.linearVelocity = reflected.normalized * speed;
+    }
+
+    void OnCollisionStay(Collision collision)
+    {
+        if (_finished || collision.contactCount == 0)
+            return;
+
+        var normal = collision.GetContact(0).normal;
+        normal.z = 0f;
+        RecordCellContact(collision, normal);
+    }
+
+    void OnCollisionExit(Collision collision)
+    {
+        if (collision.collider != null)
+            _cellContactNormals.Remove(collision.collider);
+    }
+
+    void OnTriggerEnter(Collider other)
+    {
+        if (_finished || other.GetComponent<BoundaryLine>() == null)
+            return;
+
+        _finished = true;
+        var tower = FindFirstObjectByType<BlockTower>();
+        if (tower != null)
+            tower.AwardGoldFishDeadlineScore(transform.position);
+        Destroy(gameObject);
+    }
+
+    void RecordCellContact(Collision collision, Vector3 normal)
+    {
+        if (collision.collider == null ||
+            collision.collider.GetComponentInParent<BlockCell>() == null ||
+            normal.sqrMagnitude <= 0.001f)
+        {
+            return;
+        }
+
+        _cellContactNormals[collision.collider] = normal.normalized;
+    }
+
+    bool IsPressedBetweenCellColliders()
+    {
+        if (_cellContactNormals.Count < 2)
+            return false;
+
+        var normals = new List<Vector3>(_cellContactNormals.Values);
+        for (int i = 0; i < normals.Count; i++)
+        {
+            for (int j = i + 1; j < normals.Count; j++)
+            {
+                if (Vector3.Dot(normals[i], normals[j]) <= -0.65f)
+                    return true;
+            }
+        }
+
+        return false;
+    }
+
+    static void SetNoPostLayer(GameObject root)
+    {
+        int layer = LayerMask.NameToLayer("BlockTowerNoPost");
+        if (layer < 0)
+            return;
+
+        foreach (var transform in root.GetComponentsInChildren<Transform>(true))
+            transform.gameObject.layer = layer;
+    }
+}
