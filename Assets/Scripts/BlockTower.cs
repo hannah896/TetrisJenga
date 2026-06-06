@@ -122,6 +122,13 @@ public class BlockTower : MonoBehaviour
     VisualElement  _builderSecondaryViewPanel;
     VisualElement  _builderSecondaryViewImage;
     VisualElement  _builderBlockWeightGuide;
+    VisualElement  _builderGameOverPanel;
+    VisualElement  _builderClearPanel;
+    Label          _builderGameOverScoreText;
+    Label          _builderGameOverTargetText;
+    Label          _builderClearScoreText;
+    Label          _builderClearTargetText;
+    bool           _resultButtonsBound;
     readonly VisualElement[] _builderWeightGuideImages = new VisualElement[6];
     TextMeshProUGUI _canvasScoreText;
     TextMeshProUGUI _canvasTargetScoreText;
@@ -345,6 +352,16 @@ public class BlockTower : MonoBehaviour
             return false;
 
         var root = hudDocument.rootVisualElement;
+
+        // rootVisualElement가 콘텐츠 높이(0)로 줄어들면 HUD 라벨이 음수 Y로 밀려 화면 밖에 그려진다.
+        // (자식 라벨이 모두 absolute라 콘텐츠 기반 높이가 0이 되는 문제) 패널 영역 전체를 채우도록
+        // 강제해 점수/HUD가 항상 화면 안에 보이게 한다.
+        root.style.position = Position.Absolute;
+        root.style.left = 0;
+        root.style.top = 0;
+        root.style.right = 0;
+        root.style.bottom = 0;
+
         _builderScoreTitle = root.Q<Label>("ScoreTitle");
         _builderScoreValue = root.Q<Label>("ScoreValue");
         _builderTargetScoreValue = root.Q<Label>("TargetScoreValue");
@@ -361,6 +378,19 @@ public class BlockTower : MonoBehaviour
         _builderSecondaryViewPanel = root.Q<VisualElement>("SubCameraPreviewPanel");
         _builderSecondaryViewImage = root.Q<VisualElement>("SubCameraPreviewImage");
         _builderBlockWeightGuide = root.Q<VisualElement>("BlockWeightGuide");
+        _builderGameOverPanel = root.Q<VisualElement>("GameOverPanel");
+        _builderClearPanel = root.Q<VisualElement>("ClearPanel");
+        _builderGameOverScoreText = root.Q<Label>("GameOverCurrentScore");
+        _builderGameOverTargetText = root.Q<Label>("GameOverTargetScore");
+        _builderClearScoreText = root.Q<Label>("ClearCurrentScore");
+        _builderClearTargetText = root.Q<Label>("ClearTargetScore");
+        BindResultButtons(root);
+        // 결과창 uxml은 UI Builder 미리보기를 위해 display:flex로 둔다. 게임 중에는 숨긴다.
+        if (!_isGameOver)
+        {
+            if (_builderGameOverPanel != null) _builderGameOverPanel.style.display = DisplayStyle.None;
+            if (_builderClearPanel != null) _builderClearPanel.style.display = DisplayStyle.None;
+        }
         for (int i = 0; i < _builderWeightGuideImages.Length; i++)
             _builderWeightGuideImages[i] = root.Q<VisualElement>($"WeightGuideImage{i + 1}");
         _builderBonusCellElements.Clear();
@@ -437,10 +467,7 @@ public class BlockTower : MonoBehaviour
         label.style.unityFontStyleAndWeight = FontStyle.Bold;
         label.style.flexShrink = 0f;
         label.pickingMode = PickingMode.Ignore;
-
-        var font = GetRuntimeHudFont();
-        if (font != null)
-            label.style.unityFont = font;
+        // 폰트는 uxml(-unity-font-definition)에 지정한 Cafe24를 사용한다. 코드에서 덮어쓰지 않는다.
     }
 
     void ForceVisibleBonusKeyLabel(Label label, string text)
@@ -1854,7 +1881,8 @@ public class BlockTower : MonoBehaviour
         ClearDetachedBlocks();
         BindResultScreens();
         _clearScreen?.Hide();
-        _gameOverScreen?.ShowGameOver(_score, targetScore, Rebuild);
+        _gameOverScreen?.Hide();
+        ShowResultPanel(false);
     }
 
     void TriggerClear()
@@ -1867,8 +1895,58 @@ public class BlockTower : MonoBehaviour
         ClearDetachedBlocks();
         BindResultScreens();
         _gameOverScreen?.Hide();
-        _clearScreen?.ShowClear(_score, targetScore, Rebuild);
+        _clearScreen?.Hide();
+        ShowResultPanel(true);
     }
+
+    // ── UI Toolkit 결과창 (게임오버/클리어) ───────────────────────
+    void ShowResultPanel(bool isClear)
+    {
+        BindBuilderHud();
+        if (isClear)
+        {
+            if (_builderClearScoreText != null) _builderClearScoreText.text = $"SCORE: {_score}";
+            if (_builderClearTargetText != null) _builderClearTargetText.text = $"TARGET: {targetScore}";
+            StretchAndShow(_builderClearPanel);
+            if (_builderGameOverPanel != null) _builderGameOverPanel.style.display = DisplayStyle.None;
+        }
+        else
+        {
+            if (_builderGameOverScoreText != null) _builderGameOverScoreText.text = $"SCORE: {_score}";
+            if (_builderGameOverTargetText != null) _builderGameOverTargetText.text = $"TARGET: {targetScore}";
+            StretchAndShow(_builderGameOverPanel);
+            if (_builderClearPanel != null) _builderClearPanel.style.display = DisplayStyle.None;
+        }
+    }
+
+    // Template 클론 시 uxml 인라인 크기가 적용되지 않는 경우가 있어, 표시할 때 코드로 화면 전체로 펼친다.
+    void StretchAndShow(VisualElement panel)
+    {
+        if (panel == null) return;
+        panel.style.position = Position.Absolute;
+        panel.style.left = 0;
+        panel.style.top = 0;
+        panel.style.right = 0;
+        panel.style.bottom = 0;
+        panel.style.display = DisplayStyle.Flex;
+    }
+
+    void BindResultButtons(VisualElement root)
+    {
+        if (_resultButtonsBound || root == null) return;
+        var goRestart = root.Q<UnityEngine.UIElements.Button>("GameOverRestartButton");
+        var goMenu = root.Q<UnityEngine.UIElements.Button>("GameOverMainMenuButton");
+        var clearNext = root.Q<UnityEngine.UIElements.Button>("ClearNextButton");
+        var clearMenu = root.Q<UnityEngine.UIElements.Button>("ClearMainMenuButton");
+        if (goRestart != null) goRestart.clicked += Rebuild;
+        if (goMenu != null) goMenu.clicked += GoToMainMenu;
+        if (clearNext != null) clearNext.clicked += GoToNext;
+        if (clearMenu != null) clearMenu.clicked += GoToMainMenu;
+        _resultButtonsBound = goRestart != null && goMenu != null && clearNext != null && clearMenu != null;
+    }
+
+    void GoToMainMenu() => SceneManager.LoadScene("LobbyScene");
+    void GoToNext() => SceneManager.LoadScene("StageScene");
 
     void CheckClearCondition()
     {
