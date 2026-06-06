@@ -236,6 +236,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::StageUIController
   uiDocument: {fileID: 770821196}
+  mapSpline: {fileID: 1103454336}
   gameSceneName: SampleScene
   lobbySceneName: LobbyScene
 --- !u!1 &840141793
@@ -249,6 +250,7 @@ GameObject:
   - component: {fileID: 840141796}
   - component: {fileID: 840141795}
   - component: {fileID: 840141794}
+  - component: {fileID: 840141797}
   m_Layer: 0
   m_Name: Main Camera
   m_TagString: MainCamera
@@ -325,6 +327,242 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 1, z: -10}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &840141797
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 840141793}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a79441f348de89743a2939f4d699eac1, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.RenderPipelines.Universal.Runtime::UnityEngine.Rendering.Universal.UniversalAdditionalCameraData
+  m_RenderShadows: 1
+  m_RequiresDepthTextureOption: 2
+  m_RequiresOpaqueTextureOption: 2
+  m_CameraType: 0
+  m_Cameras: []
+  m_RendererIndex: -1
+  m_VolumeLayerMask:
+    serializedVersion: 2
+    m_Bits: 1
+  m_VolumeTrigger: {fileID: 0}
+  m_VolumeFrameworkUpdateModeOption: 2
+  m_RenderPostProcessing: 0
+  m_Antialiasing: 0
+  m_AntialiasingQuality: 2
+  m_StopNaN: 0
+  m_Dithering: 0
+  m_ClearDepth: 1
+  m_AllowXRRendering: 1
+  m_AllowHDROutput: 1
+  m_UseScreenCoordOverride: 0
+  m_ScreenSizeOverride: {x: 0, y: 0, z: 0, w: 0}
+  m_ScreenCoordScaleBias: {x: 0, y: 0, z: 0, w: 0}
+  m_RequiresDepthTexture: 0
+  m_RequiresColorTexture: 0
+  m_TaaSettings:
+    m_Quality: 3
+    m_FrameInfluence: 0.1
+    m_JitterScale: 1
+    m_MipBias: 0
+    m_VarianceClampScale: 0.9
+    m_ContrastAdaptiveSharpening: 0
+  m_Version: 2
+--- !u!1 &1103454335
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1103454337}
+  - component: {fileID: 1103454336}
+  m_Layer: 0
+  m_Name: StageMapSpline
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1103454336
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1103454335}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: dab5c7d4c32e743048dfca98e2d5914f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.Splines::UnityEngine.Splines.SplineContainer
+  m_Spline:
+    m_EditModeType: 1
+    m_Knots: []
+    m_MetaData: []
+    m_Closed: 0
+    m_IntData:
+      m_Data: []
+    m_FloatData:
+      m_Data: []
+    m_Float4Data:
+      m_Data: []
+    m_ObjectData:
+      m_Data: []
+  m_Splines:
+  - m_EditModeType: 1
+    m_Knots:
+    - Position:
+        x: 0.25
+        y: 0.04
+        z: 0
+      TangentIn:
+        x: -0
+        y: -0
+        z: -0.04846648
+      TangentOut:
+        x: 0
+        y: 0
+        z: 0.04846648
+      Rotation:
+        value:
+          x: -0.13371924
+          y: 0.69434804
+          z: 0.13371924
+          w: 0.69434804
+    - Position:
+        x: 0.7
+        y: 0.22
+        z: 0
+      TangentIn:
+        x: -0
+        y: -0
+        z: -0.06485153
+      TangentOut:
+        x: 0
+        y: 0
+        z: 0.062295537
+      Rotation:
+        value:
+          x: -0.4895001
+          y: 0.5102839
+          z: 0.4895001
+          w: 0.5102839
+    - Position:
+        x: 0.3
+        y: 0.42
+        z: 0
+      TangentIn:
+        x: -0
+        y: -0
+        z: -0.066025786
+      TangentOut:
+        x: 0
+        y: 0
+        z: 0.067339584
+      Rotation:
+        value:
+          x: 0.5023977
+          y: 0.49759072
+          z: 0.5023977
+          w: -0.49759072
+    - Position:
+        x: 0.72
+        y: 0.62
+        z: 0
+      TangentIn:
+        x: -0
+        y: -0
+        z: -0.066044025
+      TangentOut:
+        x: 0
+        y: 0
+        z: 0.06731896
+      Rotation:
+        value:
+          x: -0.5022191
+          y: 0.49777108
+          z: 0.5022191
+          w: 0.49777108
+    - Position:
+        x: 0.28
+        y: 0.82
+        z: 0
+      TangentIn:
+        x: -0
+        y: -0
+        z: -0.06442893
+      TangentOut:
+        x: 0
+        y: 0
+        z: 0.05150506
+      Rotation:
+        value:
+          x: -0.48984063
+          y: -0.509957
+          z: -0.48984063
+          w: 0.509957
+    - Position:
+        x: 0.55
+        y: 0.97
+        z: 0
+      TangentIn:
+        x: -0
+        y: -0
+        z: -0.030886892
+      TangentOut:
+        x: 0
+        y: 0
+        z: 0.030886892
+      Rotation:
+        value:
+          x: -0.17737162
+          y: 0.68449926
+          z: 0.17737162
+          w: 0.68449926
+    m_MetaData:
+    - Mode: 0
+      Tension: 0.5
+    - Mode: 0
+      Tension: 0.5
+    - Mode: 0
+      Tension: 0.5
+    - Mode: 0
+      Tension: 0.5
+    - Mode: 0
+      Tension: 0.5
+    - Mode: 0
+      Tension: 0.5
+    m_Closed: 0
+    m_IntData:
+      m_Data: []
+    m_FloatData:
+      m_Data: []
+    m_Float4Data:
+      m_Data: []
+    m_ObjectData:
+      m_Data: []
+  m_Knots:
+    m_KnotsLink: []
+--- !u!4 &1103454337
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1103454335}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -417,3 +655,4 @@ SceneRoots:
   - {fileID: 1349494826}
   - {fileID: 770821197}
   - {fileID: 204708860}
+  - {fileID: 1103454337}
