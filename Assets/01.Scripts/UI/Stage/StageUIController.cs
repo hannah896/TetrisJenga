@@ -235,7 +235,20 @@ public class StageUIController : MonoBehaviour
         UISprites.Apply(root.Q<VisualElement>("preview-image"), images.previewImage);
     }
 
-    private void StartSelectedStage() => LoadScene(gameSceneName);
+    private void StartSelectedStage()
+    {
+        string scene = null;
+        if (mapData != null && selectedNodeIndex >= 0 && selectedNodeIndex < mapData.nodes.Count)
+        {
+            var info = mapData.nodes[selectedNodeIndex].stageInfo;
+            if (info != null && !string.IsNullOrEmpty(info.SceneName))
+                scene = info.SceneName;
+        }
+        // SO에 지정이 없으면 스테이지 순서대로 Level1, Level2... 로 이동한다.
+        if (string.IsNullOrEmpty(scene))
+            scene = $"Level{selectedNodeIndex + 1}";
+        LoadScene(scene);
+    }
     private void GoToLobby() => LoadScene(lobbySceneName);
 
     private void LoadScene(string sceneName)
