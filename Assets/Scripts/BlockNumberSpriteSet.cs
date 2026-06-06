@@ -66,6 +66,9 @@ public class BlockNumberSpriteSet : MonoBehaviour
     static bool AssignSprite(ref Sprite target, Object source)
     {
         var sprite = source as Sprite;
+        if (sprite == null)
+            return false;
+
         if (target == sprite)
             return false;
 

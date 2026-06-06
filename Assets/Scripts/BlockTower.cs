@@ -6,6 +6,9 @@ using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 using UnityEngine.UIElements;
 using TMPro;
+#if UNITY_EDITOR
+using UnityEditor;
+#endif
 
 [ExecuteAlways]
 public class BlockTower : MonoBehaviour
@@ -43,6 +46,7 @@ public class BlockTower : MonoBehaviour
     [SerializeField, Range(1, 8)]     int   placementFailShakeCount = 3;
     [SerializeField] Color placedBlockColor = new(0.55f, 0.58f, 0.60f, 1f);
     [SerializeField] BlockNumberSpriteSet numberSpriteSet;
+    [SerializeField] BonusTetrominoSpriteSet bonusTetrominoSpriteSet;
 
     [Header("Keyboard Controls")]
     [SerializeField] bool keyboardControlsEnabled = true;
@@ -115,6 +119,10 @@ public class BlockTower : MonoBehaviour
     VisualElement  _builderBonusCells;
     VisualElement  _builderBonusNextCells;
     VisualElement  _builderBonusThirdCells;
+    VisualElement  _builderSecondaryViewPanel;
+    VisualElement  _builderSecondaryViewImage;
+    VisualElement  _builderBlockWeightGuide;
+    readonly VisualElement[] _builderWeightGuideImages = new VisualElement[6];
     TextMeshProUGUI _canvasScoreText;
     TextMeshProUGUI _canvasTargetScoreText;
     TextMeshProUGUI _canvasFloatingScoreText;
@@ -350,6 +358,11 @@ public class BlockTower : MonoBehaviour
         _builderBonusCells = root.Q<VisualElement>("BonusPreview1Cells") ?? root.Q<VisualElement>("BonusPreviewCells");
         _builderBonusNextCells = root.Q<VisualElement>("BonusPreview2Cells");
         _builderBonusThirdCells = root.Q<VisualElement>("BonusPreview3Cells");
+        _builderSecondaryViewPanel = root.Q<VisualElement>("SubCameraPreviewPanel");
+        _builderSecondaryViewImage = root.Q<VisualElement>("SubCameraPreviewImage");
+        _builderBlockWeightGuide = root.Q<VisualElement>("BlockWeightGuide");
+        for (int i = 0; i < _builderWeightGuideImages.Length; i++)
+            _builderWeightGuideImages[i] = root.Q<VisualElement>($"WeightGuideImage{i + 1}");
         _builderBonusCellElements.Clear();
         _builderBonusCells?.Query<VisualElement>(className: "bonus-preview-cell")
             .ForEach(cell => _builderBonusCellElements.Add(cell));
@@ -361,7 +374,9 @@ public class BlockTower : MonoBehaviour
             .ForEach(cell => _builderBonusThirdCellElements.Add(cell));
 
         RemoveLegacyHudTextFallback();
+        DisableLegacyCanvasHudObjects();
         BindCanvasHudText();
+        SyncBlockWeightGuideImages();
         ApplyHudTextStyles();
         _builderBonusPreviewNeedsRefresh = _builderBonusCells != null;
         if (_builderBonusCells != null)
@@ -435,12 +450,20 @@ public class BlockTower : MonoBehaviour
         label.text = text;
         label.style.display = DisplayStyle.Flex;
         label.style.visibility = Visibility.Visible;
+        label.style.width = 80f;
+        label.style.height = 80f;
+        label.style.fontSize = 60f;
         label.style.opacity = 1f;
         label.style.color = Color.white;
         label.style.unityTextAlign = TextAnchor.MiddleCenter;
         label.style.unityFontStyleAndWeight = FontStyle.Bold;
         label.style.flexShrink = 0f;
+        label.style.alignSelf = Align.Center;
         label.pickingMode = PickingMode.Ignore;
+
+        var font = GetRuntimeHudFont();
+        if (font != null)
+            label.style.unityFont = font;
     }
 
     void BindCanvasHudText()
@@ -453,10 +476,15 @@ public class BlockTower : MonoBehaviour
         {
             _canvasFloatingScoreText = FindCanvasText("Floating Score") ?? FindCanvasText("Floating Score ");
             if (_canvasFloatingScoreText != null)
+            {
                 _canvasFloatingScoreText.gameObject.name = "Floating Score";
+                _canvasFloatingScoreText.text = string.Empty;
+                _canvasFloatingScoreText.alpha = 1f;
+                _canvasFloatingScoreText.gameObject.SetActive(false);
+            }
         }
 
-        EnsureCanvasBonusKeyTexts();
+        RemoveCanvasBonusKeyTexts();
     }
 
     TextMeshProUGUI FindCanvasText(string objectName)
@@ -485,12 +513,6 @@ public class BlockTower : MonoBehaviour
             _canvasScoreText.text = _score.ToString();
         if (_canvasTargetScoreText != null)
             _canvasTargetScoreText.text = targetScore.ToString();
-        if (_canvasBonusKeyText != null)
-            _canvasBonusKeyText.text = PresetKeyText(_bonusTargetPreset);
-        if (_canvasBonusNextKeyText != null)
-            _canvasBonusNextKeyText.text = PresetKeyText(_nextBonusTargetPreset);
-        if (_canvasBonusThirdKeyText != null)
-            _canvasBonusThirdKeyText.text = PresetKeyText(_thirdBonusTargetPreset);
     }
 
     void RemoveLegacyHudTextFallback()
@@ -502,30 +524,49 @@ public class BlockTower : MonoBehaviour
         DestroyNamedSceneObject("ScoreValueText");
         DestroyNamedSceneObject("TargetScoreTitleText");
         DestroyNamedSceneObject("TargetScoreValueText");
+        RemoveCanvasBonusKeyTexts();
     }
 
-    void EnsureCanvasBonusKeyTexts()
+    void DisableLegacyCanvasHudObjects()
     {
-        if (_canvasBonusKeyText == null)
-            _canvasBonusKeyText = FindCanvasText("BonusPreview1KeyText");
-        if (_canvasBonusNextKeyText == null)
-            _canvasBonusNextKeyText = FindCanvasText("BonusPreview2KeyText");
-        if (_canvasBonusThirdKeyText == null)
-            _canvasBonusThirdKeyText = FindCanvasText("BonusPreview3KeyText");
+        if (!Application.isPlaying) return;
 
-        if (!Application.isPlaying)
-            return;
+        DisableNamedSceneObject("SubCameraPreviewPanel");
+        DisableNamedSceneObject("block weight guide");
+        DisableNamedSceneObject("Block Weight Guide");
+        DisableCanvasPanelObjects();
+    }
 
-        var canvas = FindSceneCanvas();
-        if (canvas == null)
-            return;
+    void DisableCanvasPanelObjects()
+    {
+        foreach (var panel in Resources.FindObjectsOfTypeAll<Transform>())
+        {
+            if (panel == null || panel.name != "Panel") continue;
+            if (panel.gameObject.scene != gameObject.scene) continue;
+            if (panel.GetComponentInParent<Canvas>(true) == null) continue;
+            panel.gameObject.SetActive(false);
+        }
+    }
 
-        _canvasBonusKeyText ??= CreateCanvasBonusKeyText(canvas.transform, "BonusPreview1KeyText", new Vector2(875f, 340f));
-        _canvasBonusNextKeyText ??= CreateCanvasBonusKeyText(canvas.transform, "BonusPreview2KeyText", new Vector2(875f, 170f));
-        _canvasBonusThirdKeyText ??= CreateCanvasBonusKeyText(canvas.transform, "BonusPreview3KeyText", new Vector2(875f, 0f));
-        ConfigureCanvasBonusKeyText(_canvasBonusKeyText, canvas.transform, new Vector2(875f, 340f));
-        ConfigureCanvasBonusKeyText(_canvasBonusNextKeyText, canvas.transform, new Vector2(875f, 170f));
-        ConfigureCanvasBonusKeyText(_canvasBonusThirdKeyText, canvas.transform, new Vector2(875f, 0f));
+    void DisableNamedSceneObject(string objectName)
+    {
+        var target = FindSceneObjectByName(objectName);
+        if (target == null) return;
+        if (_builderSecondaryViewPanel != null && target.name == _builderSecondaryViewPanel.name) return;
+        target.gameObject.SetActive(false);
+    }
+
+    void RemoveCanvasBonusKeyTexts()
+    {
+        _canvasBonusKeyText = null;
+        _canvasBonusNextKeyText = null;
+        _canvasBonusThirdKeyText = null;
+
+        if (!Application.isPlaying) return;
+
+        DestroyNamedSceneObject("BonusPreview1KeyText");
+        DestroyNamedSceneObject("BonusPreview2KeyText");
+        DestroyNamedSceneObject("BonusPreview3KeyText");
     }
 
     Canvas FindSceneCanvas()
@@ -542,64 +583,6 @@ public class BlockTower : MonoBehaviour
             fallback ??= canvas;
         }
         return fallback;
-    }
-
-    TextMeshProUGUI CreateCanvasBonusKeyText(Transform parent, string objectName, Vector2 anchoredPosition)
-    {
-        var go = new GameObject(objectName);
-        MarkGeneratedObject(go);
-        go.layer = parent.gameObject.layer;
-        go.transform.SetParent(parent, false);
-
-        var rect = go.AddComponent<RectTransform>();
-
-        var text = go.AddComponent<TextMeshProUGUI>();
-        if (_canvasScoreText != null && _canvasScoreText.font != null)
-            text.font = _canvasScoreText.font;
-        text.text = string.Empty;
-        text.fontSize = 58f;
-        text.fontStyle = FontStyles.Bold;
-        text.alignment = TextAlignmentOptions.Center;
-        text.color = Color.white;
-        text.raycastTarget = false;
-        text.textWrappingMode = TextWrappingModes.NoWrap;
-        text.overflowMode = TextOverflowModes.Overflow;
-        ConfigureCanvasBonusKeyText(text, parent, anchoredPosition);
-        return text;
-    }
-
-    void ConfigureCanvasBonusKeyText(TextMeshProUGUI text, Transform parent, Vector2 anchoredPosition)
-    {
-        if (text == null || parent == null) return;
-
-        if (text.transform.parent != parent)
-            text.transform.SetParent(parent, false);
-        text.gameObject.SetActive(true);
-        text.transform.SetAsLastSibling();
-        text.raycastTarget = false;
-        text.color = Color.white;
-        text.fontSize = 58f;
-        text.fontStyle = FontStyles.Bold;
-        text.alignment = TextAlignmentOptions.Center;
-        text.textWrappingMode = TextWrappingModes.NoWrap;
-        text.overflowMode = TextOverflowModes.Overflow;
-        if (_canvasScoreText != null && _canvasScoreText.font != null)
-            text.font = _canvasScoreText.font;
-
-        var rect = text.GetComponent<RectTransform>();
-        if (rect == null) return;
-        rect.anchorMin = new Vector2(0.5f, 0.5f);
-        rect.anchorMax = new Vector2(0.5f, 0.5f);
-        rect.pivot = new Vector2(0.5f, 0.5f);
-        rect.anchoredPosition = anchoredPosition;
-        rect.sizeDelta = new Vector2(110f, 110f);
-
-        var canvas = parent.GetComponent<Canvas>();
-        if (canvas != null)
-        {
-            canvas.overrideSorting = true;
-            canvas.sortingOrder = Mathf.Max(canvas.sortingOrder, 20000);
-        }
     }
 
     void DestroyNamedSceneObject(string objectName)
@@ -625,24 +608,35 @@ public class BlockTower : MonoBehaviour
 
     void EnsureHudPanelSettings()
     {
-        if (hudDocument == null || hudDocument.panelSettings != null)
+        if (hudDocument == null)
             return;
 
-        if (hudPanelSettings != null)
+        if (hudDocument.panelSettings == null)
         {
-            hudDocument.panelSettings = hudPanelSettings;
-            return;
+            if (hudPanelSettings != null)
+            {
+                hudDocument.panelSettings = hudPanelSettings;
+            }
+            else
+            {
+                if (_runtimeHudPanelSettings == null)
+                {
+                    _runtimeHudPanelSettings = ScriptableObject.CreateInstance<PanelSettings>();
+                    _runtimeHudPanelSettings.name = "RuntimeHudPanelSettings";
+                }
+                hudDocument.panelSettings = _runtimeHudPanelSettings;
+            }
         }
 
-        if (_runtimeHudPanelSettings == null)
+        if (hudDocument.panelSettings != null)
         {
-            _runtimeHudPanelSettings = ScriptableObject.CreateInstance<PanelSettings>();
-            _runtimeHudPanelSettings.name = "RuntimeHudPanelSettings";
-            _runtimeHudPanelSettings.scaleMode = PanelScaleMode.ScaleWithScreenSize;
-            _runtimeHudPanelSettings.referenceResolution = new Vector2Int(1920, 1080);
-            _runtimeHudPanelSettings.sortingOrder = 10;
+            hudDocument.panelSettings.scaleMode = PanelScaleMode.ScaleWithScreenSize;
+            hudDocument.panelSettings.referenceResolution = new Vector2Int(1920, 1080);
+            hudDocument.panelSettings.sortingOrder = 40000000;
         }
-        hudDocument.panelSettings = _runtimeHudPanelSettings;
+
+        hudDocument.sortingOrder = 40000000;
+        hudDocument.enabled = true;
     }
 
     void EnsureHudVisualTree()
@@ -815,7 +809,8 @@ public class BlockTower : MonoBehaviour
         if (ice.TryGetComponent<SpriteRenderer>(out var sr))
         {
             sr.enabled = true;
-            sr.color = new Color(sr.color.r, sr.color.g, sr.color.b, 1f);
+            sr.sprite = CreateBlockSprite();
+            sr.color = IceBlockColor();
             sr.drawMode = SpriteDrawMode.Simple;
             sr.sortingOrder = Mathf.Max(sr.sortingOrder, 1);
         }
@@ -1606,19 +1601,19 @@ public class BlockTower : MonoBehaviour
     {
         if (delta == 0 || !Application.isPlaying) return;
         BindBuilderHud();
-        if (_canvasFloatingScoreText != null)
-        {
-            if (_canvasFloatingScoreRoutine != null)
-                StopCoroutine(_canvasFloatingScoreRoutine);
-            _canvasFloatingScoreRoutine = StartCoroutine(AnimateCanvasFloatingScoreText(delta));
-            return;
-        }
-
         if (_builderScorePopupText != null)
         {
             if (_builderScorePopupRoutine != null)
                 StopCoroutine(_builderScorePopupRoutine);
             _builderScorePopupRoutine = StartCoroutine(AnimateBuilderScoreText(delta));
+            return;
+        }
+
+        if (_canvasFloatingScoreText != null)
+        {
+            if (_canvasFloatingScoreRoutine != null)
+                StopCoroutine(_canvasFloatingScoreRoutine);
+            _canvasFloatingScoreRoutine = StartCoroutine(AnimateCanvasFloatingScoreText(delta));
             return;
         }
 
@@ -1700,6 +1695,7 @@ public class BlockTower : MonoBehaviour
             rect.anchoredPosition = startPos;
             _canvasFloatingScoreText.text = string.Empty;
             _canvasFloatingScoreText.alpha = 1f;
+            _canvasFloatingScoreText.gameObject.SetActive(false);
         }
         _canvasFloatingScoreRoutine = null;
     }
@@ -4462,6 +4458,9 @@ public class BlockTower : MonoBehaviour
                     data.numberSpriteRenderer.enabled = false;
                     data.numberSpriteRenderer.sprite = null;
                 }
+                data.sr.sprite = CreateBlockSprite();
+                data.sr.color = IceBlockColor();
+                data.sr.drawMode = SpriteDrawMode.Simple;
             }
             else if (data.isOriginalTower && numberSprite != null)
             {
@@ -4530,10 +4529,79 @@ public class BlockTower : MonoBehaviour
 
     void EnsureNumberSpriteSet()
     {
-        if (numberSpriteSet != null)
+        if (numberSpriteSet == null)
+            numberSpriteSet = GetComponent<BlockNumberSpriteSet>();
+
+        SyncBlockWeightGuideImages();
+    }
+
+    void SyncBlockWeightGuideImages()
+    {
+        if (numberSpriteSet == null)
             return;
 
-        numberSpriteSet = GetComponent<BlockNumberSpriteSet>();
+        for (int number = 1; number <= _builderWeightGuideImages.Length; number++)
+        {
+            if (_builderBlockWeightGuide != null)
+            {
+                _builderBlockWeightGuide.style.display = DisplayStyle.Flex;
+                _builderBlockWeightGuide.style.visibility = Visibility.Visible;
+                _builderBlockWeightGuide.style.opacity = 1f;
+                _builderBlockWeightGuide.style.flexDirection = FlexDirection.Column;
+            }
+
+            var element = _builderWeightGuideImages[number - 1];
+            if (element == null)
+                continue;
+
+            element.style.display = DisplayStyle.Flex;
+            element.style.visibility = Visibility.Visible;
+            element.style.opacity = 1f;
+            element.style.width = 80f;
+            element.style.height = 80f;
+            element.style.backgroundColor = new Color(0.66f, 0.66f, 0.66f, 1f);
+            element.style.unityBackgroundScaleMode = ScaleMode.ScaleToFit;
+
+            var sprite = numberSpriteSet.GetSprite(number);
+            element.style.backgroundImage = sprite != null
+                ? new StyleBackground(sprite)
+                : StyleKeyword.None;
+        }
+
+        var guide = FindSceneObjectByName("block weight guide");
+        if (guide == null)
+            guide = FindSceneObjectByName("Block Weight Guide");
+        if (guide == null)
+            return;
+
+        const float imageSize = 80f;
+        const float spacing = 90f;
+        const float topY = 225f;
+
+        for (int number = 1; number <= 6; number++)
+        {
+            var child = guide.Find($"Image ({number})");
+            if (child == null)
+                continue;
+
+            if (child is RectTransform rect)
+            {
+                rect.sizeDelta = new Vector2(imageSize, imageSize);
+                rect.anchoredPosition = new Vector2(0f, topY - (number - 1) * spacing);
+            }
+
+            var uiImage = child.GetComponent<UnityEngine.UI.Image>();
+            if (uiImage == null)
+                continue;
+
+            var sprite = numberSpriteSet.GetSprite(number);
+            if (sprite != null)
+            {
+                uiImage.sprite = sprite;
+                uiImage.color = Color.white;
+            }
+            uiImage.preserveAspect = true;
+        }
     }
 
     // ── 바닥 ─────────────────────────────────────────────────────────────
@@ -4564,12 +4632,8 @@ public class BlockTower : MonoBehaviour
             }
             else
             {
-                floorGO = new GameObject("Floor");
-                if (Application.isPlaying)
-                    MarkGeneratedObject(floorGO);
-                floorGO.transform.SetParent(transform);
-                _generatedFloor = floorGO;
-                created = true;
+                _floorY = floorY;
+                return;
             }
         }
 
@@ -5064,6 +5128,12 @@ public class BlockTower : MonoBehaviour
     {
         if (container == null) return;
 
+        if (bonusTetrominoSpriteSet != null)
+        {
+            UpdateBuilderBonusPreviewImageSlot(container, elements, BonusPresetSprite(preset));
+            return;
+        }
+
         var cells = GetTetrominoPresetCells(Vector2Int.zero, preset);
         int minX = int.MaxValue, minY = int.MaxValue;
         int maxX = int.MinValue, maxY = int.MinValue;
@@ -5104,7 +5174,44 @@ public class BlockTower : MonoBehaviour
             element.style.left = offsetX + (cell.x - minX) * cellSize;
             element.style.top = offsetY + (maxY - cell.y) * cellSize;
             element.style.backgroundColor = color;
+            element.style.backgroundImage = StyleKeyword.Null;
         }
+    }
+
+    void UpdateBuilderBonusPreviewImageSlot(VisualElement container, List<VisualElement> elements, Sprite sprite)
+    {
+        container.style.position = Position.Relative;
+        container.style.backgroundColor = new Color(0.66f, 0.66f, 0.66f, 1f);
+        container.style.backgroundImage = sprite != null ? new StyleBackground(sprite) : StyleKeyword.None;
+        container.style.unityBackgroundScaleMode = ScaleMode.ScaleToFit;
+        container.style.borderTopWidth = 0f;
+        container.style.borderRightWidth = 0f;
+        container.style.borderBottomWidth = 0f;
+        container.style.borderLeftWidth = 0f;
+
+        if (elements == null)
+            return;
+
+        foreach (var element in elements)
+            element.style.display = DisplayStyle.None;
+    }
+
+    Sprite BonusPresetSprite(TetrominoPreset preset)
+    {
+        if (bonusTetrominoSpriteSet == null)
+            return null;
+
+        return preset switch
+        {
+            TetrominoPreset.I => bonusTetrominoSpriteSet.I,
+            TetrominoPreset.J => bonusTetrominoSpriteSet.J,
+            TetrominoPreset.L => bonusTetrominoSpriteSet.L,
+            TetrominoPreset.O => bonusTetrominoSpriteSet.O,
+            TetrominoPreset.S => bonusTetrominoSpriteSet.S,
+            TetrominoPreset.T => bonusTetrominoSpriteSet.T,
+            TetrominoPreset.Z => bonusTetrominoSpriteSet.Z,
+            _ => null
+        };
     }
 
     float BonusPreviewCellSize(VisualElement container, List<VisualElement> elements)
@@ -5270,69 +5377,18 @@ public class BlockTower : MonoBehaviour
 
     void EnsureSecondaryViewPanel()
     {
-        var canvas = FindSceneCanvas();
-        if (canvas == null) return;
-
-        RectTransform panelRect = null;
-        var existingPanel = FindSceneObjectByName("SubCameraPreviewPanel");
-        if (existingPanel != null)
-            panelRect = existingPanel.GetComponent<RectTransform>();
-
-        bool panelCreated = false;
-        if (panelRect == null)
+        if (_builderSecondaryViewPanel != null && _builderSecondaryViewImage != null)
         {
-            var panel = new GameObject("SubCameraPreviewPanel", typeof(RectTransform), typeof(CanvasRenderer), typeof(UnityEngine.UI.Image));
-            panel.transform.SetParent(canvas.transform, false);
-            panelRect = panel.GetComponent<RectTransform>();
-            panelCreated = true;
-        }
-
-        panelRect.sizeDelta = secondaryViewPanelSize;
-
-        if (panelCreated)
-        {
-            panelRect.anchorMin = new Vector2(0f, 0.5f);
-            panelRect.anchorMax = new Vector2(0f, 0.5f);
-            panelRect.pivot = new Vector2(0f, 0.5f);
-            panelRect.anchoredPosition = secondaryViewPanelPosition;
-
-            var background = panelRect.GetComponent<UnityEngine.UI.Image>();
-            if (background != null)
-                background.color = new Color(0f, 0f, 0f, 0.78f);
-        }
-
-        if (secondaryViewImage == null)
-        {
-            var imageTransform = FindChildByNameRecursive(panelRect, "SubCameraPreviewImage");
-            if (imageTransform != null)
-                secondaryViewImage = imageTransform.GetComponent<RawImage>();
-        }
-
-        bool imageCreated = false;
-        if (secondaryViewImage == null)
-        {
-            var imageGo = new GameObject("SubCameraPreviewImage", typeof(RectTransform), typeof(CanvasRenderer), typeof(RawImage));
-            imageGo.transform.SetParent(panelRect, false);
-            secondaryViewImage = imageGo.GetComponent<RawImage>();
-            imageCreated = true;
-        }
-
-        if (imageCreated)
-        {
-            var imageRect = secondaryViewImage.rectTransform;
-            imageRect.anchorMin = Vector2.zero;
-            imageRect.anchorMax = Vector2.one;
-            imageRect.pivot = new Vector2(0.5f, 0.5f);
-            imageRect.offsetMin = new Vector2(6f, 6f);
-            imageRect.offsetMax = new Vector2(-6f, -6f);
-            secondaryViewImage.color = Color.white;
-            secondaryViewImage.raycastTarget = false;
+            _builderSecondaryViewPanel.style.width = secondaryViewPanelSize.x;
+            _builderSecondaryViewPanel.style.height = secondaryViewPanelSize.y;
+            _builderSecondaryViewPanel.style.left = secondaryViewPanelPosition.x;
         }
     }
 
     void EnsureSecondaryViewTexture()
     {
-        if (!Application.isPlaying || secondaryViewCamera == null || secondaryViewImage == null)
+        bool hasToolkitPreview = _builderSecondaryViewImage != null;
+        if (!Application.isPlaying || secondaryViewCamera == null || !hasToolkitPreview)
             return;
 
         int width = Mathf.Max(64, secondaryViewTextureSize);
@@ -5347,7 +5403,11 @@ public class BlockTower : MonoBehaviour
         }
 
         secondaryViewCamera.targetTexture = _secondaryViewTexture;
-        secondaryViewImage.texture = _secondaryViewTexture;
+        if (_builderSecondaryViewImage != null)
+        {
+            _builderSecondaryViewImage.style.backgroundImage = new StyleBackground(Background.FromRenderTexture(_secondaryViewTexture));
+            _builderSecondaryViewImage.style.unityBackgroundScaleMode = ScaleMode.ScaleAndCrop;
+        }
     }
 
     void UpdateSecondaryViewCamera()
@@ -5383,6 +5443,14 @@ public class BlockTower : MonoBehaviour
 
     float SecondaryViewAspect()
     {
+        if (_builderSecondaryViewPanel != null)
+        {
+            float width = ResolvedOrDefault(_builderSecondaryViewPanel.resolvedStyle.width, secondaryViewPanelSize.x);
+            float height = ResolvedOrDefault(_builderSecondaryViewPanel.resolvedStyle.height, secondaryViewPanelSize.y);
+            if (width > 1f && height > 1f)
+                return width / height;
+        }
+
         if (secondaryViewImage != null)
         {
             var rect = secondaryViewImage.rectTransform.rect;
@@ -5744,6 +5812,12 @@ public class BlockTower : MonoBehaviour
     {
         if (_blockSprite != null) return _blockSprite;
 
+#if UNITY_EDITOR
+        _blockSprite = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Contents/box.png");
+        if (_blockSprite != null)
+            return _blockSprite;
+#endif
+
         const int size = 32;
         var tex = new Texture2D(size, size, TextureFormat.RGBA32, false);
         tex.hideFlags = HideFlags.DontSave;
@@ -5813,6 +5887,8 @@ public class BlockTower : MonoBehaviour
         float t = Mathf.InverseLerp(1f, 6f, Mathf.Clamp(n, 1, 6));
         return Color.Lerp(new Color32(160, 160, 160, 255), new Color32(50, 50, 50, 255), t);
     }
+
+    static Color IceBlockColor() => new Color32(0x71, 0xC0, 0xC0, 0xFF);
 
     static Color TetrominoColor(TetrominoPreset preset) => preset switch
     {
