@@ -5,16 +5,28 @@
     <ui:VisualElement name="root" class="ui-root">
 
         <ui:VisualElement name="stage-screen" class="fill stage-bg">
+
+            <!-- 좌측: 스크롤 맵 -->
             <ui:VisualElement name="stage-view" class="stage-view">
-                <ui:Label name="stage-view-label" text="Stage View" class="stage-view__label" />
+                <ui:ScrollView name="stage-map-scroll" class="stage-map-scroll"
+                               mode="Vertical"
+                               horizontal-scroller-visibility="Hidden"
+                               vertical-scroller-visibility="Hidden">
+                    <!-- stage-map 높이는 USS에서 3000px 고정.
+                         StageUIController가 SplineContainer 기반으로
+                         StageMapElement(거품 경로)와 노드 버튼을 동적으로 추가. -->
+                    <ui:VisualElement name="stage-map" class="stage-map" />
+                </ui:ScrollView>
             </ui:VisualElement>
 
+            <!-- 우상단: 타이틀 -->
             <ui:VisualElement name="stage-title" class="stage-title-box">
                 <ui:Label text="Stage Scene" class="stage-title-box__text" />
             </ui:VisualElement>
 
+            <!-- 우측: 선택된 스테이지 정보 패널 -->
             <ui:VisualElement name="preview-image" class="stage-preview">
-                <ui:Label name="preview-label" text="Preview" class="stage-preview__label" />
+                <ui:Label name="preview-label" text="스테이지를 선택하세요" class="stage-preview__label" />
             </ui:VisualElement>
 
             <ui:VisualElement name="explain-box" class="stage-explain">
@@ -24,7 +36,7 @@
             <ui:Button name="start-button" text="플레이 스타트" class="btn stage-start-btn" />
 
             <ui:VisualElement class="tooltip-bar">
-                <ui:Label text="좌클릭(이미지): 선택   우클릭(이미지): 뒤로   ESC: 설정" class="tooltip-bar__text" />
+                <ui:Label text="스테이지 선택 후 플레이   ESC: 설정   우클릭: 뒤로" class="tooltip-bar__text" />
             </ui:VisualElement>
         </ui:VisualElement>
 
