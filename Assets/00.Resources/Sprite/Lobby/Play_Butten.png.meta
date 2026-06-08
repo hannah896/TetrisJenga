@@ -1,5 +1,5 @@
 fileFormatVersion: 2
-guid: 1abc17cd25b6fc741acd109d9a0f7568
+guid: 68f1145537bd509449b8f06568887f41
 TextureImporter:
   internalIDToNameTable: []
   externalObjects: {}
@@ -34,7 +34,7 @@ TextureImporter:
   maxTextureSize: 2048
   textureSettings:
     serializedVersion: 2
-    filterMode: 1
+    filterMode: 0
     aniso: 1
     mipBias: 0
     wrapU: 1
@@ -97,13 +97,13 @@ TextureImporter:
     serializedVersion: 2
     sprites:
     - serializedVersion: 2
-      name: Outline_0
+      name: Play_Butten_0
       rect:
         serializedVersion: 2
-        x: 553
-        y: 1268
-        width: 620
-        height: 338
+        x: 81
+        y: 446
+        width: 832
+        height: 200
       alignment: 0
       pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -112,30 +112,8 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: 0
       bones: []
-      spriteID: 22ac8cff5e20cdf49ac3db76201906d9
-      internalID: 1178944432
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
-      name: Outline_1
-      rect:
-        serializedVersion: 2
-        x: 552
-        y: 64
-        width: 621
-        height: 439
-      alignment: 0
-      pivot: {x: 0.5, y: 0.5}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
-      outline: []
-      physicsShape: []
-      tessellationDetail: 0
-      bones: []
-      spriteID: b21cf8e7c78c3de4d96828b2bdbd8200
-      internalID: 424427641
+      spriteID: d4d2943912481564e8a0445be881ade6
+      internalID: -2061822112
       vertices: []
       indices: 
       edges: []
@@ -144,7 +122,7 @@ TextureImporter:
     customData: 
     physicsShape: []
     bones: []
-    spriteID: 811543f6a7e875f4b97a3f54c2800f5e
+    spriteID: 6e0f169dfdb70354bb80c23305a310e6
     internalID: 0
     vertices: []
     indices: 
@@ -156,8 +134,7 @@ TextureImporter:
       - key: SpriteEditor.SliceSettings
         value: '{"sliceOnImport":false,"gridCellCount":{"x":1.0,"y":1.0},"gridSpriteSize":{"x":64.0,"y":64.0},"gridSpriteOffset":{"x":0.0,"y":0.0},"gridSpritePadding":{"x":0.0,"y":0.0},"pivot":{"x":0.5,"y":0.5},"pivotPixels":{"x":0.0,"y":0.0},"autoSlicingMethod":0,"spriteAlignment":0,"pivotUnitMode":0,"slicingType":0,"keepEmptyRects":false,"isAlternate":false}'
     nameFileIdTable:
-      Outline_0: 1178944432
-      Outline_1: 424427641
+      Play_Butten_0: -2061822112
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 

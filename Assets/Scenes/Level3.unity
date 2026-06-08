@@ -119,19 +119,6 @@ NavMeshSettings:
     debug:
       m_Flags: 0
   m_NavMeshData: {fileID: 0}
---- !u!134 &10521568
-PhysicsMaterial:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_Name: BlockFriction
-  serializedVersion: 2
-  m_DynamicFriction: 100
-  m_StaticFriction: 100
-  m_Bounciness: 0
-  m_FrictionCombine: 0
-  m_BounceCombine: 0
 --- !u!1 &28864797
 GameObject:
   m_ObjectHideFlags: 0
@@ -173,7 +160,7 @@ BoxCollider:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 28864797}
-  m_Material: {fileID: 10521568}
+  m_Material: {fileID: 2095594544}
   m_IncludeLayers:
     serializedVersion: 2
     m_Bits: 0
@@ -252,7 +239,7 @@ SpriteRenderer:
   m_SortingOrder: 0
   m_MaskInteraction: 0
   m_Sprite: {fileID: 21300000, guid: 75294217e59d9124e84206a4cd1fcfd2, type: 3}
-  m_Color: {r: 0.72, g: 0.38, b: 0.92, a: 1}
+  m_Color: {r: 0, g: 0, b: 0, a: 0}
   m_FlipX: 0
   m_FlipY: 0
   m_DrawMode: 0
@@ -261,7 +248,7 @@ SpriteRenderer:
   m_SpriteTileMode: 0
   m_WasSpriteAssigned: 1
   m_SpriteSortPoint: 0
---- !u!134 &34241245
+--- !u!134 &43573715
 PhysicsMaterial:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -323,7 +310,7 @@ SpriteRenderer:
   m_SortingLayer: 0
   m_SortingOrder: 0
   m_MaskInteraction: 0
-  m_Sprite: {fileID: 7482667652216324306, guid: 48e93eef0688c4a259cb0eddcd8661f7, type: 3}
+  m_Sprite: {fileID: 1086097586, guid: fad6bc07b8104ae44b2c8153593f2dd3, type: 3}
   m_Color: {r: 1, g: 0.25, b: 0.25, a: 0.7}
   m_FlipX: 0
   m_FlipY: 0
@@ -333,19 +320,6 @@ SpriteRenderer:
   m_SpriteTileMode: 0
   m_WasSpriteAssigned: 1
   m_SpriteSortPoint: 0
---- !u!134 &84757230
-PhysicsMaterial:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_Name: BlockFriction
-  serializedVersion: 2
-  m_DynamicFriction: 100
-  m_StaticFriction: 100
-  m_Bounciness: 0
-  m_FrictionCombine: 0
-  m_BounceCombine: 0
 --- !u!1001 &112717096
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -408,7 +382,7 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 4027011661610113908, guid: 710ac2b822fdb2a48937ae7fd0b18f1b, type: 3}
   m_PrefabInstance: {fileID: 112717096}
   m_PrefabAsset: {fileID: 0}
---- !u!134 &123354541
+--- !u!134 &120087461
 PhysicsMaterial:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -462,7 +436,7 @@ BoxCollider:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 133904976}
-  m_Material: {fileID: 1782903558}
+  m_Material: {fileID: 1572598012}
   m_IncludeLayers:
     serializedVersion: 2
     m_Bits: 0
@@ -541,7 +515,7 @@ SpriteRenderer:
   m_SortingOrder: 0
   m_MaskInteraction: 0
   m_Sprite: {fileID: 21300000, guid: 75294217e59d9124e84206a4cd1fcfd2, type: 3}
-  m_Color: {r: 0.72, g: 0.38, b: 0.92, a: 1}
+  m_Color: {r: 0, g: 0, b: 0, a: 0}
   m_FlipX: 0
   m_FlipY: 0
   m_DrawMode: 0
@@ -550,6 +524,19 @@ SpriteRenderer:
   m_SpriteTileMode: 0
   m_WasSpriteAssigned: 1
   m_SpriteSortPoint: 0
+--- !u!134 &135869934
+PhysicsMaterial:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: BlockFriction
+  serializedVersion: 2
+  m_DynamicFriction: 100
+  m_StaticFriction: 100
+  m_Bounciness: 0
+  m_FrictionCombine: 0
+  m_BounceCombine: 0
 --- !u!1 &223400100
 GameObject:
   m_ObjectHideFlags: 0
@@ -620,20 +607,7 @@ MonoBehaviour:
   blendSpeed: 6
   maxWeight: 1
   enableCameraPostProcessing: 1
---- !u!134 &223567576
-PhysicsMaterial:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_Name: BlockFriction
-  serializedVersion: 2
-  m_DynamicFriction: 100
-  m_StaticFriction: 100
-  m_Bounciness: 0
-  m_FrictionCombine: 0
-  m_BounceCombine: 0
---- !u!134 &226501155
+--- !u!134 &227563565
 PhysicsMaterial:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -687,7 +661,7 @@ BoxCollider:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 273548809}
-  m_Material: {fileID: 1388002243}
+  m_Material: {fileID: 797232863}
   m_IncludeLayers:
     serializedVersion: 2
     m_Bits: 0
@@ -766,7 +740,7 @@ SpriteRenderer:
   m_SortingOrder: 0
   m_MaskInteraction: 0
   m_Sprite: {fileID: 21300000, guid: 75294217e59d9124e84206a4cd1fcfd2, type: 3}
-  m_Color: {r: 0.22, g: 0.8, b: 0.45, a: 1}
+  m_Color: {r: 0, g: 0, b: 0, a: 0}
   m_FlipX: 0
   m_FlipY: 0
   m_DrawMode: 0
@@ -775,71 +749,6 @@ SpriteRenderer:
   m_SpriteTileMode: 0
   m_WasSpriteAssigned: 1
   m_SpriteSortPoint: 0
---- !u!134 &278679405
-PhysicsMaterial:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_Name: BlockFriction
-  serializedVersion: 2
-  m_DynamicFriction: 100
-  m_StaticFriction: 100
-  m_Bounciness: 0
-  m_FrictionCombine: 0
-  m_BounceCombine: 0
---- !u!134 &283004179
-PhysicsMaterial:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_Name: BlockFriction
-  serializedVersion: 2
-  m_DynamicFriction: 100
-  m_StaticFriction: 100
-  m_Bounciness: 0
-  m_FrictionCombine: 0
-  m_BounceCombine: 0
---- !u!134 &283909072
-PhysicsMaterial:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_Name: BlockFriction
-  serializedVersion: 2
-  m_DynamicFriction: 100
-  m_StaticFriction: 100
-  m_Bounciness: 0
-  m_FrictionCombine: 0
-  m_BounceCombine: 0
---- !u!134 &287078865
-PhysicsMaterial:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_Name: BlockFriction
-  serializedVersion: 2
-  m_DynamicFriction: 100
-  m_StaticFriction: 100
-  m_Bounciness: 0
-  m_FrictionCombine: 0
-  m_BounceCombine: 0
---- !u!134 &312119373
-PhysicsMaterial:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_Name: BlockFriction
-  serializedVersion: 2
-  m_DynamicFriction: 100
-  m_StaticFriction: 100
-  m_Bounciness: 0
-  m_FrictionCombine: 0
-  m_BounceCombine: 0
 --- !u!1 &320221750
 GameObject:
   m_ObjectHideFlags: 0
@@ -881,7 +790,7 @@ BoxCollider:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 320221750}
-  m_Material: {fileID: 2074351691}
+  m_Material: {fileID: 863890096}
   m_IncludeLayers:
     serializedVersion: 2
     m_Bits: 0
@@ -960,7 +869,7 @@ SpriteRenderer:
   m_SortingOrder: 0
   m_MaskInteraction: 0
   m_Sprite: {fileID: 21300000, guid: 75294217e59d9124e84206a4cd1fcfd2, type: 3}
-  m_Color: {r: 0.22, g: 0.8, b: 0.45, a: 1}
+  m_Color: {r: 0, g: 0, b: 0, a: 0}
   m_FlipX: 0
   m_FlipY: 0
   m_DrawMode: 0
@@ -969,19 +878,6 @@ SpriteRenderer:
   m_SpriteTileMode: 0
   m_WasSpriteAssigned: 1
   m_SpriteSortPoint: 0
---- !u!134 &330543304
-PhysicsMaterial:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_Name: BlockFriction
-  serializedVersion: 2
-  m_DynamicFriction: 100
-  m_StaticFriction: 100
-  m_Bounciness: 0
-  m_FrictionCombine: 0
-  m_BounceCombine: 0
 --- !u!1 &330585543
 GameObject:
   m_ObjectHideFlags: 0
@@ -1120,7 +1016,7 @@ MonoBehaviour:
     m_VarianceClampScale: 0.9
     m_ContrastAdaptiveSharpening: 0
   m_Version: 2
---- !u!134 &333107212
+--- !u!134 &331761215
 PhysicsMaterial:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -1174,7 +1070,7 @@ BoxCollider:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 335172254}
-  m_Material: {fileID: 1775815143}
+  m_Material: {fileID: 698245170}
   m_IncludeLayers:
     serializedVersion: 2
     m_Bits: 0
@@ -1253,7 +1149,7 @@ SpriteRenderer:
   m_SortingOrder: 0
   m_MaskInteraction: 0
   m_Sprite: {fileID: 21300000, guid: 75294217e59d9124e84206a4cd1fcfd2, type: 3}
-  m_Color: {r: 0.22, g: 0.8, b: 0.45, a: 1}
+  m_Color: {r: 0, g: 0, b: 0, a: 0}
   m_FlipX: 0
   m_FlipY: 0
   m_DrawMode: 0
@@ -1262,7 +1158,7 @@ SpriteRenderer:
   m_SpriteTileMode: 0
   m_WasSpriteAssigned: 1
   m_SpriteSortPoint: 0
---- !u!134 &346549108
+--- !u!134 &364253634
 PhysicsMaterial:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -1275,7 +1171,7 @@ PhysicsMaterial:
   m_Bounciness: 0
   m_FrictionCombine: 0
   m_BounceCombine: 0
---- !u!134 &379087730
+--- !u!134 &399724618
 PhysicsMaterial:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -1288,7 +1184,7 @@ PhysicsMaterial:
   m_Bounciness: 0
   m_FrictionCombine: 0
   m_BounceCombine: 0
---- !u!134 &396750537
+--- !u!134 &448630958
 PhysicsMaterial:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -1301,7 +1197,7 @@ PhysicsMaterial:
   m_Bounciness: 0
   m_FrictionCombine: 0
   m_BounceCombine: 0
---- !u!134 &401591009
+--- !u!134 &465876430
 PhysicsMaterial:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -1355,7 +1251,7 @@ BoxCollider:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 467087167}
-  m_Material: {fileID: 1858050597}
+  m_Material: {fileID: 1620004551}
   m_IncludeLayers:
     serializedVersion: 2
     m_Bits: 0
@@ -1434,7 +1330,7 @@ SpriteRenderer:
   m_SortingOrder: 0
   m_MaskInteraction: 0
   m_Sprite: {fileID: 21300000, guid: 75294217e59d9124e84206a4cd1fcfd2, type: 3}
-  m_Color: {r: 0.72, g: 0.38, b: 0.92, a: 1}
+  m_Color: {r: 0, g: 0, b: 0, a: 0}
   m_FlipX: 0
   m_FlipY: 0
   m_DrawMode: 0
@@ -1484,7 +1380,7 @@ BoxCollider:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 488334741}
-  m_Material: {fileID: 1651827816}
+  m_Material: {fileID: 581851825}
   m_IncludeLayers:
     serializedVersion: 2
     m_Bits: 0
@@ -1563,7 +1459,7 @@ SpriteRenderer:
   m_SortingOrder: 0
   m_MaskInteraction: 0
   m_Sprite: {fileID: 21300000, guid: 75294217e59d9124e84206a4cd1fcfd2, type: 3}
-  m_Color: {r: 0.22, g: 0.8, b: 0.45, a: 1}
+  m_Color: {r: 0, g: 0, b: 0, a: 0}
   m_FlipX: 0
   m_FlipY: 0
   m_DrawMode: 0
@@ -1572,32 +1468,6 @@ SpriteRenderer:
   m_SpriteTileMode: 0
   m_WasSpriteAssigned: 1
   m_SpriteSortPoint: 0
---- !u!134 &495917725
-PhysicsMaterial:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_Name: BlockFriction
-  serializedVersion: 2
-  m_DynamicFriction: 100
-  m_StaticFriction: 100
-  m_Bounciness: 0
-  m_FrictionCombine: 0
-  m_BounceCombine: 0
---- !u!134 &499278493
-PhysicsMaterial:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_Name: BlockFriction
-  serializedVersion: 2
-  m_DynamicFriction: 100
-  m_StaticFriction: 100
-  m_Bounciness: 0
-  m_FrictionCombine: 0
-  m_BounceCombine: 0
 --- !u!1 &503850396
 GameObject:
   m_ObjectHideFlags: 0
@@ -1639,7 +1509,7 @@ BoxCollider:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 503850396}
-  m_Material: {fileID: 802555184}
+  m_Material: {fileID: 227563565}
   m_IncludeLayers:
     serializedVersion: 2
     m_Bits: 0
@@ -1718,7 +1588,7 @@ SpriteRenderer:
   m_SortingOrder: 0
   m_MaskInteraction: 0
   m_Sprite: {fileID: 21300000, guid: 75294217e59d9124e84206a4cd1fcfd2, type: 3}
-  m_Color: {r: 0.72, g: 0.38, b: 0.92, a: 1}
+  m_Color: {r: 0, g: 0, b: 0, a: 0}
   m_FlipX: 0
   m_FlipY: 0
   m_DrawMode: 0
@@ -1768,7 +1638,7 @@ BoxCollider:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 512603783}
-  m_Material: {fileID: 123354541}
+  m_Material: {fileID: 1651745110}
   m_IncludeLayers:
     serializedVersion: 2
     m_Bits: 0
@@ -1847,7 +1717,7 @@ SpriteRenderer:
   m_SortingOrder: 0
   m_MaskInteraction: 0
   m_Sprite: {fileID: 21300000, guid: 75294217e59d9124e84206a4cd1fcfd2, type: 3}
-  m_Color: {r: 0.93, g: 0.27, b: 0.27, a: 1}
+  m_Color: {r: 0, g: 0, b: 0, a: 0}
   m_FlipX: 0
   m_FlipY: 0
   m_DrawMode: 0
@@ -1856,7 +1726,7 @@ SpriteRenderer:
   m_SpriteTileMode: 0
   m_WasSpriteAssigned: 1
   m_SpriteSortPoint: 0
---- !u!134 &523114919
+--- !u!134 &524327116
 PhysicsMaterial:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -1910,7 +1780,7 @@ BoxCollider:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 549000928}
-  m_Material: {fileID: 1121420825}
+  m_Material: {fileID: 1902323867}
   m_IncludeLayers:
     serializedVersion: 2
     m_Bits: 0
@@ -1989,7 +1859,7 @@ SpriteRenderer:
   m_SortingOrder: 0
   m_MaskInteraction: 0
   m_Sprite: {fileID: 21300000, guid: 75294217e59d9124e84206a4cd1fcfd2, type: 3}
-  m_Color: {r: 0.93, g: 0.27, b: 0.27, a: 1}
+  m_Color: {r: 0, g: 0, b: 0, a: 0}
   m_FlipX: 0
   m_FlipY: 0
   m_DrawMode: 0
@@ -1998,6 +1868,32 @@ SpriteRenderer:
   m_SpriteTileMode: 0
   m_WasSpriteAssigned: 1
   m_SpriteSortPoint: 0
+--- !u!134 &558317730
+PhysicsMaterial:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: BlockFriction
+  serializedVersion: 2
+  m_DynamicFriction: 100
+  m_StaticFriction: 100
+  m_Bounciness: 0
+  m_FrictionCombine: 0
+  m_BounceCombine: 0
+--- !u!134 &581851825
+PhysicsMaterial:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: BlockFriction
+  serializedVersion: 2
+  m_DynamicFriction: 100
+  m_StaticFriction: 100
+  m_Bounciness: 0
+  m_FrictionCombine: 0
+  m_BounceCombine: 0
 --- !u!1 &592000150
 GameObject:
   m_ObjectHideFlags: 0
@@ -2039,7 +1935,7 @@ BoxCollider:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 592000150}
-  m_Material: {fileID: 379087730}
+  m_Material: {fileID: 120087461}
   m_IncludeLayers:
     serializedVersion: 2
     m_Bits: 0
@@ -2118,7 +2014,7 @@ SpriteRenderer:
   m_SortingOrder: 0
   m_MaskInteraction: 0
   m_Sprite: {fileID: 21300000, guid: 75294217e59d9124e84206a4cd1fcfd2, type: 3}
-  m_Color: {r: 0.26, g: 0.65, b: 0.96, a: 1}
+  m_Color: {r: 0, g: 0, b: 0, a: 0}
   m_FlipX: 0
   m_FlipY: 0
   m_DrawMode: 0
@@ -2168,7 +2064,7 @@ BoxCollider:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 600023112}
-  m_Material: {fileID: 1295522582}
+  m_Material: {fileID: 2084761324}
   m_IncludeLayers:
     serializedVersion: 2
     m_Bits: 0
@@ -2247,7 +2143,7 @@ SpriteRenderer:
   m_SortingOrder: 0
   m_MaskInteraction: 0
   m_Sprite: {fileID: 21300000, guid: 75294217e59d9124e84206a4cd1fcfd2, type: 3}
-  m_Color: {r: 0.93, g: 0.27, b: 0.27, a: 1}
+  m_Color: {r: 0, g: 0, b: 0, a: 0}
   m_FlipX: 0
   m_FlipY: 0
   m_DrawMode: 0
@@ -2256,20 +2152,7 @@ SpriteRenderer:
   m_SpriteTileMode: 0
   m_WasSpriteAssigned: 1
   m_SpriteSortPoint: 0
---- !u!134 &617202363
-PhysicsMaterial:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_Name: BlockFriction
-  serializedVersion: 2
-  m_DynamicFriction: 100
-  m_StaticFriction: 100
-  m_Bounciness: 0
-  m_FrictionCombine: 0
-  m_BounceCombine: 0
---- !u!134 &633457529
+--- !u!134 &620641336
 PhysicsMaterial:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -2323,7 +2206,7 @@ BoxCollider:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 633804134}
-  m_Material: {fileID: 2007727644}
+  m_Material: {fileID: 1686875988}
   m_IncludeLayers:
     serializedVersion: 2
     m_Bits: 0
@@ -2402,7 +2285,7 @@ SpriteRenderer:
   m_SortingOrder: 0
   m_MaskInteraction: 0
   m_Sprite: {fileID: 21300000, guid: 75294217e59d9124e84206a4cd1fcfd2, type: 3}
-  m_Color: {r: 0.93, g: 0.27, b: 0.27, a: 1}
+  m_Color: {r: 0, g: 0, b: 0, a: 0}
   m_FlipX: 0
   m_FlipY: 0
   m_DrawMode: 0
@@ -2411,32 +2294,6 @@ SpriteRenderer:
   m_SpriteTileMode: 0
   m_WasSpriteAssigned: 1
   m_SpriteSortPoint: 0
---- !u!134 &652396040
-PhysicsMaterial:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_Name: BlockFriction
-  serializedVersion: 2
-  m_DynamicFriction: 100
-  m_StaticFriction: 100
-  m_Bounciness: 0
-  m_FrictionCombine: 0
-  m_BounceCombine: 0
---- !u!134 &674573690
-PhysicsMaterial:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_Name: BlockFriction
-  serializedVersion: 2
-  m_DynamicFriction: 100
-  m_StaticFriction: 100
-  m_Bounciness: 0
-  m_FrictionCombine: 0
-  m_BounceCombine: 0
 --- !u!1 &676845010
 GameObject:
   m_ObjectHideFlags: 0
@@ -2478,7 +2335,7 @@ BoxCollider:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 676845010}
-  m_Material: {fileID: 1941902748}
+  m_Material: {fileID: 1468629533}
   m_IncludeLayers:
     serializedVersion: 2
     m_Bits: 0
@@ -2557,7 +2414,7 @@ SpriteRenderer:
   m_SortingOrder: 0
   m_MaskInteraction: 0
   m_Sprite: {fileID: 21300000, guid: 75294217e59d9124e84206a4cd1fcfd2, type: 3}
-  m_Color: {r: 0.22, g: 0.8, b: 0.45, a: 1}
+  m_Color: {r: 0, g: 0, b: 0, a: 0}
   m_FlipX: 0
   m_FlipY: 0
   m_DrawMode: 0
@@ -2566,6 +2423,19 @@ SpriteRenderer:
   m_SpriteTileMode: 0
   m_WasSpriteAssigned: 1
   m_SpriteSortPoint: 0
+--- !u!134 &698245170
+PhysicsMaterial:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: BlockFriction
+  serializedVersion: 2
+  m_DynamicFriction: 100
+  m_StaticFriction: 100
+  m_Bounciness: 0
+  m_FrictionCombine: 0
+  m_BounceCombine: 0
 --- !u!1 &720000003
 GameObject:
   m_ObjectHideFlags: 0
@@ -2770,7 +2640,7 @@ SpriteRenderer:
   m_SortingLayer: 0
   m_SortingOrder: 0
   m_MaskInteraction: 0
-  m_Sprite: {fileID: 7482667652216324306, guid: 48e93eef0688c4a259cb0eddcd8661f7, type: 3}
+  m_Sprite: {fileID: 1086097586, guid: fad6bc07b8104ae44b2c8153593f2dd3, type: 3}
   m_Color: {r: 1, g: 0.25, b: 0.25, a: 0.7}
   m_FlipX: 0
   m_FlipY: 0
@@ -2780,20 +2650,7 @@ SpriteRenderer:
   m_SpriteTileMode: 0
   m_WasSpriteAssigned: 1
   m_SpriteSortPoint: 0
---- !u!134 &723096077
-PhysicsMaterial:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_Name: BlockFriction
-  serializedVersion: 2
-  m_DynamicFriction: 100
-  m_StaticFriction: 100
-  m_Bounciness: 0
-  m_FrictionCombine: 0
-  m_BounceCombine: 0
---- !u!134 &732822874
+--- !u!134 &723540410
 PhysicsMaterial:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -2847,7 +2704,7 @@ BoxCollider:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 741940796}
-  m_Material: {fileID: 1075398450}
+  m_Material: {fileID: 524327116}
   m_IncludeLayers:
     serializedVersion: 2
     m_Bits: 0
@@ -2926,7 +2783,7 @@ SpriteRenderer:
   m_SortingOrder: 0
   m_MaskInteraction: 0
   m_Sprite: {fileID: 21300000, guid: 75294217e59d9124e84206a4cd1fcfd2, type: 3}
-  m_Color: {r: 0.72, g: 0.38, b: 0.92, a: 1}
+  m_Color: {r: 0, g: 0, b: 0, a: 0}
   m_FlipX: 0
   m_FlipY: 0
   m_DrawMode: 0
@@ -2935,7 +2792,59 @@ SpriteRenderer:
   m_SpriteTileMode: 0
   m_WasSpriteAssigned: 1
   m_SpriteSortPoint: 0
---- !u!134 &802555184
+--- !u!134 &757221569
+PhysicsMaterial:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: BlockFriction
+  serializedVersion: 2
+  m_DynamicFriction: 100
+  m_StaticFriction: 100
+  m_Bounciness: 0
+  m_FrictionCombine: 0
+  m_BounceCombine: 0
+--- !u!134 &783110597
+PhysicsMaterial:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: BlockFriction
+  serializedVersion: 2
+  m_DynamicFriction: 100
+  m_StaticFriction: 100
+  m_Bounciness: 0
+  m_FrictionCombine: 0
+  m_BounceCombine: 0
+--- !u!134 &797232863
+PhysicsMaterial:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: BlockFriction
+  serializedVersion: 2
+  m_DynamicFriction: 100
+  m_StaticFriction: 100
+  m_Bounciness: 0
+  m_FrictionCombine: 0
+  m_BounceCombine: 0
+--- !u!134 &804908190
+PhysicsMaterial:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: BlockFriction
+  serializedVersion: 2
+  m_DynamicFriction: 100
+  m_StaticFriction: 100
+  m_Bounciness: 0
+  m_FrictionCombine: 0
+  m_BounceCombine: 0
+--- !u!134 &815701204
 PhysicsMaterial:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -2979,6 +2888,45 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!134 &845655619
+PhysicsMaterial:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: BlockFriction
+  serializedVersion: 2
+  m_DynamicFriction: 100
+  m_StaticFriction: 100
+  m_Bounciness: 0
+  m_FrictionCombine: 0
+  m_BounceCombine: 0
+--- !u!134 &863890096
+PhysicsMaterial:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: BlockFriction
+  serializedVersion: 2
+  m_DynamicFriction: 100
+  m_StaticFriction: 100
+  m_Bounciness: 0
+  m_FrictionCombine: 0
+  m_BounceCombine: 0
+--- !u!134 &872263268
+PhysicsMaterial:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: BlockFriction
+  serializedVersion: 2
+  m_DynamicFriction: 100
+  m_StaticFriction: 100
+  m_Bounciness: 0
+  m_FrictionCombine: 0
+  m_BounceCombine: 0
 --- !u!1 &895623868
 GameObject:
   m_ObjectHideFlags: 0
@@ -3038,6 +2986,19 @@ Canvas:
   m_SortingLayerID: 0
   m_SortingOrder: -15488
   m_TargetDisplay: 0
+--- !u!134 &900737572
+PhysicsMaterial:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: BlockFriction
+  serializedVersion: 2
+  m_DynamicFriction: 100
+  m_StaticFriction: 100
+  m_Bounciness: 0
+  m_FrictionCombine: 0
+  m_BounceCombine: 0
 --- !u!1 &904867767
 GameObject:
   m_ObjectHideFlags: 0
@@ -3079,7 +3040,7 @@ BoxCollider:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 904867767}
-  m_Material: {fileID: 330543304}
+  m_Material: {fileID: 1229078958}
   m_IncludeLayers:
     serializedVersion: 2
     m_Bits: 0
@@ -3158,7 +3119,7 @@ SpriteRenderer:
   m_SortingOrder: 0
   m_MaskInteraction: 0
   m_Sprite: {fileID: 21300000, guid: 75294217e59d9124e84206a4cd1fcfd2, type: 3}
-  m_Color: {r: 0.72, g: 0.38, b: 0.92, a: 1}
+  m_Color: {r: 0, g: 0, b: 0, a: 0}
   m_FlipX: 0
   m_FlipY: 0
   m_DrawMode: 0
@@ -3167,6 +3128,32 @@ SpriteRenderer:
   m_SpriteTileMode: 0
   m_WasSpriteAssigned: 1
   m_SpriteSortPoint: 0
+--- !u!134 &911018670
+PhysicsMaterial:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: BlockFriction
+  serializedVersion: 2
+  m_DynamicFriction: 100
+  m_StaticFriction: 100
+  m_Bounciness: 0
+  m_FrictionCombine: 0
+  m_BounceCombine: 0
+--- !u!134 &922263378
+PhysicsMaterial:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: BlockFriction
+  serializedVersion: 2
+  m_DynamicFriction: 100
+  m_StaticFriction: 100
+  m_Bounciness: 0
+  m_FrictionCombine: 0
+  m_BounceCombine: 0
 --- !u!1001 &945290493
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -3357,6 +3344,32 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!134 &951227508
+PhysicsMaterial:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: BlockFriction
+  serializedVersion: 2
+  m_DynamicFriction: 100
+  m_StaticFriction: 100
+  m_Bounciness: 0
+  m_FrictionCombine: 0
+  m_BounceCombine: 0
+--- !u!134 &968003588
+PhysicsMaterial:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: BlockFriction
+  serializedVersion: 2
+  m_DynamicFriction: 100
+  m_StaticFriction: 100
+  m_Bounciness: 0
+  m_FrictionCombine: 0
+  m_BounceCombine: 0
 --- !u!1001 &991982561
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -3419,7 +3432,7 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 4027011661610113908, guid: 710ac2b822fdb2a48937ae7fd0b18f1b, type: 3}
   m_PrefabInstance: {fileID: 991982561}
   m_PrefabAsset: {fileID: 0}
---- !u!134 &1000980347
+--- !u!134 &995459380
 PhysicsMaterial:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -3473,7 +3486,7 @@ BoxCollider:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1003079133}
-  m_Material: {fileID: 1419162139}
+  m_Material: {fileID: 1571483106}
   m_IncludeLayers:
     serializedVersion: 2
     m_Bits: 0
@@ -3552,7 +3565,7 @@ SpriteRenderer:
   m_SortingOrder: 0
   m_MaskInteraction: 0
   m_Sprite: {fileID: 21300000, guid: 75294217e59d9124e84206a4cd1fcfd2, type: 3}
-  m_Color: {r: 0.72, g: 0.38, b: 0.92, a: 1}
+  m_Color: {r: 0, g: 0, b: 0, a: 0}
   m_FlipX: 0
   m_FlipY: 0
   m_DrawMode: 0
@@ -3640,6 +3653,19 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!134 &1027791414
+PhysicsMaterial:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: BlockFriction
+  serializedVersion: 2
+  m_DynamicFriction: 100
+  m_StaticFriction: 100
+  m_Bounciness: 0
+  m_FrictionCombine: 0
+  m_BounceCombine: 0
 --- !u!1 &1053524690
 GameObject:
   m_ObjectHideFlags: 0
@@ -3681,7 +3707,7 @@ BoxCollider:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1053524690}
-  m_Material: {fileID: 1940751908}
+  m_Material: {fileID: 1716959331}
   m_IncludeLayers:
     serializedVersion: 2
     m_Bits: 0
@@ -3760,7 +3786,7 @@ SpriteRenderer:
   m_SortingOrder: 0
   m_MaskInteraction: 0
   m_Sprite: {fileID: 21300000, guid: 75294217e59d9124e84206a4cd1fcfd2, type: 3}
-  m_Color: {r: 0.22, g: 0.8, b: 0.45, a: 1}
+  m_Color: {r: 0, g: 0, b: 0, a: 0}
   m_FlipX: 0
   m_FlipY: 0
   m_DrawMode: 0
@@ -3825,39 +3851,17 @@ PrefabInstance:
       propertyPath: m_Name
       value: Floor
       objectReference: {fileID: 0}
+    - target: {fileID: 8948554306527171897, guid: 6551af1e25c1a2349b89315968e264d4, type: 3}
+      propertyPath: m_Sprite
+      value: 
+      objectReference: {fileID: 23282649, guid: 2a7dbdb561b9d2e43a03a5295022ee27, type: 3}
     m_RemovedComponents:
     - {fileID: 0}
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 6551af1e25c1a2349b89315968e264d4, type: 3}
---- !u!134 &1059830129
-PhysicsMaterial:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_Name: BlockFriction
-  serializedVersion: 2
-  m_DynamicFriction: 100
-  m_StaticFriction: 100
-  m_Bounciness: 0
-  m_FrictionCombine: 0
-  m_BounceCombine: 0
---- !u!134 &1075398450
-PhysicsMaterial:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_Name: BlockFriction
-  serializedVersion: 2
-  m_DynamicFriction: 100
-  m_StaticFriction: 100
-  m_Bounciness: 0
-  m_FrictionCombine: 0
-  m_BounceCombine: 0
---- !u!134 &1091444792
+--- !u!134 &1106608746
 PhysicsMaterial:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -3911,7 +3915,7 @@ BoxCollider:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1113464759}
-  m_Material: {fileID: 1000980347}
+  m_Material: {fileID: 620641336}
   m_IncludeLayers:
     serializedVersion: 2
     m_Bits: 0
@@ -3990,7 +3994,7 @@ SpriteRenderer:
   m_SortingOrder: 0
   m_MaskInteraction: 0
   m_Sprite: {fileID: 21300000, guid: 75294217e59d9124e84206a4cd1fcfd2, type: 3}
-  m_Color: {r: 0.72, g: 0.38, b: 0.92, a: 1}
+  m_Color: {r: 0, g: 0, b: 0, a: 0}
   m_FlipX: 0
   m_FlipY: 0
   m_DrawMode: 0
@@ -4040,7 +4044,7 @@ BoxCollider:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1118348909}
-  m_Material: {fileID: 1217306578}
+  m_Material: {fileID: 364253634}
   m_IncludeLayers:
     serializedVersion: 2
     m_Bits: 0
@@ -4119,7 +4123,7 @@ SpriteRenderer:
   m_SortingOrder: 0
   m_MaskInteraction: 0
   m_Sprite: {fileID: 21300000, guid: 75294217e59d9124e84206a4cd1fcfd2, type: 3}
-  m_Color: {r: 0.22, g: 0.8, b: 0.45, a: 1}
+  m_Color: {r: 0, g: 0, b: 0, a: 0}
   m_FlipX: 0
   m_FlipY: 0
   m_DrawMode: 0
@@ -4128,7 +4132,7 @@ SpriteRenderer:
   m_SpriteTileMode: 0
   m_WasSpriteAssigned: 1
   m_SpriteSortPoint: 0
---- !u!134 &1120460919
+--- !u!134 &1129028041
 PhysicsMaterial:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -4141,7 +4145,7 @@ PhysicsMaterial:
   m_Bounciness: 0
   m_FrictionCombine: 0
   m_BounceCombine: 0
---- !u!134 &1121420825
+--- !u!134 &1165578741
 PhysicsMaterial:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -4154,7 +4158,7 @@ PhysicsMaterial:
   m_Bounciness: 0
   m_FrictionCombine: 0
   m_BounceCombine: 0
---- !u!134 &1146391081
+--- !u!134 &1180470571
 PhysicsMaterial:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -4167,7 +4171,7 @@ PhysicsMaterial:
   m_Bounciness: 0
   m_FrictionCombine: 0
   m_BounceCombine: 0
---- !u!134 &1217306578
+--- !u!134 &1191162800
 PhysicsMaterial:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -4180,7 +4184,33 @@ PhysicsMaterial:
   m_Bounciness: 0
   m_FrictionCombine: 0
   m_BounceCombine: 0
---- !u!134 &1292606900
+--- !u!134 &1227201283
+PhysicsMaterial:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: BlockFriction
+  serializedVersion: 2
+  m_DynamicFriction: 100
+  m_StaticFriction: 100
+  m_Bounciness: 0
+  m_FrictionCombine: 0
+  m_BounceCombine: 0
+--- !u!134 &1229078958
+PhysicsMaterial:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: BlockFriction
+  serializedVersion: 2
+  m_DynamicFriction: 100
+  m_StaticFriction: 100
+  m_Bounciness: 0
+  m_FrictionCombine: 0
+  m_BounceCombine: 0
+--- !u!134 &1233687521
 PhysicsMaterial:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -4234,7 +4264,7 @@ BoxCollider:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1292781911}
-  m_Material: {fileID: 333107212}
+  m_Material: {fileID: 1994376519}
   m_IncludeLayers:
     serializedVersion: 2
     m_Bits: 0
@@ -4313,7 +4343,7 @@ SpriteRenderer:
   m_SortingOrder: 0
   m_MaskInteraction: 0
   m_Sprite: {fileID: 21300000, guid: 75294217e59d9124e84206a4cd1fcfd2, type: 3}
-  m_Color: {r: 0.22, g: 0.8, b: 0.45, a: 1}
+  m_Color: {r: 0, g: 0, b: 0, a: 0}
   m_FlipX: 0
   m_FlipY: 0
   m_DrawMode: 0
@@ -4322,19 +4352,6 @@ SpriteRenderer:
   m_SpriteTileMode: 0
   m_WasSpriteAssigned: 1
   m_SpriteSortPoint: 0
---- !u!134 &1295522582
-PhysicsMaterial:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_Name: BlockFriction
-  serializedVersion: 2
-  m_DynamicFriction: 100
-  m_StaticFriction: 100
-  m_Bounciness: 0
-  m_FrictionCombine: 0
-  m_BounceCombine: 0
 --- !u!1 &1322587905
 GameObject:
   m_ObjectHideFlags: 0
@@ -4376,7 +4393,7 @@ BoxCollider:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1322587905}
-  m_Material: {fileID: 34241245}
+  m_Material: {fileID: 1467615288}
   m_IncludeLayers:
     serializedVersion: 2
     m_Bits: 0
@@ -4455,7 +4472,7 @@ SpriteRenderer:
   m_SortingOrder: 0
   m_MaskInteraction: 0
   m_Sprite: {fileID: 21300000, guid: 75294217e59d9124e84206a4cd1fcfd2, type: 3}
-  m_Color: {r: 0.72, g: 0.38, b: 0.92, a: 1}
+  m_Color: {r: 0, g: 0, b: 0, a: 0}
   m_FlipX: 0
   m_FlipY: 0
   m_DrawMode: 0
@@ -4464,19 +4481,6 @@ SpriteRenderer:
   m_SpriteTileMode: 0
   m_WasSpriteAssigned: 1
   m_SpriteSortPoint: 0
---- !u!134 &1329255491
-PhysicsMaterial:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_Name: BlockFriction
-  serializedVersion: 2
-  m_DynamicFriction: 100
-  m_StaticFriction: 100
-  m_Bounciness: 0
-  m_FrictionCombine: 0
-  m_BounceCombine: 0
 --- !u!1 &1334500700
 GameObject:
   m_ObjectHideFlags: 0
@@ -4518,7 +4522,7 @@ BoxCollider:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1334500700}
-  m_Material: {fileID: 226501155}
+  m_Material: {fileID: 1723272987}
   m_IncludeLayers:
     serializedVersion: 2
     m_Bits: 0
@@ -4597,7 +4601,7 @@ SpriteRenderer:
   m_SortingOrder: 0
   m_MaskInteraction: 0
   m_Sprite: {fileID: 21300000, guid: 75294217e59d9124e84206a4cd1fcfd2, type: 3}
-  m_Color: {r: 0.22, g: 0.8, b: 0.45, a: 1}
+  m_Color: {r: 0, g: 0, b: 0, a: 0}
   m_FlipX: 0
   m_FlipY: 0
   m_DrawMode: 0
@@ -4606,7 +4610,7 @@ SpriteRenderer:
   m_SpriteTileMode: 0
   m_WasSpriteAssigned: 1
   m_SpriteSortPoint: 0
---- !u!134 &1340207109
+--- !u!134 &1341356030
 PhysicsMaterial:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -4660,7 +4664,7 @@ BoxCollider:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1359437741}
-  m_Material: {fileID: 1340207109}
+  m_Material: {fileID: 1129028041}
   m_IncludeLayers:
     serializedVersion: 2
     m_Bits: 0
@@ -4739,7 +4743,7 @@ SpriteRenderer:
   m_SortingOrder: 0
   m_MaskInteraction: 0
   m_Sprite: {fileID: 21300000, guid: 75294217e59d9124e84206a4cd1fcfd2, type: 3}
-  m_Color: {r: 0.98, g: 0.73, b: 0.15, a: 1}
+  m_Color: {r: 0, g: 0, b: 0, a: 0}
   m_FlipX: 0
   m_FlipY: 0
   m_DrawMode: 0
@@ -4748,19 +4752,6 @@ SpriteRenderer:
   m_SpriteTileMode: 0
   m_WasSpriteAssigned: 1
   m_SpriteSortPoint: 0
---- !u!134 &1362625372
-PhysicsMaterial:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_Name: BlockFriction
-  serializedVersion: 2
-  m_DynamicFriction: 100
-  m_StaticFriction: 100
-  m_Bounciness: 0
-  m_FrictionCombine: 0
-  m_BounceCombine: 0
 --- !u!1 &1363350844
 GameObject:
   m_ObjectHideFlags: 0
@@ -4802,7 +4793,7 @@ BoxCollider:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1363350844}
-  m_Material: {fileID: 617202363}
+  m_Material: {fileID: 723540410}
   m_IncludeLayers:
     serializedVersion: 2
     m_Bits: 0
@@ -4881,7 +4872,7 @@ SpriteRenderer:
   m_SortingOrder: 0
   m_MaskInteraction: 0
   m_Sprite: {fileID: 21300000, guid: 75294217e59d9124e84206a4cd1fcfd2, type: 3}
-  m_Color: {r: 0.72, g: 0.38, b: 0.92, a: 1}
+  m_Color: {r: 0, g: 0, b: 0, a: 0}
   m_FlipX: 0
   m_FlipY: 0
   m_DrawMode: 0
@@ -4931,7 +4922,7 @@ BoxCollider:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1365149063}
-  m_Material: {fileID: 1120460919}
+  m_Material: {fileID: 1165578741}
   m_IncludeLayers:
     serializedVersion: 2
     m_Bits: 0
@@ -5010,7 +5001,7 @@ SpriteRenderer:
   m_SortingOrder: 0
   m_MaskInteraction: 0
   m_Sprite: {fileID: 21300000, guid: 75294217e59d9124e84206a4cd1fcfd2, type: 3}
-  m_Color: {r: 0.22, g: 0.8, b: 0.45, a: 1}
+  m_Color: {r: 0, g: 0, b: 0, a: 0}
   m_FlipX: 0
   m_FlipY: 0
   m_DrawMode: 0
@@ -5019,7 +5010,7 @@ SpriteRenderer:
   m_SpriteTileMode: 0
   m_WasSpriteAssigned: 1
   m_SpriteSortPoint: 0
---- !u!134 &1388002243
+--- !u!134 &1386494674
 PhysicsMaterial:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -5032,7 +5023,7 @@ PhysicsMaterial:
   m_Bounciness: 0
   m_FrictionCombine: 0
   m_BounceCombine: 0
---- !u!134 &1419162139
+--- !u!134 &1396550731
 PhysicsMaterial:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -5045,7 +5036,20 @@ PhysicsMaterial:
   m_Bounciness: 0
   m_FrictionCombine: 0
   m_BounceCombine: 0
---- !u!134 &1462466193
+--- !u!134 &1467615288
+PhysicsMaterial:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: BlockFriction
+  serializedVersion: 2
+  m_DynamicFriction: 100
+  m_StaticFriction: 100
+  m_Bounciness: 0
+  m_FrictionCombine: 0
+  m_BounceCombine: 0
+--- !u!134 &1468629533
 PhysicsMaterial:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -5099,7 +5103,7 @@ BoxCollider:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1490753051}
-  m_Material: {fileID: 1918668360}
+  m_Material: {fileID: 1545925603}
   m_IncludeLayers:
     serializedVersion: 2
     m_Bits: 0
@@ -5178,7 +5182,7 @@ SpriteRenderer:
   m_SortingOrder: 0
   m_MaskInteraction: 0
   m_Sprite: {fileID: 21300000, guid: 75294217e59d9124e84206a4cd1fcfd2, type: 3}
-  m_Color: {r: 0.93, g: 0.27, b: 0.27, a: 1}
+  m_Color: {r: 0, g: 0, b: 0, a: 0}
   m_FlipX: 0
   m_FlipY: 0
   m_DrawMode: 0
@@ -5290,7 +5294,7 @@ BoxCollider:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1521034437}
-  m_Material: {fileID: 633457529}
+  m_Material: {fileID: 995459380}
   m_IncludeLayers:
     serializedVersion: 2
     m_Bits: 0
@@ -5369,7 +5373,7 @@ SpriteRenderer:
   m_SortingOrder: 0
   m_MaskInteraction: 0
   m_Sprite: {fileID: 21300000, guid: 75294217e59d9124e84206a4cd1fcfd2, type: 3}
-  m_Color: {r: 0.22, g: 0.8, b: 0.45, a: 1}
+  m_Color: {r: 0, g: 0, b: 0, a: 0}
   m_FlipX: 0
   m_FlipY: 0
   m_DrawMode: 0
@@ -5419,7 +5423,7 @@ BoxCollider:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1527490899}
-  m_Material: {fileID: 1782468452}
+  m_Material: {fileID: 558317730}
   m_IncludeLayers:
     serializedVersion: 2
     m_Bits: 0
@@ -5498,7 +5502,7 @@ SpriteRenderer:
   m_SortingOrder: 0
   m_MaskInteraction: 0
   m_Sprite: {fileID: 21300000, guid: 75294217e59d9124e84206a4cd1fcfd2, type: 3}
-  m_Color: {r: 0.93, g: 0.27, b: 0.27, a: 1}
+  m_Color: {r: 0, g: 0, b: 0, a: 0}
   m_FlipX: 0
   m_FlipY: 0
   m_DrawMode: 0
@@ -5507,6 +5511,32 @@ SpriteRenderer:
   m_SpriteTileMode: 0
   m_WasSpriteAssigned: 1
   m_SpriteSortPoint: 0
+--- !u!134 &1539003514
+PhysicsMaterial:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: BlockFriction
+  serializedVersion: 2
+  m_DynamicFriction: 100
+  m_StaticFriction: 100
+  m_Bounciness: 0
+  m_FrictionCombine: 0
+  m_BounceCombine: 0
+--- !u!134 &1545925603
+PhysicsMaterial:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: BlockFriction
+  serializedVersion: 2
+  m_DynamicFriction: 100
+  m_StaticFriction: 100
+  m_Bounciness: 0
+  m_FrictionCombine: 0
+  m_BounceCombine: 0
 --- !u!1 &1546765161
 GameObject:
   m_ObjectHideFlags: 0
@@ -5676,7 +5706,7 @@ BoxCollider:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1552824474}
-  m_Material: {fileID: 1462466193}
+  m_Material: {fileID: 2134709929}
   m_IncludeLayers:
     serializedVersion: 2
     m_Bits: 0
@@ -5755,7 +5785,7 @@ SpriteRenderer:
   m_SortingOrder: 0
   m_MaskInteraction: 0
   m_Sprite: {fileID: 21300000, guid: 75294217e59d9124e84206a4cd1fcfd2, type: 3}
-  m_Color: {r: 0.72, g: 0.38, b: 0.92, a: 1}
+  m_Color: {r: 0, g: 0, b: 0, a: 0}
   m_FlipX: 0
   m_FlipY: 0
   m_DrawMode: 0
@@ -5764,6 +5794,32 @@ SpriteRenderer:
   m_SpriteTileMode: 0
   m_WasSpriteAssigned: 1
   m_SpriteSortPoint: 0
+--- !u!134 &1571483106
+PhysicsMaterial:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: BlockFriction
+  serializedVersion: 2
+  m_DynamicFriction: 100
+  m_StaticFriction: 100
+  m_Bounciness: 0
+  m_FrictionCombine: 0
+  m_BounceCombine: 0
+--- !u!134 &1572598012
+PhysicsMaterial:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: BlockFriction
+  serializedVersion: 2
+  m_DynamicFriction: 100
+  m_StaticFriction: 100
+  m_Bounciness: 0
+  m_FrictionCombine: 0
+  m_BounceCombine: 0
 --- !u!1 &1589638680
 GameObject:
   m_ObjectHideFlags: 0
@@ -5805,7 +5861,7 @@ BoxCollider:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1589638680}
-  m_Material: {fileID: 1740039474}
+  m_Material: {fileID: 1341356030}
   m_IncludeLayers:
     serializedVersion: 2
     m_Bits: 0
@@ -5884,7 +5940,7 @@ SpriteRenderer:
   m_SortingOrder: 0
   m_MaskInteraction: 0
   m_Sprite: {fileID: 21300000, guid: 75294217e59d9124e84206a4cd1fcfd2, type: 3}
-  m_Color: {r: 0.22, g: 0.8, b: 0.45, a: 1}
+  m_Color: {r: 0, g: 0, b: 0, a: 0}
   m_FlipX: 0
   m_FlipY: 0
   m_DrawMode: 0
@@ -5893,7 +5949,20 @@ SpriteRenderer:
   m_SpriteTileMode: 0
   m_WasSpriteAssigned: 1
   m_SpriteSortPoint: 0
---- !u!134 &1651827816
+--- !u!134 &1620004551
+PhysicsMaterial:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: BlockFriction
+  serializedVersion: 2
+  m_DynamicFriction: 100
+  m_StaticFriction: 100
+  m_Bounciness: 0
+  m_FrictionCombine: 0
+  m_BounceCombine: 0
+--- !u!134 &1651745110
 PhysicsMaterial:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -5991,7 +6060,7 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: cabeccaa36229774ca15f0f5eb2e3e11, type: 3}
---- !u!134 &1663781770
+--- !u!134 &1686875988
 PhysicsMaterial:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -6045,7 +6114,7 @@ BoxCollider:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1692175752}
-  m_Material: {fileID: 1878245049}
+  m_Material: {fileID: 1227201283}
   m_IncludeLayers:
     serializedVersion: 2
     m_Bits: 0
@@ -6124,7 +6193,7 @@ SpriteRenderer:
   m_SortingOrder: 0
   m_MaskInteraction: 0
   m_Sprite: {fileID: 21300000, guid: 75294217e59d9124e84206a4cd1fcfd2, type: 3}
-  m_Color: {r: 0.22, g: 0.8, b: 0.45, a: 1}
+  m_Color: {r: 0, g: 0, b: 0, a: 0}
   m_FlipX: 0
   m_FlipY: 0
   m_DrawMode: 0
@@ -6133,7 +6202,33 @@ SpriteRenderer:
   m_SpriteTileMode: 0
   m_WasSpriteAssigned: 1
   m_SpriteSortPoint: 0
---- !u!134 &1740039474
+--- !u!134 &1716959331
+PhysicsMaterial:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: BlockFriction
+  serializedVersion: 2
+  m_DynamicFriction: 100
+  m_StaticFriction: 100
+  m_Bounciness: 0
+  m_FrictionCombine: 0
+  m_BounceCombine: 0
+--- !u!134 &1723272987
+PhysicsMaterial:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: BlockFriction
+  serializedVersion: 2
+  m_DynamicFriction: 100
+  m_StaticFriction: 100
+  m_Bounciness: 0
+  m_FrictionCombine: 0
+  m_BounceCombine: 0
+--- !u!134 &1744677348
 PhysicsMaterial:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -6187,7 +6282,7 @@ BoxCollider:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1771888016}
-  m_Material: {fileID: 1663781770}
+  m_Material: {fileID: 1744677348}
   m_IncludeLayers:
     serializedVersion: 2
     m_Bits: 0
@@ -6266,7 +6361,7 @@ SpriteRenderer:
   m_SortingOrder: 0
   m_MaskInteraction: 0
   m_Sprite: {fileID: 21300000, guid: 75294217e59d9124e84206a4cd1fcfd2, type: 3}
-  m_Color: {r: 0.22, g: 0.8, b: 0.45, a: 1}
+  m_Color: {r: 0, g: 0, b: 0, a: 0}
   m_FlipX: 0
   m_FlipY: 0
   m_DrawMode: 0
@@ -6275,46 +6370,7 @@ SpriteRenderer:
   m_SpriteTileMode: 0
   m_WasSpriteAssigned: 1
   m_SpriteSortPoint: 0
---- !u!134 &1775815143
-PhysicsMaterial:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_Name: BlockFriction
-  serializedVersion: 2
-  m_DynamicFriction: 100
-  m_StaticFriction: 100
-  m_Bounciness: 0
-  m_FrictionCombine: 0
-  m_BounceCombine: 0
---- !u!134 &1782394984
-PhysicsMaterial:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_Name: BlockFriction
-  serializedVersion: 2
-  m_DynamicFriction: 100
-  m_StaticFriction: 100
-  m_Bounciness: 0
-  m_FrictionCombine: 0
-  m_BounceCombine: 0
---- !u!134 &1782468452
-PhysicsMaterial:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_Name: BlockFriction
-  serializedVersion: 2
-  m_DynamicFriction: 100
-  m_StaticFriction: 100
-  m_Bounciness: 0
-  m_FrictionCombine: 0
-  m_BounceCombine: 0
---- !u!134 &1782903558
+--- !u!134 &1809857656
 PhysicsMaterial:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -6368,7 +6424,7 @@ BoxCollider:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1811336679}
-  m_Material: {fileID: 1292606900}
+  m_Material: {fileID: 1191162800}
   m_IncludeLayers:
     serializedVersion: 2
     m_Bits: 0
@@ -6447,7 +6503,7 @@ SpriteRenderer:
   m_SortingOrder: 0
   m_MaskInteraction: 0
   m_Sprite: {fileID: 21300000, guid: 75294217e59d9124e84206a4cd1fcfd2, type: 3}
-  m_Color: {r: 0.22, g: 0.8, b: 0.45, a: 1}
+  m_Color: {r: 0, g: 0, b: 0, a: 0}
   m_FlipX: 0
   m_FlipY: 0
   m_DrawMode: 0
@@ -6456,33 +6512,7 @@ SpriteRenderer:
   m_SpriteTileMode: 0
   m_WasSpriteAssigned: 1
   m_SpriteSortPoint: 0
---- !u!134 &1842009609
-PhysicsMaterial:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_Name: BlockFriction
-  serializedVersion: 2
-  m_DynamicFriction: 100
-  m_StaticFriction: 100
-  m_Bounciness: 0
-  m_FrictionCombine: 0
-  m_BounceCombine: 0
---- !u!134 &1858050597
-PhysicsMaterial:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_Name: BlockFriction
-  serializedVersion: 2
-  m_DynamicFriction: 100
-  m_StaticFriction: 100
-  m_Bounciness: 0
-  m_FrictionCombine: 0
-  m_BounceCombine: 0
---- !u!134 &1878245049
+--- !u!134 &1835601645
 PhysicsMaterial:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -6536,7 +6566,7 @@ BoxCollider:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1881761926}
-  m_Material: {fileID: 523114919}
+  m_Material: {fileID: 399724618}
   m_IncludeLayers:
     serializedVersion: 2
     m_Bits: 0
@@ -6615,7 +6645,7 @@ SpriteRenderer:
   m_SortingOrder: 0
   m_MaskInteraction: 0
   m_Sprite: {fileID: 21300000, guid: 75294217e59d9124e84206a4cd1fcfd2, type: 3}
-  m_Color: {r: 0.72, g: 0.38, b: 0.92, a: 1}
+  m_Color: {r: 0, g: 0, b: 0, a: 0}
   m_FlipX: 0
   m_FlipY: 0
   m_DrawMode: 0
@@ -6665,7 +6695,7 @@ BoxCollider:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1881812851}
-  m_Material: {fileID: 1146391081}
+  m_Material: {fileID: 331761215}
   m_IncludeLayers:
     serializedVersion: 2
     m_Bits: 0
@@ -6744,7 +6774,7 @@ SpriteRenderer:
   m_SortingOrder: 0
   m_MaskInteraction: 0
   m_Sprite: {fileID: 21300000, guid: 75294217e59d9124e84206a4cd1fcfd2, type: 3}
-  m_Color: {r: 0.98, g: 0.73, b: 0.15, a: 1}
+  m_Color: {r: 0, g: 0, b: 0, a: 0}
   m_FlipX: 0
   m_FlipY: 0
   m_DrawMode: 0
@@ -6753,20 +6783,7 @@ SpriteRenderer:
   m_SpriteTileMode: 0
   m_WasSpriteAssigned: 1
   m_SpriteSortPoint: 0
---- !u!134 &1895500735
-PhysicsMaterial:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_Name: BlockFriction
-  serializedVersion: 2
-  m_DynamicFriction: 100
-  m_StaticFriction: 100
-  m_Bounciness: 0
-  m_FrictionCombine: 0
-  m_BounceCombine: 0
---- !u!134 &1918668360
+--- !u!134 &1902323867
 PhysicsMaterial:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -6820,7 +6837,7 @@ BoxCollider:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1928451991}
-  m_Material: {fileID: 312119373}
+  m_Material: {fileID: 815701204}
   m_IncludeLayers:
     serializedVersion: 2
     m_Bits: 0
@@ -6899,7 +6916,7 @@ SpriteRenderer:
   m_SortingOrder: 0
   m_MaskInteraction: 0
   m_Sprite: {fileID: 21300000, guid: 75294217e59d9124e84206a4cd1fcfd2, type: 3}
-  m_Color: {r: 0.98, g: 0.73, b: 0.15, a: 1}
+  m_Color: {r: 0, g: 0, b: 0, a: 0}
   m_FlipX: 0
   m_FlipY: 0
   m_DrawMode: 0
@@ -6908,46 +6925,7 @@ SpriteRenderer:
   m_SpriteTileMode: 0
   m_WasSpriteAssigned: 1
   m_SpriteSortPoint: 0
---- !u!134 &1928790513
-PhysicsMaterial:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_Name: BlockFriction
-  serializedVersion: 2
-  m_DynamicFriction: 100
-  m_StaticFriction: 100
-  m_Bounciness: 0
-  m_FrictionCombine: 0
-  m_BounceCombine: 0
---- !u!134 &1940751908
-PhysicsMaterial:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_Name: BlockFriction
-  serializedVersion: 2
-  m_DynamicFriction: 100
-  m_StaticFriction: 100
-  m_Bounciness: 0
-  m_FrictionCombine: 0
-  m_BounceCombine: 0
---- !u!134 &1941902748
-PhysicsMaterial:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_Name: BlockFriction
-  serializedVersion: 2
-  m_DynamicFriction: 100
-  m_StaticFriction: 100
-  m_Bounciness: 0
-  m_FrictionCombine: 0
-  m_BounceCombine: 0
---- !u!134 &1968172300
+--- !u!134 &1994376519
 PhysicsMaterial:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -7064,19 +7042,6 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 2000892895}
   m_CullTransparentMesh: 1
---- !u!134 &2007727644
-PhysicsMaterial:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_Name: BlockFriction
-  serializedVersion: 2
-  m_DynamicFriction: 100
-  m_StaticFriction: 100
-  m_Bounciness: 0
-  m_FrictionCombine: 0
-  m_BounceCombine: 0
 --- !u!1 &2011732674
 GameObject:
   m_ObjectHideFlags: 0
@@ -7118,7 +7083,7 @@ BoxCollider:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 2011732674}
-  m_Material: {fileID: 2098613609}
+  m_Material: {fileID: 1027791414}
   m_IncludeLayers:
     serializedVersion: 2
     m_Bits: 0
@@ -7197,7 +7162,7 @@ SpriteRenderer:
   m_SortingOrder: 0
   m_MaskInteraction: 0
   m_Sprite: {fileID: 21300000, guid: 75294217e59d9124e84206a4cd1fcfd2, type: 3}
-  m_Color: {r: 0.72, g: 0.38, b: 0.92, a: 1}
+  m_Color: {r: 0, g: 0, b: 0, a: 0}
   m_FlipX: 0
   m_FlipY: 0
   m_DrawMode: 0
@@ -7262,7 +7227,20 @@ Transform:
   - {fileID: 895623869}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!134 &2074351691
+--- !u!134 &2049080795
+PhysicsMaterial:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: BlockFriction
+  serializedVersion: 2
+  m_DynamicFriction: 100
+  m_StaticFriction: 100
+  m_Bounciness: 0
+  m_FrictionCombine: 0
+  m_BounceCombine: 0
+--- !u!134 &2056738065
 PhysicsMaterial:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -7316,7 +7294,7 @@ BoxCollider:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 2082323274}
-  m_Material: {fileID: 283004179}
+  m_Material: {fileID: 911018670}
   m_IncludeLayers:
     serializedVersion: 2
     m_Bits: 0
@@ -7395,7 +7373,7 @@ SpriteRenderer:
   m_SortingOrder: 0
   m_MaskInteraction: 0
   m_Sprite: {fileID: 21300000, guid: 75294217e59d9124e84206a4cd1fcfd2, type: 3}
-  m_Color: {r: 0.93, g: 0.27, b: 0.27, a: 1}
+  m_Color: {r: 0, g: 0, b: 0, a: 0}
   m_FlipX: 0
   m_FlipY: 0
   m_DrawMode: 0
@@ -7404,6 +7382,19 @@ SpriteRenderer:
   m_SpriteTileMode: 0
   m_WasSpriteAssigned: 1
   m_SpriteSortPoint: 0
+--- !u!134 &2084761324
+PhysicsMaterial:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: BlockFriction
+  serializedVersion: 2
+  m_DynamicFriction: 100
+  m_StaticFriction: 100
+  m_Bounciness: 0
+  m_FrictionCombine: 0
+  m_BounceCombine: 0
 --- !u!1 &2085785643
 GameObject:
   m_ObjectHideFlags: 0
@@ -7445,7 +7436,7 @@ BoxCollider:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 2085785643}
-  m_Material: {fileID: 346549108}
+  m_Material: {fileID: 1233687521}
   m_IncludeLayers:
     serializedVersion: 2
     m_Bits: 0
@@ -7524,7 +7515,7 @@ SpriteRenderer:
   m_SortingOrder: 0
   m_MaskInteraction: 0
   m_Sprite: {fileID: 21300000, guid: 75294217e59d9124e84206a4cd1fcfd2, type: 3}
-  m_Color: {r: 0.22, g: 0.8, b: 0.45, a: 1}
+  m_Color: {r: 0, g: 0, b: 0, a: 0}
   m_FlipX: 0
   m_FlipY: 0
   m_DrawMode: 0
@@ -7533,7 +7524,20 @@ SpriteRenderer:
   m_SpriteTileMode: 0
   m_WasSpriteAssigned: 1
   m_SpriteSortPoint: 0
---- !u!134 &2098613609
+--- !u!134 &2095594544
+PhysicsMaterial:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: BlockFriction
+  serializedVersion: 2
+  m_DynamicFriction: 100
+  m_StaticFriction: 100
+  m_Bounciness: 0
+  m_FrictionCombine: 0
+  m_BounceCombine: 0
+--- !u!134 &2134709929
 PhysicsMaterial:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -7723,7 +7727,7 @@ SpriteRenderer:
   m_SortingOrder: 0
   m_MaskInteraction: 0
   m_Sprite: {fileID: 21300000, guid: 75294217e59d9124e84206a4cd1fcfd2, type: 3}
-  m_Color: {r: 0.22, g: 0.8, b: 0.45, a: 1}
+  m_Color: {r: 0, g: 0, b: 0, a: 0}
   m_FlipX: 0
   m_FlipY: 0
   m_DrawMode: 0
@@ -7754,7 +7758,7 @@ BoxCollider:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 8800000001040}
-  m_Material: {fileID: 1362625372}
+  m_Material: {fileID: 1106608746}
   m_IncludeLayers:
     serializedVersion: 2
     m_Bits: 0
@@ -7852,7 +7856,7 @@ SpriteRenderer:
   m_SortingOrder: 0
   m_MaskInteraction: 0
   m_Sprite: {fileID: 21300000, guid: 75294217e59d9124e84206a4cd1fcfd2, type: 3}
-  m_Color: {r: 0.98, g: 0.73, b: 0.15, a: 1}
+  m_Color: {r: 0, g: 0, b: 0, a: 0}
   m_FlipX: 0
   m_FlipY: 0
   m_DrawMode: 0
@@ -7883,7 +7887,7 @@ BoxCollider:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 8800000001090}
-  m_Material: {fileID: 674573690}
+  m_Material: {fileID: 43573715}
   m_IncludeLayers:
     serializedVersion: 2
     m_Bits: 0
@@ -7981,7 +7985,7 @@ SpriteRenderer:
   m_SortingOrder: 0
   m_MaskInteraction: 0
   m_Sprite: {fileID: 21300000, guid: 75294217e59d9124e84206a4cd1fcfd2, type: 3}
-  m_Color: {r: 0.26, g: 0.65, b: 0.96, a: 1}
+  m_Color: {r: 0, g: 0, b: 0, a: 0}
   m_FlipX: 0
   m_FlipY: 0
   m_DrawMode: 0
@@ -8012,7 +8016,7 @@ BoxCollider:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 8800000001130}
-  m_Material: {fileID: 1059830129}
+  m_Material: {fileID: 1809857656}
   m_IncludeLayers:
     serializedVersion: 2
     m_Bits: 0
@@ -8110,7 +8114,7 @@ SpriteRenderer:
   m_SortingOrder: 0
   m_MaskInteraction: 0
   m_Sprite: {fileID: 21300000, guid: 75294217e59d9124e84206a4cd1fcfd2, type: 3}
-  m_Color: {r: 0.93, g: 0.27, b: 0.27, a: 1}
+  m_Color: {r: 0, g: 0, b: 0, a: 0}
   m_FlipX: 0
   m_FlipY: 0
   m_DrawMode: 0
@@ -8141,7 +8145,7 @@ BoxCollider:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 8800000001140}
-  m_Material: {fileID: 396750537}
+  m_Material: {fileID: 900737572}
   m_IncludeLayers:
     serializedVersion: 2
     m_Bits: 0
@@ -8239,7 +8243,7 @@ SpriteRenderer:
   m_SortingOrder: 0
   m_MaskInteraction: 0
   m_Sprite: {fileID: 21300000, guid: 75294217e59d9124e84206a4cd1fcfd2, type: 3}
-  m_Color: {r: 0.98, g: 0.73, b: 0.15, a: 1}
+  m_Color: {r: 0, g: 0, b: 0, a: 0}
   m_FlipX: 0
   m_FlipY: 0
   m_DrawMode: 0
@@ -8270,7 +8274,7 @@ BoxCollider:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 8800000001150}
-  m_Material: {fileID: 495917725}
+  m_Material: {fileID: 783110597}
   m_IncludeLayers:
     serializedVersion: 2
     m_Bits: 0
@@ -8368,7 +8372,7 @@ SpriteRenderer:
   m_SortingOrder: 0
   m_MaskInteraction: 0
   m_Sprite: {fileID: 21300000, guid: 75294217e59d9124e84206a4cd1fcfd2, type: 3}
-  m_Color: {r: 0.98, g: 0.73, b: 0.15, a: 1}
+  m_Color: {r: 0, g: 0, b: 0, a: 0}
   m_FlipX: 0
   m_FlipY: 0
   m_DrawMode: 0
@@ -8399,7 +8403,7 @@ BoxCollider:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 8800000001170}
-  m_Material: {fileID: 287078865}
+  m_Material: {fileID: 968003588}
   m_IncludeLayers:
     serializedVersion: 2
     m_Bits: 0
@@ -8497,7 +8501,7 @@ SpriteRenderer:
   m_SortingOrder: 0
   m_MaskInteraction: 0
   m_Sprite: {fileID: 21300000, guid: 75294217e59d9124e84206a4cd1fcfd2, type: 3}
-  m_Color: {r: 0.72, g: 0.38, b: 0.92, a: 1}
+  m_Color: {r: 0, g: 0, b: 0, a: 0}
   m_FlipX: 0
   m_FlipY: 0
   m_DrawMode: 0
@@ -8528,7 +8532,7 @@ BoxCollider:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 8800000001180}
-  m_Material: {fileID: 1895500735}
+  m_Material: {fileID: 872263268}
   m_IncludeLayers:
     serializedVersion: 2
     m_Bits: 0
@@ -8626,7 +8630,7 @@ SpriteRenderer:
   m_SortingOrder: 0
   m_MaskInteraction: 0
   m_Sprite: {fileID: 21300000, guid: 75294217e59d9124e84206a4cd1fcfd2, type: 3}
-  m_Color: {r: 0.93, g: 0.27, b: 0.27, a: 1}
+  m_Color: {r: 0, g: 0, b: 0, a: 0}
   m_FlipX: 0
   m_FlipY: 0
   m_DrawMode: 0
@@ -8657,7 +8661,7 @@ BoxCollider:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 8800000001190}
-  m_Material: {fileID: 652396040}
+  m_Material: {fileID: 951227508}
   m_IncludeLayers:
     serializedVersion: 2
     m_Bits: 0
@@ -8755,7 +8759,7 @@ SpriteRenderer:
   m_SortingOrder: 0
   m_MaskInteraction: 0
   m_Sprite: {fileID: 21300000, guid: 75294217e59d9124e84206a4cd1fcfd2, type: 3}
-  m_Color: {r: 0.93, g: 0.27, b: 0.27, a: 1}
+  m_Color: {r: 0, g: 0, b: 0, a: 0}
   m_FlipX: 0
   m_FlipY: 0
   m_DrawMode: 0
@@ -8786,7 +8790,7 @@ BoxCollider:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 8800000001210}
-  m_Material: {fileID: 223567576}
+  m_Material: {fileID: 804908190}
   m_IncludeLayers:
     serializedVersion: 2
     m_Bits: 0
@@ -8884,7 +8888,7 @@ SpriteRenderer:
   m_SortingOrder: 0
   m_MaskInteraction: 0
   m_Sprite: {fileID: 21300000, guid: 75294217e59d9124e84206a4cd1fcfd2, type: 3}
-  m_Color: {r: 0.72, g: 0.38, b: 0.92, a: 1}
+  m_Color: {r: 0, g: 0, b: 0, a: 0}
   m_FlipX: 0
   m_FlipY: 0
   m_DrawMode: 0
@@ -8915,7 +8919,7 @@ BoxCollider:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 8800000001250}
-  m_Material: {fileID: 1782394984}
+  m_Material: {fileID: 1180470571}
   m_IncludeLayers:
     serializedVersion: 2
     m_Bits: 0
@@ -9013,7 +9017,7 @@ SpriteRenderer:
   m_SortingOrder: 0
   m_MaskInteraction: 0
   m_Sprite: {fileID: 21300000, guid: 75294217e59d9124e84206a4cd1fcfd2, type: 3}
-  m_Color: {r: 0.26, g: 0.65, b: 0.96, a: 1}
+  m_Color: {r: 0, g: 0, b: 0, a: 0}
   m_FlipX: 0
   m_FlipY: 0
   m_DrawMode: 0
@@ -9044,7 +9048,7 @@ BoxCollider:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 8800000001290}
-  m_Material: {fileID: 1928790513}
+  m_Material: {fileID: 922263378}
   m_IncludeLayers:
     serializedVersion: 2
     m_Bits: 0
@@ -9142,7 +9146,7 @@ SpriteRenderer:
   m_SortingOrder: 0
   m_MaskInteraction: 0
   m_Sprite: {fileID: 21300000, guid: 75294217e59d9124e84206a4cd1fcfd2, type: 3}
-  m_Color: {r: 0.22, g: 0.8, b: 0.45, a: 1}
+  m_Color: {r: 0, g: 0, b: 0, a: 0}
   m_FlipX: 0
   m_FlipY: 0
   m_DrawMode: 0
@@ -9173,7 +9177,7 @@ BoxCollider:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 8800000001300}
-  m_Material: {fileID: 499278493}
+  m_Material: {fileID: 135869934}
   m_IncludeLayers:
     serializedVersion: 2
     m_Bits: 0
@@ -9271,7 +9275,7 @@ SpriteRenderer:
   m_SortingOrder: 0
   m_MaskInteraction: 0
   m_Sprite: {fileID: 21300000, guid: 75294217e59d9124e84206a4cd1fcfd2, type: 3}
-  m_Color: {r: 0.72, g: 0.38, b: 0.92, a: 1}
+  m_Color: {r: 0, g: 0, b: 0, a: 0}
   m_FlipX: 0
   m_FlipY: 0
   m_DrawMode: 0
@@ -9302,7 +9306,7 @@ BoxCollider:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 8800000001330}
-  m_Material: {fileID: 401591009}
+  m_Material: {fileID: 757221569}
   m_IncludeLayers:
     serializedVersion: 2
     m_Bits: 0
@@ -9400,7 +9404,7 @@ SpriteRenderer:
   m_SortingOrder: 0
   m_MaskInteraction: 0
   m_Sprite: {fileID: 21300000, guid: 75294217e59d9124e84206a4cd1fcfd2, type: 3}
-  m_Color: {r: 0.98, g: 0.73, b: 0.15, a: 1}
+  m_Color: {r: 0, g: 0, b: 0, a: 0}
   m_FlipX: 0
   m_FlipY: 0
   m_DrawMode: 0
@@ -9431,7 +9435,7 @@ BoxCollider:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 8800000001340}
-  m_Material: {fileID: 1091444792}
+  m_Material: {fileID: 1386494674}
   m_IncludeLayers:
     serializedVersion: 2
     m_Bits: 0
@@ -9529,7 +9533,7 @@ SpriteRenderer:
   m_SortingOrder: 0
   m_MaskInteraction: 0
   m_Sprite: {fileID: 21300000, guid: 75294217e59d9124e84206a4cd1fcfd2, type: 3}
-  m_Color: {r: 0.22, g: 0.8, b: 0.45, a: 1}
+  m_Color: {r: 0, g: 0, b: 0, a: 0}
   m_FlipX: 0
   m_FlipY: 0
   m_DrawMode: 0
@@ -9560,7 +9564,7 @@ BoxCollider:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 8800000001350}
-  m_Material: {fileID: 84757230}
+  m_Material: {fileID: 1396550731}
   m_IncludeLayers:
     serializedVersion: 2
     m_Bits: 0
@@ -9658,7 +9662,7 @@ SpriteRenderer:
   m_SortingOrder: 0
   m_MaskInteraction: 0
   m_Sprite: {fileID: 21300000, guid: 75294217e59d9124e84206a4cd1fcfd2, type: 3}
-  m_Color: {r: 0.93, g: 0.27, b: 0.27, a: 1}
+  m_Color: {r: 0, g: 0, b: 0, a: 0}
   m_FlipX: 0
   m_FlipY: 0
   m_DrawMode: 0
@@ -9689,7 +9693,7 @@ BoxCollider:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 8800000001370}
-  m_Material: {fileID: 1968172300}
+  m_Material: {fileID: 1835601645}
   m_IncludeLayers:
     serializedVersion: 2
     m_Bits: 0
@@ -9787,7 +9791,7 @@ SpriteRenderer:
   m_SortingOrder: 0
   m_MaskInteraction: 0
   m_Sprite: {fileID: 21300000, guid: 75294217e59d9124e84206a4cd1fcfd2, type: 3}
-  m_Color: {r: 0.93, g: 0.27, b: 0.27, a: 1}
+  m_Color: {r: 0, g: 0, b: 0, a: 0}
   m_FlipX: 0
   m_FlipY: 0
   m_DrawMode: 0
@@ -9818,7 +9822,7 @@ BoxCollider:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 8800000001380}
-  m_Material: {fileID: 283909072}
+  m_Material: {fileID: 465876430}
   m_IncludeLayers:
     serializedVersion: 2
     m_Bits: 0
@@ -9916,7 +9920,7 @@ SpriteRenderer:
   m_SortingOrder: 0
   m_MaskInteraction: 0
   m_Sprite: {fileID: 21300000, guid: 75294217e59d9124e84206a4cd1fcfd2, type: 3}
-  m_Color: {r: 0.26, g: 0.65, b: 0.96, a: 1}
+  m_Color: {r: 0, g: 0, b: 0, a: 0}
   m_FlipX: 0
   m_FlipY: 0
   m_DrawMode: 0
@@ -9947,7 +9951,7 @@ BoxCollider:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 8800000001390}
-  m_Material: {fileID: 278679405}
+  m_Material: {fileID: 845655619}
   m_IncludeLayers:
     serializedVersion: 2
     m_Bits: 0
@@ -10085,12 +10089,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 13e72aed385fe3e46b1f59bedfefc0fe, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BlockNumberSpriteSet
-  number1Sprite: {fileID: 0}
-  number2Sprite: {fileID: 0}
-  number3Sprite: {fileID: 0}
-  number4Sprite: {fileID: 0}
-  number5Sprite: {fileID: 0}
-  number6Sprite: {fileID: 0}
+  number1Sprite: {fileID: -454466172, guid: 45998c79cfb0b6a4abc384b2b3c2d7a8, type: 3}
+  number2Sprite: {fileID: 294918899, guid: ed07675bc28a33a428e0becf1c631f49, type: 3}
+  number3Sprite: {fileID: 2021005482, guid: 93e042bc6f88d5d42856a3a5cd6da1c8, type: 3}
+  number4Sprite: {fileID: 1117672490, guid: 0e30242e61e1efa40a0b31591a9d0541, type: 3}
+  number5Sprite: {fileID: 1809870135, guid: 01051b369f5e5e0418d6227f5c9d4588, type: 3}
+  number6Sprite: {fileID: 1285319904, guid: a2818dea18ac44246b8b756578a9de02, type: 3}
 --- !u!114 &6341053575168085861
 MonoBehaviour:
   m_ObjectHideFlags: 0
