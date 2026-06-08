@@ -91,6 +91,8 @@ public class BlockTower : MonoBehaviour
     [SerializeField] TextMeshPro scoreLabel;
     [SerializeField] UIDocument  hudDocument;
     [SerializeField] VisualTreeAsset hudVisualTree;
+    [SerializeField] VisualTreeAsset gameOverVisualTree;
+    [SerializeField] VisualTreeAsset clearVisualTree;
     [SerializeField] PanelSettings hudPanelSettings;
 
     Transform      _towerRoot;
@@ -110,10 +112,15 @@ public class BlockTower : MonoBehaviour
     Label          _builderScoreValue;
     Label          _builderTargetScoreValue;
     Label          _builderScorePopupText;
+    Label          _resultTitleLabel;
+    Label          _resultCurrentScoreLabel;
+    Label          _resultTargetScoreLabel;
     Label          _builderBonusPreviewTitle;
     Label          _builderBonusKeyLabel;
     Label          _builderBonusNextKeyLabel;
     Label          _builderBonusThirdKeyLabel;
+    VisualElement  _builderHudScorePanel;
+    VisualElement  _builderHudTargetScorePanel;
     VisualElement  _builderBonusPreview;
     VisualElement  _builderBonusBackground;
     VisualElement  _builderBonusCells;
@@ -122,13 +129,6 @@ public class BlockTower : MonoBehaviour
     VisualElement  _builderSecondaryViewPanel;
     VisualElement  _builderSecondaryViewImage;
     VisualElement  _builderBlockWeightGuide;
-    VisualElement  _builderGameOverPanel;
-    VisualElement  _builderClearPanel;
-    Label          _builderGameOverScoreText;
-    Label          _builderGameOverTargetText;
-    Label          _builderClearScoreText;
-    Label          _builderClearTargetText;
-    bool           _resultButtonsBound;
     readonly VisualElement[] _builderWeightGuideImages = new VisualElement[6];
     TextMeshProUGUI _canvasScoreText;
     TextMeshProUGUI _canvasTargetScoreText;
@@ -160,6 +160,7 @@ public class BlockTower : MonoBehaviour
     int            _bonusPresetBagIndex;
     bool           _freezePlacementZoneVisuals;
     bool           _initialTowerNumbersRandomizedThisPlay;
+    bool           _showingResultHud;
 
     // ── 셀 데이터 ─────────────────────────────────────────────────────────
     class CellData
@@ -323,6 +324,7 @@ public class BlockTower : MonoBehaviour
         if (root != null)
         {
             _towerRoot = root;
+            PruneOverlappingSceneCells(root);
             if (_cells.Count == 0)
                 TryRestoreRuntimeStateFromScene();
             EnsurePlacementZoneObjectVisible();
@@ -339,6 +341,9 @@ public class BlockTower : MonoBehaviour
 
     bool BindBuilderHud()
     {
+        if (_showingResultHud)
+            return false;
+
         if (hudDocument == null)
             hudDocument = GetComponent<UIDocument>();
         if (hudDocument == null)
@@ -352,20 +357,12 @@ public class BlockTower : MonoBehaviour
             return false;
 
         var root = hudDocument.rootVisualElement;
-
-        // rootVisualElement가 콘텐츠 높이(0)로 줄어들면 HUD 라벨이 음수 Y로 밀려 화면 밖에 그려진다.
-        // (자식 라벨이 모두 absolute라 콘텐츠 기반 높이가 0이 되는 문제) 패널 영역 전체를 채우도록
-        // 강제해 점수/HUD가 항상 화면 안에 보이게 한다.
-        root.style.position = Position.Absolute;
-        root.style.left = 0;
-        root.style.top = 0;
-        root.style.right = 0;
-        root.style.bottom = 0;
-
         _builderScoreTitle = root.Q<Label>("ScoreTitle");
         _builderScoreValue = root.Q<Label>("ScoreValue");
         _builderTargetScoreValue = root.Q<Label>("TargetScoreValue");
         _builderScorePopupText = root.Q<Label>("ScorePopupText");
+        _builderHudScorePanel = root.Q<VisualElement>("HudScorePanel");
+        _builderHudTargetScorePanel = root.Q<VisualElement>("HudTargetScorePanel");
         _builderBonusPreviewTitle = root.Q<Label>("BonusPreviewTitle");
         _builderBonusKeyLabel = root.Q<Label>("BonusPreview1Key");
         _builderBonusNextKeyLabel = root.Q<Label>("BonusPreview2Key");
@@ -378,21 +375,9 @@ public class BlockTower : MonoBehaviour
         _builderSecondaryViewPanel = root.Q<VisualElement>("SubCameraPreviewPanel");
         _builderSecondaryViewImage = root.Q<VisualElement>("SubCameraPreviewImage");
         _builderBlockWeightGuide = root.Q<VisualElement>("BlockWeightGuide");
-        _builderGameOverPanel = root.Q<VisualElement>("GameOverPanel");
-        _builderClearPanel = root.Q<VisualElement>("ClearPanel");
-        _builderGameOverScoreText = root.Q<Label>("GameOverCurrentScore");
-        _builderGameOverTargetText = root.Q<Label>("GameOverTargetScore");
-        _builderClearScoreText = root.Q<Label>("ClearCurrentScore");
-        _builderClearTargetText = root.Q<Label>("ClearTargetScore");
-        BindResultButtons(root);
-        // 결과창 uxml은 UI Builder 미리보기를 위해 display:flex로 둔다. 게임 중에는 숨긴다.
-        if (!_isGameOver)
-        {
-            if (_builderGameOverPanel != null) _builderGameOverPanel.style.display = DisplayStyle.None;
-            if (_builderClearPanel != null) _builderClearPanel.style.display = DisplayStyle.None;
-        }
         for (int i = 0; i < _builderWeightGuideImages.Length; i++)
             _builderWeightGuideImages[i] = root.Q<VisualElement>($"WeightGuideImage{i + 1}");
+        EnsureRuntimeHudElements(root);
         _builderBonusCellElements.Clear();
         _builderBonusCells?.Query<VisualElement>(className: "bonus-preview-cell")
             .ForEach(cell => _builderBonusCellElements.Add(cell));
@@ -403,9 +388,6 @@ public class BlockTower : MonoBehaviour
         _builderBonusThirdCells?.Query<VisualElement>(className: "bonus-preview-cell")
             .ForEach(cell => _builderBonusThirdCellElements.Add(cell));
 
-        RemoveLegacyHudTextFallback();
-        DisableLegacyCanvasHudObjects();
-        BindCanvasHudText();
         SyncBlockWeightGuideImages();
         ApplyHudTextStyles();
         _builderBonusPreviewNeedsRefresh = _builderBonusCells != null;
@@ -424,7 +406,111 @@ public class BlockTower : MonoBehaviour
         ForceVisibleBonusKeyLabel(_builderBonusKeyLabel, PresetKeyText(_bonusTargetPreset));
         ForceVisibleBonusKeyLabel(_builderBonusNextKeyLabel, PresetKeyText(_nextBonusTargetPreset));
         ForceVisibleBonusKeyLabel(_builderBonusThirdKeyLabel, PresetKeyText(_thirdBonusTargetPreset));
-        UpdateCanvasHudText();
+    }
+
+    void EnsureRuntimeHudElements(VisualElement root)
+    {
+        if (root == null) return;
+
+        root.style.display = DisplayStyle.Flex;
+        root.style.visibility = Visibility.Visible;
+        root.style.opacity = 1f;
+        root.style.position = Position.Relative;
+        root.pickingMode = PickingMode.Ignore;
+
+        _builderHudScorePanel ??= CreateHudPanel(root, "HudScorePanel");
+        _builderHudTargetScorePanel ??= CreateHudPanel(root, "HudTargetScorePanel");
+        _builderBlockWeightGuide ??= CreateHudPanel(root, "BlockWeightGuide");
+
+        if (_builderScoreValue == null)
+            _builderScoreValue = CreateHudLabel(_builderHudScorePanel, "ScoreValue", "0");
+        if (_builderTargetScoreValue == null)
+            _builderTargetScoreValue = CreateHudLabel(_builderHudTargetScorePanel, "TargetScoreValue", targetScore.ToString());
+        if (_builderScorePopupText == null)
+            _builderScorePopupText = CreateHudLabel(_builderHudScorePanel, "ScorePopupText", string.Empty);
+
+        for (int i = 0; i < _builderWeightGuideImages.Length; i++)
+        {
+            _builderWeightGuideImages[i] ??= _builderBlockWeightGuide.Q<VisualElement>($"WeightGuideImage{i + 1}");
+            if (_builderWeightGuideImages[i] == null)
+            {
+                _builderWeightGuideImages[i] = new VisualElement { name = $"WeightGuideImage{i + 1}" };
+                _builderBlockWeightGuide.Add(_builderWeightGuideImages[i]);
+            }
+        }
+
+        PreserveBuilderHudPanel(_builderHudScorePanel);
+        PreserveBuilderHudPanel(_builderHudTargetScorePanel);
+        PreserveBuilderHudPanel(_builderBlockWeightGuide);
+    }
+
+    VisualElement CreateHudPanel(VisualElement root, string name)
+    {
+        var panel = new VisualElement { name = name };
+        panel.pickingMode = PickingMode.Ignore;
+        root.Add(panel);
+        return panel;
+    }
+
+    Label CreateHudLabel(VisualElement parent, string name, string text)
+    {
+        var label = new Label(text) { name = name };
+        label.pickingMode = PickingMode.Ignore;
+        parent?.Add(label);
+        return label;
+    }
+
+    void ForceVisibleHudPanel(VisualElement panel, float width, float height)
+    {
+        if (panel == null) return;
+
+        panel.style.display = DisplayStyle.Flex;
+        panel.style.visibility = Visibility.Visible;
+        panel.style.opacity = 1f;
+        panel.style.position = Position.Absolute;
+        panel.style.width = width;
+        panel.style.height = height;
+        panel.pickingMode = PickingMode.Ignore;
+    }
+
+    void PreserveBuilderHudPanel(VisualElement panel)
+    {
+        if (panel == null) return;
+
+        panel.style.display = DisplayStyle.Flex;
+        panel.style.visibility = Visibility.Visible;
+        panel.style.opacity = 1f;
+        panel.pickingMode = PickingMode.Ignore;
+    }
+
+    void StyleHudScorePanel()
+    {
+        PreserveBuilderHudPanel(_builderHudScorePanel);
+        if (_builderHudScorePanel == null) return;
+
+        if (_builderScoreValue != null)
+            SetHudLabelTextOnly(_builderScoreValue, _score.ToString());
+        if (_builderScorePopupText != null)
+        {
+            _builderScorePopupText.style.display = string.IsNullOrEmpty(_builderScorePopupText.text)
+                ? DisplayStyle.None
+                : DisplayStyle.Flex;
+        }
+    }
+
+    void StyleHudTargetScorePanel()
+    {
+        PreserveBuilderHudPanel(_builderHudTargetScorePanel);
+        if (_builderHudTargetScorePanel == null) return;
+
+        if (_builderTargetScoreValue != null)
+            SetHudLabelTextOnly(_builderTargetScoreValue, targetScore.ToString());
+    }
+
+    void StyleBlockWeightGuidePanel()
+    {
+        PreserveBuilderHudPanel(_builderBlockWeightGuide);
+        if (_builderBlockWeightGuide == null) return;
     }
 
     void StyleHudLabel(Label label, string text, float fontSize, float width, float height, Color color)
@@ -462,12 +548,7 @@ public class BlockTower : MonoBehaviour
         label.style.display = DisplayStyle.Flex;
         label.style.visibility = Visibility.Visible;
         label.style.opacity = 1f;
-        label.style.color = Color.white;
-        label.style.unityTextAlign = TextAnchor.MiddleCenter;
-        label.style.unityFontStyleAndWeight = FontStyle.Bold;
-        label.style.flexShrink = 0f;
         label.pickingMode = PickingMode.Ignore;
-        // 폰트는 uxml(-unity-font-definition)에 지정한 Cafe24를 사용한다. 코드에서 덮어쓰지 않는다.
     }
 
     void ForceVisibleBonusKeyLabel(Label label, string text)
@@ -477,20 +558,8 @@ public class BlockTower : MonoBehaviour
         label.text = text;
         label.style.display = DisplayStyle.Flex;
         label.style.visibility = Visibility.Visible;
-        label.style.width = 80f;
-        label.style.height = 80f;
-        label.style.fontSize = 60f;
         label.style.opacity = 1f;
-        label.style.color = Color.white;
-        label.style.unityTextAlign = TextAnchor.MiddleCenter;
-        label.style.unityFontStyleAndWeight = FontStyle.Bold;
-        label.style.flexShrink = 0f;
-        label.style.alignSelf = Align.Center;
         label.pickingMode = PickingMode.Ignore;
-
-        var font = GetRuntimeHudFont();
-        if (font != null)
-            label.style.unityFont = font;
     }
 
     void BindCanvasHudText()
@@ -675,6 +744,75 @@ public class BlockTower : MonoBehaviour
             hudDocument.visualTreeAsset = hudVisualTree;
     }
 
+    VisualTreeAsset LoadResultVisualTree(VisualTreeAsset assignedAsset, string assetPath)
+    {
+        if (assignedAsset != null)
+            return assignedAsset;
+
+#if UNITY_EDITOR
+        return AssetDatabase.LoadAssetAtPath<VisualTreeAsset>(assetPath);
+#else
+        return null;
+#endif
+    }
+
+    void RestoreRuntimeHudDocument()
+    {
+        _showingResultHud = false;
+        if (hudDocument == null)
+            hudDocument = GetComponent<UIDocument>() ?? FindAnyObjectByType<UIDocument>();
+        EnsureHudPanelSettings();
+        EnsureHudVisualTree();
+        _resultTitleLabel = null;
+        _resultCurrentScoreLabel = null;
+        _resultTargetScoreLabel = null;
+        BindBuilderHud();
+    }
+
+    bool ShowResultHud(VisualTreeAsset assignedAsset, string assetPath, string title, int score, int target, System.Action onRestart)
+    {
+        if (hudDocument == null)
+            hudDocument = GetComponent<UIDocument>() ?? FindAnyObjectByType<UIDocument>();
+        if (hudDocument == null)
+            return false;
+
+        EnsureHudPanelSettings();
+        var tree = LoadResultVisualTree(assignedAsset, assetPath);
+        if (tree == null)
+            return false;
+
+        _showingResultHud = true;
+        hudDocument.visualTreeAsset = tree;
+        hudDocument.enabled = true;
+
+        var root = hudDocument.rootVisualElement;
+        if (root == null)
+            return false;
+
+        root.style.display = DisplayStyle.Flex;
+        root.style.visibility = Visibility.Visible;
+        root.style.opacity = 1f;
+        _resultTitleLabel = root.Q<Label>("Title");
+        _resultCurrentScoreLabel = root.Q<Label>("CurrentScore");
+        _resultTargetScoreLabel = root.Q<Label>("TargetScore");
+
+        if (_resultTitleLabel != null)
+            _resultTitleLabel.text = title;
+        if (_resultCurrentScoreLabel != null)
+            _resultCurrentScoreLabel.text = $"SCORE: {score}";
+        if (_resultTargetScoreLabel != null)
+            _resultTargetScoreLabel.text = $"TARGET: {target}";
+
+        var restartButton = root.Q<UnityEngine.UIElements.Button>("RestartButton");
+        if (restartButton != null)
+        {
+            restartButton.clicked -= Rebuild;
+            restartButton.clicked += () => onRestart?.Invoke();
+        }
+
+        return true;
+    }
+
     bool TryRestoreRuntimeStateFromScene()
     {
         var root = towerRootTransform != null ? towerRootTransform : transform.Find("TowerRoot");
@@ -682,6 +820,7 @@ public class BlockTower : MonoBehaviour
 
         var restored = new Dictionary<Vector2Int, CellData>();
         var restoredIce = new Dictionary<Vector2Int, CellData>();
+        var restoredOccupiedCells = new HashSet<Vector2Int>();
         var sceneCells = CollectSceneCellTransforms(root);
         foreach (var child in sceneCells)
         {
@@ -693,13 +832,27 @@ public class BlockTower : MonoBehaviour
             var cell = new Vector2Int(
                 Mathf.RoundToInt(local.x - 0.5f),
                 Mathf.RoundToInt(local.y - 0.5f));
+            if (!restoredOccupiedCells.Add(cell))
+            {
+                DestroyDuplicateSceneCell(child);
+                continue;
+            }
 
             bool isIce = blockCell.Kind == BlockCell.CellKind.Ice;
             if (isIce)
             {
-                if (restoredIce.ContainsKey(cell)) continue;
+                SnapIceCellTransform(child, root, cell);
+                if (restoredIce.ContainsKey(cell))
+                    continue;
             }
-            else if (restored.ContainsKey(cell)) continue;
+            else
+            {
+                if (restored.ContainsKey(cell))
+                    continue;
+
+                if (Application.isPlaying && child.parent != root)
+                    AttachSceneCellToTowerRoot(child, root);
+            }
 
             var outline = isIce ? null : child.Find("FocusOutline")?.GetComponent<SpriteRenderer>();
             if (!isIce && outline == null)
@@ -739,7 +892,7 @@ public class BlockTower : MonoBehaviour
                 restored[cell] = data;
         }
 
-        if (restored.Count == 0)
+        if (restored.Count == 0 && restoredIce.Count == 0)
             return false;
 
         _towerRoot = root;
@@ -802,21 +955,76 @@ public class BlockTower : MonoBehaviour
     List<Transform> CollectSceneCellTransforms(Transform towerRoot)
     {
         var cells = new List<Transform>();
+        var seen = new HashSet<Transform>();
         if (towerRoot != null)
         {
             foreach (Transform child in towerRoot)
-                cells.Add(child);
+            {
+                if (child.GetComponent<BlockCell>() != null && seen.Add(child))
+                    cells.Add(child);
+            }
         }
 
         foreach (Transform child in transform)
         {
             if (child == towerRoot) continue;
             var blockCell = child.GetComponent<BlockCell>();
-            if (blockCell != null && blockCell.Kind == BlockCell.CellKind.Ice)
+            if (blockCell != null && seen.Add(child))
                 cells.Add(child);
         }
 
         return cells;
+    }
+
+    void PruneOverlappingSceneCells(Transform towerRoot)
+    {
+        if (towerRoot == null)
+            return;
+
+        var occupied = new HashSet<Vector2Int>();
+        var sceneCells = CollectSceneCellTransforms(towerRoot);
+        foreach (var child in sceneCells)
+        {
+            if (child == null || child.GetComponent<BlockCell>() == null)
+                continue;
+
+            var local = towerRoot.InverseTransformPoint(child.position);
+            var cell = new Vector2Int(
+                Mathf.RoundToInt(local.x - 0.5f),
+                Mathf.RoundToInt(local.y - 0.5f));
+
+            if (occupied.Add(cell))
+                continue;
+
+            DestroyDuplicateSceneCell(child);
+        }
+    }
+
+    void DestroyDuplicateSceneCell(Transform duplicate)
+    {
+        if (duplicate == null)
+            return;
+
+#if UNITY_EDITOR
+        if (!Application.isPlaying)
+        {
+            UnityEditor.Undo.DestroyObjectImmediate(duplicate.gameObject);
+            if (gameObject.scene.IsValid())
+                UnityEditor.SceneManagement.EditorSceneManager.MarkSceneDirty(gameObject.scene);
+            return;
+        }
+#endif
+
+        Destroy(duplicate.gameObject);
+    }
+
+    void AttachSceneCellToTowerRoot(Transform cellTransform, Transform towerRoot)
+    {
+        if (cellTransform == null || towerRoot == null)
+            return;
+
+        if (cellTransform.parent != towerRoot)
+            cellTransform.SetParent(towerRoot, true);
     }
 
     void MakeIceCellStatic(Transform ice)
@@ -858,6 +1066,16 @@ public class BlockTower : MonoBehaviour
         if (damage == null)
             damage = ice.gameObject.AddComponent<IceBlockCollisionDamage>();
         damage.Initialize(this);
+    }
+
+    void SnapIceCellTransform(Transform ice, Transform root, Vector2Int cell)
+    {
+        if (ice == null || root == null)
+            return;
+
+        var world = root.TransformPoint(new Vector3(cell.x + 0.5f, cell.y + 0.5f, 0f));
+        ice.position = new Vector3(world.x, world.y, ice.position.z);
+        ice.localScale = Vector3.one;
     }
 
     void RandomizeInitialTowerNumbersIfNeeded()
@@ -1421,6 +1639,7 @@ public class BlockTower : MonoBehaviour
 
     void HideResultScreens()
     {
+        RestoreRuntimeHudDocument();
         BindResultScreens();
         _gameOverScreen?.Hide();
         _clearScreen?.Hide();
@@ -1881,8 +2100,8 @@ public class BlockTower : MonoBehaviour
         ClearDetachedBlocks();
         BindResultScreens();
         _clearScreen?.Hide();
-        _gameOverScreen?.Hide();
-        ShowResultPanel(false);
+        if (!ShowResultHud(gameOverVisualTree, "Assets/01.Scripts/UI/GameOverScreen.uxml", "GAME OVER", _score, targetScore, Rebuild))
+            _gameOverScreen?.ShowGameOver(_score, targetScore, Rebuild);
     }
 
     void TriggerClear()
@@ -1895,58 +2114,9 @@ public class BlockTower : MonoBehaviour
         ClearDetachedBlocks();
         BindResultScreens();
         _gameOverScreen?.Hide();
-        _clearScreen?.Hide();
-        ShowResultPanel(true);
+        if (!ShowResultHud(clearVisualTree, "Assets/01.Scripts/UI/ClearScreen.uxml", "CLEAR", _score, targetScore, Rebuild))
+            _clearScreen?.ShowClear(_score, targetScore, Rebuild);
     }
-
-    // ── UI Toolkit 결과창 (게임오버/클리어) ───────────────────────
-    void ShowResultPanel(bool isClear)
-    {
-        BindBuilderHud();
-        if (isClear)
-        {
-            if (_builderClearScoreText != null) _builderClearScoreText.text = $"SCORE: {_score}";
-            if (_builderClearTargetText != null) _builderClearTargetText.text = $"TARGET: {targetScore}";
-            StretchAndShow(_builderClearPanel);
-            if (_builderGameOverPanel != null) _builderGameOverPanel.style.display = DisplayStyle.None;
-        }
-        else
-        {
-            if (_builderGameOverScoreText != null) _builderGameOverScoreText.text = $"SCORE: {_score}";
-            if (_builderGameOverTargetText != null) _builderGameOverTargetText.text = $"TARGET: {targetScore}";
-            StretchAndShow(_builderGameOverPanel);
-            if (_builderClearPanel != null) _builderClearPanel.style.display = DisplayStyle.None;
-        }
-    }
-
-    // Template 클론 시 uxml 인라인 크기가 적용되지 않는 경우가 있어, 표시할 때 코드로 화면 전체로 펼친다.
-    void StretchAndShow(VisualElement panel)
-    {
-        if (panel == null) return;
-        panel.style.position = Position.Absolute;
-        panel.style.left = 0;
-        panel.style.top = 0;
-        panel.style.right = 0;
-        panel.style.bottom = 0;
-        panel.style.display = DisplayStyle.Flex;
-    }
-
-    void BindResultButtons(VisualElement root)
-    {
-        if (_resultButtonsBound || root == null) return;
-        var goRestart = root.Q<UnityEngine.UIElements.Button>("GameOverRestartButton");
-        var goMenu = root.Q<UnityEngine.UIElements.Button>("GameOverMainMenuButton");
-        var clearNext = root.Q<UnityEngine.UIElements.Button>("ClearNextButton");
-        var clearMenu = root.Q<UnityEngine.UIElements.Button>("ClearMainMenuButton");
-        if (goRestart != null) goRestart.clicked += Rebuild;
-        if (goMenu != null) goMenu.clicked += GoToMainMenu;
-        if (clearNext != null) clearNext.clicked += GoToNext;
-        if (clearMenu != null) clearMenu.clicked += GoToMainMenu;
-        _resultButtonsBound = goRestart != null && goMenu != null && clearNext != null && clearMenu != null;
-    }
-
-    void GoToMainMenu() => SceneManager.LoadScene("LobbyScene");
-    void GoToNext() => SceneManager.LoadScene("StageScene");
 
     void CheckClearCondition()
     {
@@ -2346,38 +2516,47 @@ public class BlockTower : MonoBehaviour
         if (hasPreset)
         {
             if (_presetSelectionPreset == preset)
-                _presetSelectionRotation = (_presetSelectionRotation + 1) % 4;
+                TrySetPresetSelection(_presetSelectionAnchor, _presetSelectionPreset, (_presetSelectionRotation + 1) % 4);
             else
-            {
-                _presetSelectionPreset = preset;
-                _presetSelectionRotation = 0;
-            }
-            ApplyPresetSelection();
+                TrySetPresetSelection(_presetSelectionAnchor, preset, 0);
             return;
         }
 
         if (hasPresetHalfTurn)
         {
-            _presetSelectionRotation = (_presetSelectionRotation + 2) % 4;
-            ApplyPresetSelection();
+            TrySetPresetSelection(_presetSelectionAnchor, _presetSelectionPreset, (_presetSelectionRotation + 2) % 4);
             return;
         }
 
         if (hasPresetRotate)
         {
-            _presetSelectionRotation = (_presetSelectionRotation + 1) % 4;
-            ApplyPresetSelection();
+            TrySetPresetSelection(_presetSelectionAnchor, _presetSelectionPreset, (_presetSelectionRotation + 1) % 4);
             return;
         }
 
         if (hasMove)
         {
-            _presetSelectionAnchor += dir;
-            ApplyPresetSelection();
+            TrySetPresetSelection(_presetSelectionAnchor + dir, _presetSelectionPreset, _presetSelectionRotation);
         }
 
         if (hasConfirm)
             ConfirmPresetSelection();
+    }
+
+    bool TrySetPresetSelection(Vector2Int anchor, TetrominoPreset preset, int rotation)
+    {
+        if (!PresetOverlapsAnyExtractableCell(anchor, preset, rotation))
+        {
+            PlayPlacementFailFeedback();
+            ApplyPresetSelection();
+            return false;
+        }
+
+        _presetSelectionAnchor = anchor;
+        _presetSelectionPreset = preset;
+        _presetSelectionRotation = ((rotation % 4) + 4) % 4;
+        ApplyPresetSelection();
+        return true;
     }
 
     void ExitPresetSelectionToFocus()
@@ -2462,6 +2641,14 @@ public class BlockTower : MonoBehaviour
             if (!IsExtractableCell(cell))
                 return false;
         return true;
+    }
+
+    bool PresetOverlapsAnyExtractableCell(Vector2Int anchor, TetrominoPreset preset, int rotation)
+    {
+        foreach (var cell in GetTetrominoPresetCells(anchor, preset, rotation))
+            if (IsExtractableCell(cell))
+                return true;
+        return false;
     }
 
     void ConfirmPresetSelection()
@@ -2977,6 +3164,7 @@ public class BlockTower : MonoBehaviour
         if (autoFocusCameraOnLift)
             FocusCameraOnHeldCenter();
         AddScore(_heldMatchesBonus ? 2 : 1, extractionScorePos);
+        RollBonusTarget();
     }
 
     // ── 커서 추적 ─────────────────────────────────────────────────────────
@@ -3420,7 +3608,6 @@ public class BlockTower : MonoBehaviour
         }
         else if (autoFocusCameraOnLift)
             ShowPlacementCameraView(immediate: false);
-        RollBonusTarget();
     }
 
     void RememberLastPlacementCenter(List<Vector2Int> targets)
@@ -3459,11 +3646,43 @@ public class BlockTower : MonoBehaviour
     void FocusDefaultExtractionCell()
     {
         ClearKeyboardFocus();
+        if (TryFindFocusNearLastExtraction(ignoreLastPlaced: true, out var lastCell) ||
+            TryFindFocusNearLastExtraction(ignoreLastPlaced: false, out lastCell))
+        {
+            SetFocusCell(lastCell);
+            return;
+        }
+
         if (TryFindDefaultFocusCell(ignoreLastPlaced: true, out var cell) ||
             TryFindDefaultFocusCell(ignoreLastPlaced: false, out cell))
         {
             SetFocusCell(cell);
         }
+    }
+
+    bool TryFindFocusNearLastExtraction(bool ignoreLastPlaced, out Vector2Int best)
+    {
+        best = default;
+        bool found = false;
+        float bestDistance = float.MaxValue;
+
+        foreach (var cell in _cells.Keys)
+        {
+            if (ignoreLastPlaced && _lastPlacedCells.Contains(cell)) continue;
+            if (!IsExtractableCell(cell)) continue;
+            if (!IsInExtractionTowerRows(cell)) continue;
+
+            float distance = Vector2.SqrMagnitude(new Vector2(cell.x + 0.5f, cell.y + 0.5f) - _lastExtractionCenter);
+            if (!found || distance < bestDistance ||
+                Mathf.Approximately(distance, bestDistance) && cell.y > best.y)
+            {
+                best = cell;
+                bestDistance = distance;
+                found = true;
+            }
+        }
+
+        return found;
     }
 
     // ── 들기 취소 ─────────────────────────────────────────────────────────
@@ -4490,6 +4709,9 @@ public class BlockTower : MonoBehaviour
     {
         EnsureNumberSpriteSet();
 
+        if (data.label == null && data.go != null)
+            data.label = SpawnLabel(data.number, data.go.transform);
+
         var blockCell = data.go.GetComponent<BlockCell>();
         if (blockCell != null)
         {
@@ -4620,13 +4842,7 @@ public class BlockTower : MonoBehaviour
 
         for (int number = 1; number <= _builderWeightGuideImages.Length; number++)
         {
-            if (_builderBlockWeightGuide != null)
-            {
-                _builderBlockWeightGuide.style.display = DisplayStyle.Flex;
-                _builderBlockWeightGuide.style.visibility = Visibility.Visible;
-                _builderBlockWeightGuide.style.opacity = 1f;
-                _builderBlockWeightGuide.style.flexDirection = FlexDirection.Column;
-            }
+            PreserveBuilderHudPanel(_builderBlockWeightGuide);
 
             var element = _builderWeightGuideImages[number - 1];
             if (element == null)
@@ -4635,50 +4851,11 @@ public class BlockTower : MonoBehaviour
             element.style.display = DisplayStyle.Flex;
             element.style.visibility = Visibility.Visible;
             element.style.opacity = 1f;
-            element.style.width = 80f;
-            element.style.height = 80f;
-            element.style.backgroundColor = new Color(0.66f, 0.66f, 0.66f, 1f);
-            element.style.unityBackgroundScaleMode = ScaleMode.ScaleToFit;
 
             var sprite = numberSpriteSet.GetSprite(number);
             element.style.backgroundImage = sprite != null
                 ? new StyleBackground(sprite)
                 : StyleKeyword.None;
-        }
-
-        var guide = FindSceneObjectByName("block weight guide");
-        if (guide == null)
-            guide = FindSceneObjectByName("Block Weight Guide");
-        if (guide == null)
-            return;
-
-        const float imageSize = 80f;
-        const float spacing = 90f;
-        const float topY = 225f;
-
-        for (int number = 1; number <= 6; number++)
-        {
-            var child = guide.Find($"Image ({number})");
-            if (child == null)
-                continue;
-
-            if (child is RectTransform rect)
-            {
-                rect.sizeDelta = new Vector2(imageSize, imageSize);
-                rect.anchoredPosition = new Vector2(0f, topY - (number - 1) * spacing);
-            }
-
-            var uiImage = child.GetComponent<UnityEngine.UI.Image>();
-            if (uiImage == null)
-                continue;
-
-            var sprite = numberSpriteSet.GetSprite(number);
-            if (sprite != null)
-            {
-                uiImage.sprite = sprite;
-                uiImage.color = Color.white;
-            }
-            uiImage.preserveAspect = true;
         }
     }
 
@@ -5198,7 +5375,6 @@ public class BlockTower : MonoBehaviour
         SetHudLabelTextOnly(_builderBonusKeyLabel, PresetKeyText(_bonusTargetPreset));
         SetHudLabelTextOnly(_builderBonusNextKeyLabel, PresetKeyText(_nextBonusTargetPreset));
         SetHudLabelTextOnly(_builderBonusThirdKeyLabel, PresetKeyText(_thirdBonusTargetPreset));
-        UpdateCanvasHudText();
         _builderBonusPreviewNeedsRefresh = false;
     }
 
@@ -5258,14 +5434,8 @@ public class BlockTower : MonoBehaviour
 
     void UpdateBuilderBonusPreviewImageSlot(VisualElement container, List<VisualElement> elements, Sprite sprite)
     {
-        container.style.position = Position.Relative;
-        container.style.backgroundColor = new Color(0.66f, 0.66f, 0.66f, 1f);
         container.style.backgroundImage = sprite != null ? new StyleBackground(sprite) : StyleKeyword.None;
         container.style.unityBackgroundScaleMode = ScaleMode.ScaleToFit;
-        container.style.borderTopWidth = 0f;
-        container.style.borderRightWidth = 0f;
-        container.style.borderBottomWidth = 0f;
-        container.style.borderLeftWidth = 0f;
 
         if (elements == null)
             return;
