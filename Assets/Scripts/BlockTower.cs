@@ -48,6 +48,8 @@ public class BlockTower : MonoBehaviour
     [SerializeField] BlockNumberSpriteSetAsset numberSpriteSetAsset;
     [SerializeField, HideInInspector] BlockNumberSpriteSet numberSpriteSet;
     [SerializeField] BonusTetrominoSpriteSet bonusTetrominoSpriteSet;
+    [Tooltip("RuntimeHud 요소 배경 스프라이트 모음 (점수판/보너스 프리뷰/가이드 등). 비우면 UXML 기본색 유지.")]
+    [SerializeField] RuntimeHudImageLibrarySO hudImageLibrary;
 
     [Header("Keyboard Controls")]
     [SerializeField] bool keyboardControlsEnabled = true;
@@ -392,6 +394,7 @@ public class BlockTower : MonoBehaviour
 
         SyncBlockWeightGuideImages();
         ApplyHudTextStyles();
+        ApplyHudSprites();
         _builderBonusPreviewNeedsRefresh = _builderBonusCells != null;
         if (_builderBonusCells != null)
             root.schedule.Execute(UpdateBuilderBonusPreview).StartingIn(0);
@@ -408,6 +411,46 @@ public class BlockTower : MonoBehaviour
         ForceVisibleBonusKeyLabel(_builderBonusKeyLabel, PresetKeyText(_bonusTargetPreset));
         ForceVisibleBonusKeyLabel(_builderBonusNextKeyLabel, PresetKeyText(_nextBonusTargetPreset));
         ForceVisibleBonusKeyLabel(_builderBonusThirdKeyLabel, PresetKeyText(_thirdBonusTargetPreset));
+    }
+
+    /// <summary>
+    /// RuntimeHud 요소 배경에 hudImageLibrary 슬롯 스프라이트를 적용한다.
+    /// 슬롯이 비어 있으면 UISprites.Apply가 무시하므로 UXML 기본색이 유지된다.
+    /// </summary>
+    void ApplyHudSprites()
+    {
+        if (hudImageLibrary == null)
+            return;
+
+        UISprites.Apply(_builderHudScorePanel, hudImageLibrary.scorePanel);
+        UISprites.Apply(_builderHudTargetScorePanel, hudImageLibrary.targetScorePanel);
+        UISprites.Apply(_builderBonusPreview, hudImageLibrary.bonusPreviewPanel);
+        UISprites.Apply(_builderBlockWeightGuide, hudImageLibrary.weightGuidePanel);
+        UISprites.Apply(_builderSecondaryViewPanel, hudImageLibrary.subCameraPreviewPanel);
+
+        // 보너스 블록은 Cells의 backgroundImage로 그려지므로(UpdateBuilderBonusPreviewImageSlot),
+        // 배경은 Cells가 아니라 부모 컨테이너에 깔고 Cells 배경색만 비워 블록이 그 위에 보이게 한다.
+        ApplyBonusItemBackground(_builderBonusCells);
+        ApplyBonusItemBackground(_builderBonusNextCells);
+        ApplyBonusItemBackground(_builderBonusThirdCells);
+
+        UISprites.Apply(_builderBonusKeyLabel, hudImageLibrary.bonusKeyBadge);
+        UISprites.Apply(_builderBonusNextKeyLabel, hudImageLibrary.bonusKeyBadge);
+        UISprites.Apply(_builderBonusThirdKeyLabel, hudImageLibrary.bonusKeyBadge);
+    }
+
+    /// <summary>
+    /// 보너스 프리뷰 칸 배경을 적용한다. 블록(테트로미노)은 Cells의 backgroundImage로 그려지므로
+    /// 배경은 부모 컨테이너에 깔고, Cells의 placeholder 배경색만 비워 블록이 배경 위에 보이게 한다.
+    /// </summary>
+    void ApplyBonusItemBackground(VisualElement cells)
+    {
+        if (cells == null || cells.parent == null || hudImageLibrary == null)
+            return;
+
+        UISprites.Apply(cells.parent, hudImageLibrary.bonusPreviewItem);
+        if (hudImageLibrary.bonusPreviewItem != null)
+            cells.style.backgroundColor = Color.clear;
     }
 
     void EnsureRuntimeHudElements(VisualElement root)

@@ -153,6 +153,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BlockCell
   Weight: 5
+  IsOriginalTower: 0
+  Kind: 0
 --- !u!1 &155032619355841345
 GameObject:
   m_ObjectHideFlags: 0
@@ -668,6 +670,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BlockCell
   Weight: 5
+  IsOriginalTower: 0
+  Kind: 0
 --- !u!1 &363234535603048772
 GameObject:
   m_ObjectHideFlags: 0
@@ -1002,6 +1006,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BlockCell
   Weight: 4
+  IsOriginalTower: 0
+  Kind: 0
 --- !u!1 &594211600498393604
 GameObject:
   m_ObjectHideFlags: 0
@@ -1519,6 +1525,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BlockCell
   Weight: 6
+  IsOriginalTower: 0
+  Kind: 0
 --- !u!1 &807996990728227642
 GameObject:
   m_ObjectHideFlags: 0
@@ -1572,11 +1580,66 @@ MonoBehaviour:
   rows: 10
   placementMin: {x: -1, y: 9}
   placementMax: {x: 4, y: 40}
+  usePlacementZoneObject: 1
+  placementZoneTransform: {fileID: 0}
+  previewBlurEnabled: 1
+  previewBlurRadius: 0.12
+  previewBlurAlpha: 0.1
+  previewBlurCopies: 8
+  placementFailDuration: 0.18
+  placementFailShakeDistance: 0.12
+  placementFailShakeCount: 3
+  placedBlockColor: {r: 0.55, g: 0.58, b: 0.6, a: 1}
+  numberSpriteSetAsset: {fileID: 0}
+  numberSpriteSet: {fileID: 0}
+  bonusTetrominoSpriteSet: {fileID: 0}
+  hudImageLibrary: {fileID: 11400000, guid: 5358f87cc1fd5bc44bea6899aa0859c7, type: 2}
+  keyboardControlsEnabled: 1
+  focusedCellColor: {r: 1, g: 0.92, b: 0.25, a: 1}
+  moveHoldInitialDelay: 0.22
+  moveHoldRepeatInterval: 0.08
+  focusedOutlineColor: {r: 1, g: 0.95, b: 0.05, a: 1}
+  selectedOutlineColor: {r: 1, g: 1, b: 1, a: 0.95}
+  focusedOutlineScale: 1.18
+  selectedOutlineScale: 1.1
   blockFriction: 10
+  toppleTorque: 4
+  toppleMargin: 0.05
+  detachedReattachStableTime: 0.15
+  detachedReattachVelocity: 0.55
+  detachedMinAirTime: 0.35
+  detachedPenaltyDelay: 2
+  blockBodyScale: 0.94
+  blockColliderScale: 0.92
+  bombObscureSprite: {fileID: 0}
+  bombObscureColor: {r: 0.45, g: 0.45, b: 0.45, a: 0.92}
+  goldFishDeadlineScore: 20
+  targetScore: 30
+  initialTowerNumberTotal: 160
+  randomizeInitialTowerNumbersOnPlay: 1
   towerRootTransform: {fileID: 0}
   floorTransform: {fileID: 0}
   scoreLabel: {fileID: 7894223092979549093}
+  hudDocument: {fileID: 0}
+  hudVisualTree: {fileID: 0}
+  gameOverVisualTree: {fileID: 0}
+  clearVisualTree: {fileID: 0}
+  hudPanelSettings: {fileID: 0}
   scrollSpeed: 50
+  autoFocusCameraOnLift: 1
+  autoReturnCameraAfterPlace: 1
+  cameraFocusSpeed: 8
+  cameraTopPadding: 2
+  cameraReturnBodyAnchor: 0.55
+  extractionViewPadding: 1.25
+  placementViewTopOffset: 1
+  secondaryViewCamera: {fileID: 0}
+  secondaryViewImage: {fileID: 0}
+  secondaryViewPanelSize: {x: 540, y: 360}
+  secondaryViewPanelPosition: {x: 40, y: 0}
+  secondaryViewOrthographicSize: 3
+  secondaryViewTextureSize: 768
+  secondaryViewDefaultsMigrated: 1
 --- !u!1 &1055202360936154692
 GameObject:
   m_ObjectHideFlags: 0
@@ -1730,6 +1793,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BlockCell
   Weight: 6
+  IsOriginalTower: 0
+  Kind: 0
 --- !u!1 &1238808985332767364
 GameObject:
   m_ObjectHideFlags: 0
@@ -2608,6 +2673,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BlockCell
   Weight: 5
+  IsOriginalTower: 0
+  Kind: 0
 --- !u!1 &2037750555474526165
 GameObject:
   m_ObjectHideFlags: 0
@@ -3123,6 +3190,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BlockCell
   Weight: 5
+  IsOriginalTower: 0
+  Kind: 0
 --- !u!1 &2234096334231427851
 GameObject:
   m_ObjectHideFlags: 0
@@ -3276,6 +3345,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BlockCell
   Weight: 3
+  IsOriginalTower: 0
+  Kind: 0
 --- !u!1 &2558110608460731929
 GameObject:
   m_ObjectHideFlags: 0
@@ -3791,6 +3862,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BlockCell
   Weight: 5
+  IsOriginalTower: 0
+  Kind: 0
 --- !u!1 &2779831869744449659
 GameObject:
   m_ObjectHideFlags: 0
@@ -3944,6 +4017,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BlockCell
   Weight: 2
+  IsOriginalTower: 0
+  Kind: 0
 --- !u!1 &2871329282109383110
 GameObject:
   m_ObjectHideFlags: 0
@@ -4097,6 +4172,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BlockCell
   Weight: 2
+  IsOriginalTower: 0
+  Kind: 0
 --- !u!1 &2876888073012088889
 GameObject:
   m_ObjectHideFlags: 0
@@ -4250,6 +4327,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BlockCell
   Weight: 2
+  IsOriginalTower: 0
+  Kind: 0
 --- !u!1 &3149886922945766341
 GameObject:
   m_ObjectHideFlags: 0
@@ -4403,6 +4482,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BlockCell
   Weight: 2
+  IsOriginalTower: 0
+  Kind: 0
 --- !u!1 &3219983158981030893
 GameObject:
   m_ObjectHideFlags: 0
@@ -5009,6 +5090,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BlockCell
   Weight: 6
+  IsOriginalTower: 0
+  Kind: 0
 --- !u!1 &3663448183188054800
 GameObject:
   m_ObjectHideFlags: 0
@@ -5524,6 +5607,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BlockCell
   Weight: 4
+  IsOriginalTower: 0
+  Kind: 0
 --- !u!1 &3677743119947522530
 GameObject:
   m_ObjectHideFlags: 0
@@ -5858,6 +5943,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BlockCell
   Weight: 3
+  IsOriginalTower: 0
+  Kind: 0
 --- !u!1 &3794778400502294572
 GameObject:
   m_ObjectHideFlags: 0
@@ -6011,6 +6098,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BlockCell
   Weight: 5
+  IsOriginalTower: 0
+  Kind: 0
 --- !u!1 &4006163875875876632
 GameObject:
   m_ObjectHideFlags: 0
@@ -6164,6 +6253,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BlockCell
   Weight: 5
+  IsOriginalTower: 0
+  Kind: 0
 --- !u!1 &4105348607122259192
 GameObject:
   m_ObjectHideFlags: 0
@@ -6317,6 +6408,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BlockCell
   Weight: 3
+  IsOriginalTower: 0
+  Kind: 0
 --- !u!1 &4150275262948327398
 GameObject:
   m_ObjectHideFlags: 0
@@ -6470,6 +6563,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BlockCell
   Weight: 5
+  IsOriginalTower: 0
+  Kind: 0
 --- !u!1 &4191579065630244496
 GameObject:
   m_ObjectHideFlags: 0
@@ -6623,6 +6718,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BlockCell
   Weight: 5
+  IsOriginalTower: 0
+  Kind: 0
 --- !u!1 &4261020381181094558
 GameObject:
   m_ObjectHideFlags: 0
@@ -6957,6 +7054,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BlockCell
   Weight: 6
+  IsOriginalTower: 0
+  Kind: 0
 --- !u!1 &4540688976532004594
 GameObject:
   m_ObjectHideFlags: 0
@@ -7834,6 +7933,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BlockCell
   Weight: 4
+  IsOriginalTower: 0
+  Kind: 0
 --- !u!1 &5136488221434808066
 GameObject:
   m_ObjectHideFlags: 0
@@ -8168,6 +8269,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BlockCell
   Weight: 3
+  IsOriginalTower: 0
+  Kind: 0
 --- !u!1 &5964369084962424065
 GameObject:
   m_ObjectHideFlags: 0
@@ -8502,6 +8605,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BlockCell
   Weight: 2
+  IsOriginalTower: 0
+  Kind: 0
 --- !u!1 &6178683375875221408
 GameObject:
   m_ObjectHideFlags: 0
@@ -8655,6 +8760,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BlockCell
   Weight: 4
+  IsOriginalTower: 0
+  Kind: 0
 --- !u!1 &6206420369228397887
 GameObject:
   m_ObjectHideFlags: 0
@@ -8808,6 +8915,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BlockCell
   Weight: 4
+  IsOriginalTower: 0
+  Kind: 0
 --- !u!1 &6221598709628771507
 GameObject:
   m_ObjectHideFlags: 0
@@ -8961,6 +9070,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BlockCell
   Weight: 5
+  IsOriginalTower: 0
+  Kind: 0
 --- !u!1 &6279374438587718290
 GameObject:
   m_ObjectHideFlags: 0
@@ -9114,6 +9225,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BlockCell
   Weight: 3
+  IsOriginalTower: 0
+  Kind: 0
 --- !u!1 &6605998140234298464
 GameObject:
   m_ObjectHideFlags: 0
@@ -9448,6 +9561,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BlockCell
   Weight: 5
+  IsOriginalTower: 0
+  Kind: 0
 --- !u!1 &6656098274514589411
 GameObject:
   m_ObjectHideFlags: 0
@@ -9601,6 +9716,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BlockCell
   Weight: 6
+  IsOriginalTower: 0
+  Kind: 0
 --- !u!1 &6799432284725042263
 GameObject:
   m_ObjectHideFlags: 0
@@ -9754,6 +9871,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BlockCell
   Weight: 4
+  IsOriginalTower: 0
+  Kind: 0
 --- !u!1 &6859776637200314534
 GameObject:
   m_ObjectHideFlags: 0
@@ -10088,6 +10207,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BlockCell
   Weight: 3
+  IsOriginalTower: 0
+  Kind: 0
 --- !u!1 &7328055503651092388
 GameObject:
   m_ObjectHideFlags: 0
@@ -10241,6 +10362,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BlockCell
   Weight: 2
+  IsOriginalTower: 0
+  Kind: 0
 --- !u!1 &7352881556529890278
 GameObject:
   m_ObjectHideFlags: 0
@@ -10575,6 +10698,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BlockCell
   Weight: 4
+  IsOriginalTower: 0
+  Kind: 0
 --- !u!1 &7622252688212962567
 GameObject:
   m_ObjectHideFlags: 0
@@ -11090,6 +11215,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BlockCell
   Weight: 2
+  IsOriginalTower: 0
+  Kind: 0
 --- !u!1 &8021443559466042978
 GameObject:
   m_ObjectHideFlags: 0
@@ -11605,6 +11732,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BlockCell
   Weight: 4
+  IsOriginalTower: 0
+  Kind: 0
 --- !u!1 &8346867015173929106
 GameObject:
   m_ObjectHideFlags: 0
@@ -12191,6 +12320,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BlockCell
   Weight: 6
+  IsOriginalTower: 0
+  Kind: 0
 --- !u!1 &8978390993444115610
 GameObject:
   m_ObjectHideFlags: 0
@@ -13249,6 +13380,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BlockCell
   Weight: 3
+  IsOriginalTower: 0
+  Kind: 0
 --- !u!1 &9092704616022275627
 GameObject:
   m_ObjectHideFlags: 0
@@ -13764,6 +13897,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BlockCell
   Weight: 2
+  IsOriginalTower: 0
+  Kind: 0
 --- !u!1 &9162655198520261690
 GameObject:
   m_ObjectHideFlags: 0
