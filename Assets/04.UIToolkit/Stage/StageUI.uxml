@@ -1,5 +1,5 @@
 <ui:UXML xmlns:ui="UnityEngine.UIElements" editor-extension-mode="False">
-    <Style src="../Common/UITheme.uss" />
+    <Style src="../UnityThemes/UITheme.uss" />
     <Style src="StageUI.uss" />
 
     <ui:VisualElement name="root" class="ui-root">
@@ -44,16 +44,16 @@
         <ui:VisualElement name="setting-popup" class="setting-overlay hidden">
             <ui:VisualElement class="setting-panel">
                 <ui:VisualElement class="setting-row">
-                    <ui:Label text="프리셋 가이드 창 여부" class="setting-row__label setting-row__label--wide" />
+                    <ui:Label name="preset-guide-label" text="프리셋 가이드 창 여부" class="setting-row__label setting-row__label--wide" />
                     <ui:VisualElement class="setting-row__spacer" />
                     <ui:Toggle name="preset-guide-toggle" class="setting-toggle" />
                 </ui:VisualElement>
                 <ui:VisualElement class="setting-row">
-                    <ui:Label text="BGM" class="setting-row__label" />
+                    <ui:Label name="bgm-label" text="BGM" class="setting-row__label" />
                     <ui:Slider name="bgm-slider" low-value="0" high-value="1" value="1" class="setting-slider" />
                 </ui:VisualElement>
                 <ui:VisualElement class="setting-row">
-                    <ui:Label text="SFX" class="setting-row__label" />
+                    <ui:Label name="sfx-label" text="SFX" class="setting-row__label" />
                     <ui:Slider name="sfx-slider" low-value="0" high-value="1" value="1" class="setting-slider" />
                 </ui:VisualElement>
                 <ui:VisualElement class="setting-button-row">

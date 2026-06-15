@@ -13,16 +13,28 @@ public class SettingUIImageLibrarySO : ScriptableObject
     public Sprite panel;
 
     [Header("프리셋 가이드 토글")]
+    [Tooltip("'프리셋 가이드 창 여부' 라벨 박스 배경")]
+    public Sprite presetGuideLabel;
     [Tooltip("토글 ON 상태 체크 박스")]
     public Sprite toggleOn;
     [Tooltip("토글 OFF 상태 체크 박스")]
     public Sprite toggleOff;
 
-    [Header("슬라이더")]
-    [Tooltip("슬라이더 트랙(배경)")]
-    public Sprite sliderTrack;
-    [Tooltip("슬라이더 핸들(드래그 손잡이)")]
-    public Sprite sliderHandle;
+    [Header("BGM 슬라이더")]
+    [Tooltip("'BGM' 라벨 박스 배경")]
+    public Sprite bgmLabel;
+    [Tooltip("BGM 슬라이더 트랙(배경)")]
+    public Sprite bgmSliderTrack;
+    [Tooltip("BGM 슬라이더 핸들(드래그 손잡이)")]
+    public Sprite bgmSliderHandle;
+
+    [Header("SFX 슬라이더")]
+    [Tooltip("'SFX' 라벨 박스 배경")]
+    public Sprite sfxLabel;
+    [Tooltip("SFX 슬라이더 트랙(배경)")]
+    public Sprite sfxSliderTrack;
+    [Tooltip("SFX 슬라이더 핸들(드래그 손잡이)")]
+    public Sprite sfxSliderHandle;
 
     [Header("버튼")]
     [Tooltip("Restart 버튼")]

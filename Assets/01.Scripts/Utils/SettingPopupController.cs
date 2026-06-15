@@ -18,6 +18,9 @@ public class SettingPopupController
     private Slider bgmSlider;
     private Slider sfxSlider;
     private Toggle presetGuideToggle;
+    private Label presetGuideLabel;
+    private Label bgmLabel;
+    private Label sfxLabel;
     private Button restartButton;
     private Button backButton;
 
@@ -38,6 +41,9 @@ public class SettingPopupController
         bgmSlider = root.Q<Slider>("bgm-slider");
         sfxSlider = root.Q<Slider>("sfx-slider");
         presetGuideToggle = root.Q<Toggle>("preset-guide-toggle");
+        presetGuideLabel = root.Q<Label>("preset-guide-label");
+        bgmLabel = root.Q<Label>("bgm-label");
+        sfxLabel = root.Q<Label>("sfx-label");
         restartButton = root.Q<Button>("setting-restart-button");
         backButton = root.Q<Button>("setting-back-button");
 
@@ -110,6 +116,22 @@ public class SettingPopupController
         UISprites.Apply(restartButton, images.restartButton);
         UISprites.Apply(backButton, images.backButton);
         ApplyToggleSprite(images, presetGuideToggle?.value ?? false);
+        ApplySliderSprites(bgmSlider, images.bgmSliderTrack, images.bgmSliderHandle);
+        ApplySliderSprites(sfxSlider, images.sfxSliderTrack, images.sfxSliderHandle);
+        UISprites.Apply(presetGuideLabel, images.presetGuideLabel);
+        UISprites.Apply(bgmLabel, images.bgmLabel);
+        UISprites.Apply(sfxLabel, images.sfxLabel);
+    }
+
+    private void ApplySliderSprites(Slider slider, Sprite track, Sprite handle)
+    {
+        if (slider == null)
+        {
+            return;
+        }
+
+        UISprites.Apply(slider.Q<VisualElement>(className: "unity-base-slider__tracker"), track);
+        UISprites.Apply(slider.Q<VisualElement>(className: "unity-base-slider__dragger"), handle);
     }
 
     private void ApplyToggleSprite(SettingUIImageLibrarySO images, bool isOn)
