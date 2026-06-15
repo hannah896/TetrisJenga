@@ -13,26 +13,34 @@ MonoBehaviour:
   m_Name: _AudioLibrary
   m_EditorClassIdentifier: com.Brogrammist.JSAM::JSAM.AudioLibrary
   soundCategories:
-  - 
+  - UI
   musicCategories:
   - 
-  Sounds: []
-  Music: []
+  Sounds:
+  - {fileID: 11400000, guid: 99e7ad8e994796449a209a93b38cd473, type: 2}
+  - {fileID: 11400000, guid: 7ece0c5436f899148b1f21fd28d34a9a, type: 2}
+  - {fileID: 11400000, guid: d4ffd9dc56a49f949acbaeafd15f7b28, type: 2}
+  Music:
+  - {fileID: 11400000, guid: e2a535f1e5552cb47a05cbce341c1712, type: 2}
   useCustomNames: 0
-  generatedName: 
+  generatedName: _AudioLibrary
   musicEnum: 
-  musicEnumGenerated: 
+  musicEnumGenerated: _AudioLibraryMusic
   musicNamespace: 
   musicNamespaceGenerated: 
   soundEnum: 
-  soundEnumGenerated: 
+  soundEnumGenerated: _AudioLibrarySounds
   soundNamespace: 
   soundNamespaceGenerated: 
   soundCategoriesToList:
-  - name: 
-    files: []
+  - name: UI
+    files:
+    - {fileID: 11400000, guid: 99e7ad8e994796449a209a93b38cd473, type: 2}
+    - {fileID: 11400000, guid: 7ece0c5436f899148b1f21fd28d34a9a, type: 2}
+    - {fileID: 11400000, guid: d4ffd9dc56a49f949acbaeafd15f7b28, type: 2}
     foldout: 1
   musicCategoriesToList:
   - name: 
-    files: []
+    files:
+    - {fileID: 11400000, guid: e2a535f1e5552cb47a05cbce341c1712, type: 2}
     foldout: 1

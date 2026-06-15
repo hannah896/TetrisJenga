@@ -1,4 +1,5 @@
 using System;
+using JSAM;
 using UnityEngine;
 using UnityEngine.UIElements;
 
@@ -9,8 +10,6 @@ using UnityEngine.UIElements;
 /// </summary>
 public class SettingPopupController
 {
-    private const string BgmKey = "Settings.BgmVolume";
-    private const string SfxKey = "Settings.SfxVolume";
     private const string PresetGuideKey = "Settings.PresetGuide";
     private const float DefaultVolume = 1f;
 
@@ -50,8 +49,8 @@ public class SettingPopupController
         ApplySprites(images);
         LoadState();
 
-        bgmSlider?.RegisterValueChangedCallback(evt => SaveVolume(BgmKey, evt.newValue));
-        sfxSlider?.RegisterValueChangedCallback(evt => SaveVolume(SfxKey, evt.newValue));
+        bgmSlider?.RegisterValueChangedCallback(evt => ApplyMusicVolume(evt.newValue));
+        sfxSlider?.RegisterValueChangedCallback(evt => ApplySoundVolume(evt.newValue));
         presetGuideToggle?.RegisterValueChangedCallback(evt =>
         {
             PlayerPrefs.SetInt(PresetGuideKey, evt.newValue ? 1 : 0);
@@ -100,8 +99,8 @@ public class SettingPopupController
 
     private void LoadState()
     {
-        LoadSlider(bgmSlider, BgmKey);
-        LoadSlider(sfxSlider, SfxKey);
+        bgmSlider?.SetValueWithoutNotify(ReadMusicVolume());
+        sfxSlider?.SetValueWithoutNotify(ReadSoundVolume());
         presetGuideToggle?.SetValueWithoutNotify(PlayerPrefs.GetInt(PresetGuideKey, 1) == 1);
     }
 
@@ -145,19 +144,33 @@ public class SettingPopupController
         UISprites.Apply(presetGuideToggle.Q<VisualElement>(className: "unity-toggle__checkmark"), sprite);
     }
 
-    private void LoadSlider(Slider slider, string prefsKey)
+    // ── JSAM AudioManager 볼륨 연동 ──────────────────────────────────────
+    // AudioManager가 씬에 없거나(InternalInstance == null) 비재생 상태면 볼륨 조작을 건너뛴다.
+    // 매니저가 한 번 잡히면 InternalInstance가 static 캐시되어 이후 부수효과(FindObjectOfType)가 없다.
+    // JSAM은 볼륨 set 시 자체적으로 PlayerPrefs에 저장/로드하므로 별도 영속화는 두지 않는다.
+    private static bool AudioReady => Application.isPlaying && AudioManager.InternalInstance != null;
+
+    private float ReadMusicVolume() => AudioReady ? AudioManager.MusicVolume : DefaultVolume;
+
+    private float ReadSoundVolume() => AudioReady ? AudioManager.SoundVolume : DefaultVolume;
+
+    private void ApplyMusicVolume(float value)
     {
-        if (slider == null)
+        if (!AudioReady)
         {
             return;
         }
 
-        slider.SetValueWithoutNotify(Mathf.Clamp01(PlayerPrefs.GetFloat(prefsKey, DefaultVolume)));
+        AudioManager.MusicVolume = Mathf.Clamp01(value);
     }
 
-    private void SaveVolume(string prefsKey, float value)
+    private void ApplySoundVolume(float value)
     {
-        PlayerPrefs.SetFloat(prefsKey, Mathf.Clamp01(value));
-        PlayerPrefs.Save();
+        if (!AudioReady)
+        {
+            return;
+        }
+
+        AudioManager.SoundVolume = Mathf.Clamp01(value);
     }
 }

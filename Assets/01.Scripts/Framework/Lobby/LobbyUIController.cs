@@ -1,3 +1,4 @@
+using JSAM;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UIElements;
@@ -99,18 +100,21 @@ public class LobbyUIController : MonoBehaviour
         if (playButton != null)
         {
             playButton.clicked += ShowModeSelect;
+            playButton.clicked += () => AudioManager.PlaySound(_AudioLibrarySounds.Play);
         }
 
         Button exitButton = root.Q<Button>("exit-button");
         if (exitButton != null)
         {
             exitButton.clicked += QuitGame;
+            exitButton.clicked += () => AudioManager.PlaySound(_AudioLibrarySounds.BtnClick);
         }
 
         Button endlessButton = root.Q<Button>("endless-button");
         if (endlessButton != null)
         {
             endlessButton.clicked += () => LoadScene(endlessSceneName);
+            endlessButton.clicked += () => AudioManager.PlaySound(_AudioLibrarySounds.BtnClick);
             endlessButton.RegisterCallback<PointerEnterEvent>(_ => SetPreview(EndlessTitle, EndlessDesc));
         }
 
@@ -118,6 +122,7 @@ public class LobbyUIController : MonoBehaviour
         if (storyButton != null)
         {
             storyButton.clicked += () => LoadScene(storySceneName);
+            storyButton.clicked+= () => AudioManager.PlaySound(_AudioLibrarySounds.BtnClick);
             storyButton.RegisterCallback<PointerEnterEvent>(_ => SetPreview(StoryTitle, StoryDesc));
         }
 
