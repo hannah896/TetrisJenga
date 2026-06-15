@@ -45,7 +45,8 @@ public class BlockTower : MonoBehaviour
     [SerializeField, Range(0f, 0.5f)] float placementFailShakeDistance = 0.12f;
     [SerializeField, Range(1, 8)]     int   placementFailShakeCount = 3;
     [SerializeField] Color placedBlockColor = new(0.55f, 0.58f, 0.60f, 1f);
-    [SerializeField] BlockNumberSpriteSet numberSpriteSet;
+    [SerializeField] BlockNumberSpriteSetAsset numberSpriteSetAsset;
+    [SerializeField, HideInInspector] BlockNumberSpriteSet numberSpriteSet;
     [SerializeField] BonusTetrominoSpriteSet bonusTetrominoSpriteSet;
 
     [Header("Keyboard Controls")]
@@ -206,6 +207,7 @@ public class BlockTower : MonoBehaviour
 
     readonly HashSet<Vector2Int> _bombConcealedCells = new();
     readonly Dictionary<Vector2Int, GameObject> _bombObscureBlocks = new();
+    readonly Dictionary<Vector2Int, BlockNumberSpriteSetAsset.BombObscureKind> _bombObscureKinds = new();
 
     // ── 들기 상태 ─────────────────────────────────────────────────────────
     bool             _isHolding;
@@ -921,6 +923,7 @@ public class BlockTower : MonoBehaviour
         _detachedComponents.Clear();
         _bombConcealedCells.Clear();
         _bombObscureBlocks.Clear();
+        _bombObscureKinds.Clear();
         _heldRelPos.Clear();
         _heldData.Clear();
         _heldSourceCells.Clear();
@@ -1044,10 +1047,20 @@ public class BlockTower : MonoBehaviour
         if (ice.TryGetComponent<SpriteRenderer>(out var sr))
         {
             sr.enabled = true;
+            var sprite = GetIceSprite();
             sr.sprite = CreateBlockSprite();
-            sr.color = IceBlockColor();
+            sr.color = sprite != null ? Color.clear : IceBlockColor();
             sr.drawMode = SpriteDrawMode.Simple;
             sr.sortingOrder = Mathf.Max(sr.sortingOrder, 1);
+            if (sprite != null)
+            {
+                var overlay = EnsureStandaloneNumberSpriteRenderer(ice);
+                overlay.sprite = sprite;
+                overlay.enabled = true;
+                overlay.color = Color.white;
+                overlay.sortingOrder = sr.sortingOrder + 1;
+                FitNumberSpriteToCell(overlay);
+            }
         }
 
         if (ice.TryGetComponent<BoxCollider>(out var box))
@@ -2943,7 +2956,22 @@ public class BlockTower : MonoBehaviour
         if (data.concealedByBomb)
         {
             if (data.sr != null)
-                data.sr.color = bombObscureColor;
+            {
+                var visualCell = FindCellForData(data);
+                bool hasCustomObscure = visualCell.HasValue && HasBombObscureSprite(visualCell.Value);
+                var sprite = visualCell.HasValue ? BombObscureSprite(visualCell.Value) : BombObscureSprite();
+                if (hasCustomObscure)
+                {
+                    ApplyFittedOverlaySprite(data, sprite, data.sr.sortingOrder + 1);
+                    data.sr.color = Color.clear;
+                }
+                else
+                {
+                    DisableNumberSpriteRenderer(data);
+                    data.sr.sprite = sprite;
+                    data.sr.color = bombObscureColor;
+                }
+            }
             ApplyCellOutline(data, false, false);
             return;
         }
@@ -2964,6 +2992,11 @@ public class BlockTower : MonoBehaviour
         {
             data.sr.color = Color.clear;
             data.numberSpriteRenderer.color = Color.white;
+        }
+        else if (TryGetSpecialBlockSprite(data.kind, out var specialSprite))
+        {
+            ApplyFittedOverlaySprite(data, specialSprite, data.sr.sortingOrder + 1);
+            data.sr.color = Color.Lerp(Color.clear, color, isSelected || isFocused ? 0.35f : 0f);
         }
         else
         {
@@ -2993,6 +3026,7 @@ public class BlockTower : MonoBehaviour
         {
             var cell = center + offset;
             _bombConcealedCells.Add(cell);
+            _bombObscureKinds[cell] = GetBombObscureKind(offset);
             EnsureBombObscureBlock(cell);
             if (_cells.TryGetValue(cell, out var data))
             {
@@ -3024,8 +3058,10 @@ public class BlockTower : MonoBehaviour
         go.transform.localScale = Vector3.one;
 
         var sr = go.AddComponent<SpriteRenderer>();
-        sr.sprite = BombObscureSprite();
-        sr.color = bombObscureColor;
+        var sprite = BombObscureSprite(cell);
+        sr.sprite = sprite;
+        sr.color = HasBombObscureSprite(cell) ? Color.white : bombObscureColor;
+        FitRendererObjectToCell(sr);
         sr.sortingOrder = 30;
         _bombObscureBlocks[cell] = go;
     }
@@ -3033,6 +3069,38 @@ public class BlockTower : MonoBehaviour
     Sprite BombObscureSprite()
     {
         return bombObscureSprite != null ? bombObscureSprite : CreateBlockSprite();
+    }
+
+    Sprite BombObscureSprite(Vector2Int cell)
+    {
+        EnsureNumberSpriteSet();
+        if (numberSpriteSetAsset != null &&
+            _bombObscureKinds.TryGetValue(cell, out var kind))
+        {
+            var sprite = numberSpriteSetAsset.GetBombObscureSprite(kind);
+            if (sprite != null)
+                return sprite;
+        }
+
+        return BombObscureSprite();
+    }
+
+    bool HasBombObscureSprite(Vector2Int cell)
+    {
+        EnsureNumberSpriteSet();
+        return numberSpriteSetAsset != null &&
+               _bombObscureKinds.TryGetValue(cell, out var kind) &&
+               numberSpriteSetAsset.GetBombObscureSprite(kind) != null;
+    }
+
+    BlockNumberSpriteSetAsset.BombObscureKind GetBombObscureKind(Vector2Int offset)
+    {
+        if (offset == Vector2Int.zero)
+            return BlockNumberSpriteSetAsset.BombObscureKind.Center;
+
+        return offset.x == 0 || offset.y == 0
+            ? BlockNumberSpriteSetAsset.BombObscureKind.Edge
+            : BlockNumberSpriteSetAsset.BombObscureKind.Corner;
     }
 
     // ── 블럭 들어올리기 ───────────────────────────────────────────────────
@@ -4416,7 +4484,7 @@ public class BlockTower : MonoBehaviour
             return;
 
         EnsureNumberSpriteSet();
-        var numberSprite = numberSpriteSet != null ? numberSpriteSet.GetSprite(number) : null;
+        var numberSprite = GetNumberSprite(number);
         var numberRenderer = EnsureStandaloneNumberSpriteRenderer(blockCell.transform);
 
         if (numberSprite != null)
@@ -4728,7 +4796,7 @@ public class BlockTower : MonoBehaviour
         }
         if (data.sr != null)
         {
-            var numberSprite = numberSpriteSet != null ? numberSpriteSet.GetSprite(data.number) : null;
+            var numberSprite = GetNumberSprite(data.number);
             if (data.concealedByBomb)
             {
                 if (data.numberSpriteRenderer != null)
@@ -4736,30 +4804,52 @@ public class BlockTower : MonoBehaviour
                     data.numberSpriteRenderer.enabled = false;
                     data.numberSpriteRenderer.sprite = null;
                 }
-                data.sr.sprite = BombObscureSprite();
-                data.sr.color = bombObscureColor;
+                var cell = FindCellForData(data);
+                bool hasCustomObscure = cell.HasValue && HasBombObscureSprite(cell.Value);
+                var sprite = cell.HasValue ? BombObscureSprite(cell.Value) : BombObscureSprite();
+                if (hasCustomObscure)
+                {
+                    ApplyFittedOverlaySprite(data, sprite, data.sr.sortingOrder + 1);
+                    data.sr.color = Color.clear;
+                }
+                else
+                {
+                    DisableNumberSpriteRenderer(data);
+                    data.sr.sprite = sprite;
+                    data.sr.color = bombObscureColor;
+                }
                 data.sr.drawMode = SpriteDrawMode.Simple;
             }
             else if (data.kind == BlockCell.CellKind.Bomb)
             {
-                if (data.numberSpriteRenderer != null)
+                var sprite = GetBombSprite();
+                if (sprite != null)
                 {
-                    data.numberSpriteRenderer.enabled = false;
-                    data.numberSpriteRenderer.sprite = null;
+                    ApplyFittedOverlaySprite(data, sprite, data.sr.sortingOrder + 1);
+                    data.sr.color = Color.clear;
                 }
-                data.sr.sprite = CreateBlockSprite();
-                data.sr.color = Color.black;
+                else
+                {
+                    DisableNumberSpriteRenderer(data);
+                    data.sr.sprite = CreateBlockSprite();
+                    data.sr.color = Color.black;
+                }
                 data.sr.drawMode = SpriteDrawMode.Simple;
             }
             else if (data.kind == BlockCell.CellKind.Ice)
             {
-                if (data.numberSpriteRenderer != null)
+                var sprite = GetIceSprite();
+                if (sprite != null)
                 {
-                    data.numberSpriteRenderer.enabled = false;
-                    data.numberSpriteRenderer.sprite = null;
+                    ApplyFittedOverlaySprite(data, sprite, data.sr.sortingOrder + 1);
+                    data.sr.color = Color.clear;
                 }
-                data.sr.sprite = CreateBlockSprite();
-                data.sr.color = IceBlockColor();
+                else
+                {
+                    DisableNumberSpriteRenderer(data);
+                    data.sr.sprite = CreateBlockSprite();
+                    data.sr.color = IceBlockColor();
+                }
                 data.sr.drawMode = SpriteDrawMode.Simple;
             }
             else if (data.isOriginalTower && numberSprite != null)
@@ -4792,6 +4882,30 @@ public class BlockTower : MonoBehaviour
     {
         data.numberSpriteRenderer = EnsureStandaloneNumberSpriteRenderer(data.go.transform);
         return data.numberSpriteRenderer;
+    }
+
+    void ApplyFittedOverlaySprite(CellData data, Sprite sprite, int sortingOrder)
+    {
+        if (data == null || data.sr == null || sprite == null)
+            return;
+
+        data.sr.sprite = CreateBlockSprite();
+        data.sr.drawMode = SpriteDrawMode.Simple;
+        var overlay = EnsureNumberSpriteRenderer(data);
+        overlay.sprite = sprite;
+        overlay.enabled = true;
+        overlay.color = Color.white;
+        overlay.sortingOrder = sortingOrder;
+        FitNumberSpriteToCell(overlay);
+    }
+
+    void DisableNumberSpriteRenderer(CellData data)
+    {
+        if (data?.numberSpriteRenderer == null)
+            return;
+
+        data.numberSpriteRenderer.enabled = false;
+        data.numberSpriteRenderer.sprite = null;
     }
 
     SpriteRenderer EnsureStandaloneNumberSpriteRenderer(Transform parent)
@@ -4827,17 +4941,111 @@ public class BlockTower : MonoBehaviour
         renderer.transform.localPosition = Vector3.zero;
     }
 
+    void FitRendererObjectToCell(SpriteRenderer renderer)
+    {
+        if (renderer == null || renderer.sprite == null)
+            return;
+
+        renderer.drawMode = SpriteDrawMode.Simple;
+        var size = renderer.sprite.bounds.size;
+        float scaleX = size.x > 0.0001f ? 1f / size.x : 1f;
+        float scaleY = size.y > 0.0001f ? 1f / size.y : 1f;
+        renderer.transform.localScale = new Vector3(scaleX, scaleY, 1f);
+    }
+
     void EnsureNumberSpriteSet()
     {
+#if UNITY_EDITOR
+        if (numberSpriteSetAsset == null)
+            numberSpriteSetAsset = FindDefaultNumberSpriteSetAsset();
+#endif
         if (numberSpriteSet == null)
             numberSpriteSet = GetComponent<BlockNumberSpriteSet>();
 
         SyncBlockWeightGuideImages();
     }
 
+    Sprite GetNumberSprite(int number)
+    {
+        EnsureNumberSpriteSet();
+        return GetNumberSpriteRaw(number);
+    }
+
+    Sprite GetNumberSpriteRaw(int number)
+    {
+        if (numberSpriteSetAsset != null)
+        {
+            var sprite = numberSpriteSetAsset.GetSprite(number);
+            if (sprite != null)
+                return sprite;
+        }
+
+        return numberSpriteSet != null ? numberSpriteSet.GetSprite(number) : null;
+    }
+
+    Sprite GetBombSprite()
+    {
+        EnsureNumberSpriteSet();
+        return numberSpriteSetAsset != null ? numberSpriteSetAsset.BombSprite : null;
+    }
+
+    Sprite GetIceSprite()
+    {
+        EnsureNumberSpriteSet();
+        return numberSpriteSetAsset != null ? numberSpriteSetAsset.IceSprite : null;
+    }
+
+    bool TryGetSpecialBlockSprite(BlockCell.CellKind kind, out Sprite sprite)
+    {
+        sprite = kind switch
+        {
+            BlockCell.CellKind.Bomb => GetBombSprite(),
+            BlockCell.CellKind.Ice => GetIceSprite(),
+            _ => null
+        };
+
+        return sprite != null;
+    }
+
+    Vector2Int? FindCellForData(CellData data)
+    {
+        if (data == null)
+            return null;
+
+        foreach (var pair in _cells)
+        {
+            if (ReferenceEquals(pair.Value, data))
+                return pair.Key;
+        }
+
+        foreach (var pair in _iceCells)
+        {
+            if (ReferenceEquals(pair.Value, data))
+                return pair.Key;
+        }
+
+        return null;
+    }
+
+#if UNITY_EDITOR
+    BlockNumberSpriteSetAsset FindDefaultNumberSpriteSetAsset()
+    {
+        string[] guids = AssetDatabase.FindAssets("t:BlockNumberSpriteSetAsset");
+        foreach (var guid in guids)
+        {
+            var path = AssetDatabase.GUIDToAssetPath(guid);
+            var asset = AssetDatabase.LoadAssetAtPath<BlockNumberSpriteSetAsset>(path);
+            if (asset != null)
+                return asset;
+        }
+
+        return null;
+    }
+#endif
+
     void SyncBlockWeightGuideImages()
     {
-        if (numberSpriteSet == null)
+        if (numberSpriteSetAsset == null && numberSpriteSet == null)
             return;
 
         for (int number = 1; number <= _builderWeightGuideImages.Length; number++)
@@ -4852,7 +5060,7 @@ public class BlockTower : MonoBehaviour
             element.style.visibility = Visibility.Visible;
             element.style.opacity = 1f;
 
-            var sprite = numberSpriteSet.GetSprite(number);
+            var sprite = GetNumberSpriteRaw(number);
             element.style.backgroundImage = sprite != null
                 ? new StyleBackground(sprite)
                 : StyleKeyword.None;
