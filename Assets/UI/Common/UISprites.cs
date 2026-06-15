@@ -15,6 +15,9 @@ public static class UISprites
         }
 
         element.style.backgroundImage = new StyleBackground(sprite);
+        // 이미지가 들어가면 USS의 background-color(회색/검정 박스)는 더 이상 필요 없다.
+        // 투명으로 덮어써야 scale-to-fit 레터박스 영역에 색 박스가 남지 않는다.
+        element.style.backgroundColor = Color.clear;
     }
 
     public static void Apply(VisualElement element, Texture2D texture)
@@ -25,5 +28,6 @@ public static class UISprites
         }
 
         element.style.backgroundImage = new StyleBackground(texture);
+        element.style.backgroundColor = Color.clear;
     }
 }
