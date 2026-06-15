@@ -155,6 +155,7 @@ public sealed class PostProcessingExclusionCamera : MonoBehaviour
     static bool ShouldExcludeRenderer(Renderer renderer)
     {
         return renderer.GetComponentInParent<BlockCell>() != null
+            || renderer.GetComponentInParent<NoPostProcessingRenderer>() != null
             || renderer.GetComponentInParent<GoldFishProjectile>() != null
             || renderer.gameObject.name.StartsWith("PresetOutline_", System.StringComparison.Ordinal)
             || HasAncestorNamed(renderer.transform, "PresetOutlinePreview");
@@ -202,7 +203,7 @@ public sealed class PostProcessingExclusionCamera : MonoBehaviour
                 continue;
 
             camera.cullingMask |= layerMask;
-            DisablePostProcessing(camera);
+            CopyPostProcessingSettings(sourceCamera, camera);
         }
     }
 
@@ -293,6 +294,30 @@ public sealed class PostProcessingExclusionCamera : MonoBehaviour
         }
     }
 
+    static void CopyPostProcessingSettings(Camera source, Camera destination)
+    {
+        if (source == null || destination == null)
+            return;
+
+        destination.allowHDR = source.allowHDR;
+        destination.allowMSAA = source.allowMSAA;
+
+        var sourceData = EnsureAdditionalCameraData(source.gameObject);
+        var destinationData = EnsureAdditionalCameraData(destination.gameObject);
+        if (sourceData == null || destinationData == null)
+            return;
+
+        CopyProperty(sourceData, destinationData, "antialiasing");
+        CopyProperty(sourceData, destinationData, "antialiasingQuality");
+        CopyProperty(sourceData, destinationData, "stopNaN");
+        CopyProperty(sourceData, destinationData, "dithering");
+        CopyProperty(sourceData, destinationData, "volumeLayerMask");
+        CopyProperty(sourceData, destinationData, "volumeTrigger");
+        CopyProperty(sourceData, destinationData, "requiresColorOption");
+        CopyProperty(sourceData, destinationData, "requiresDepthOption");
+        WriteBoolProperty(destinationData, "renderPostProcessing", true);
+    }
+
     static void WriteBoolProperty(Component component, string propertyName, bool value)
     {
         var property = component.GetType().GetProperty(propertyName);
@@ -308,6 +333,21 @@ public sealed class PostProcessingExclusionCamera : MonoBehaviour
 
         var value = System.Enum.Parse(property.PropertyType, valueName);
         property.SetValue(component, value);
+    }
+
+    static void CopyProperty(Component source, Component destination, string propertyName)
+    {
+        if (source == null || destination == null)
+            return;
+
+        var sourceProperty = source.GetType().GetProperty(propertyName);
+        var destinationProperty = destination.GetType().GetProperty(propertyName);
+        if (sourceProperty == null || destinationProperty == null ||
+            !sourceProperty.CanRead || !destinationProperty.CanWrite ||
+            destinationProperty.PropertyType != sourceProperty.PropertyType)
+            return;
+
+        destinationProperty.SetValue(destination, sourceProperty.GetValue(source));
     }
 
     static void DestroyLocal(Object obj)

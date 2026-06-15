@@ -65,7 +65,12 @@ public class GameOverScreen : MonoBehaviour
         _onRestart = onRestart;
         if (titleText != null) titleText.text = title;
         if (currentScoreText != null) currentScoreText.text = $"SCORE: {score}";
-        if (targetScoreText != null) targetScoreText.text = $"TARGET: {targetScore}";
+        if (targetScoreText != null)
+        {
+            targetScoreText.gameObject.SetActive(targetScore > 0);
+            if (targetScore > 0)
+                targetScoreText.text = $"TARGET: {targetScore}";
+        }
         if (restartHintText != null) restartHintText.text = "Click to Restart";
         gameObject.SetActive(true);
     }

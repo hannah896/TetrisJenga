@@ -13,6 +13,18 @@ using UnityEditor;
 [ExecuteAlways]
 public class BlockTower : MonoBehaviour
 {
+    const string EndlessSceneName = "Endless";
+    const int EndlessMaximumBlockNumber = 5;
+    const int EndlessNewLayerNumberTotal = 16;
+    const float ExtractionEffectMinimumScale = 6f;
+    const float TowerShakeAngularVelocityThreshold = 0.45f;
+    const float TowerShakeAngleThreshold = 1.5f;
+    const float TowerShakeHoldTime = 2f;
+    const float TowerShakeImageScale = 4f;
+    const float TowerShakeHorizontalOffset = 0.5f;
+    const float TowerShakeRotationAngle = 10f;
+    const float TowerShakeRotationSpeed = 24f;
+
     enum TetrominoPreset
     {
         I,
@@ -49,6 +61,23 @@ public class BlockTower : MonoBehaviour
     [SerializeField, HideInInspector] BlockNumberSpriteSet numberSpriteSet;
     [SerializeField] BonusTetrominoSpriteSet bonusTetrominoSpriteSet;
 
+    [Header("Hard Drop Feedback")]
+    [SerializeField] Sprite hardDropBackSprite;
+    [SerializeField, Min(0.01f)] float hardDropFadeDuration = 0.5f;
+    [SerializeField] Sprite[] extractionEffectSprites = new Sprite[0];
+    [SerializeField, Min(1f)] float extractionEffectFps = 12f;
+    [SerializeField, Min(0.1f)] float extractionEffectScale = 6f;
+
+    [Header("Tower Shake Feedback")]
+    [SerializeField] Sprite towerShakeSprite;
+    [SerializeField, Min(0.1f)] float towerShakeAngularVelocityThreshold = 0.45f;
+    [SerializeField, Min(0f)] float towerShakeAngleThreshold = 1.5f;
+    [SerializeField, Min(0f)] float towerShakeHoldTime = 2f;
+    [SerializeField, Min(0.1f)] float towerShakeImageScale = 4f;
+    [SerializeField, Min(0f)] float towerShakeHorizontalOffset = 0.5f;
+    [SerializeField, Min(0f)] float towerShakeRotationAngle = 10f;
+    [SerializeField, Min(0.1f)] float towerShakeRotationSpeed = 24f;
+
     [Header("Keyboard Controls")]
     [SerializeField] bool keyboardControlsEnabled = true;
     [SerializeField] Color focusedCellColor = new(1f, 0.92f, 0.25f, 1f);
@@ -73,6 +102,8 @@ public class BlockTower : MonoBehaviour
     [SerializeField] float detachedPenaltyDelay = 2f;
     [SerializeField, Range(0.85f, 1f)] float blockBodyScale = 0.94f;
     [SerializeField, Range(0.85f, 1f)] float blockColliderScale = 0.92f;
+    [SerializeField] GameObject detachedLandingEffectPrefab;
+    [SerializeField, Min(0.1f)] float detachedLandingEffectScale = 1f;
 
     [Header("Special Blocks")]
     [SerializeField] Sprite bombObscureSprite;
@@ -85,6 +116,9 @@ public class BlockTower : MonoBehaviour
     [Header("Initial Tower Numbers")]
     [SerializeField] int initialTowerNumberTotal = 160;
     [SerializeField] bool randomizeInitialTowerNumbersOnPlay = true;
+    [SerializeField, Min(0f)] float endlessTowerAirHoldDuration = 0.4f;
+    [SerializeField, Min(0.1f)] float startSequenceDuration = 5f;
+    [SerializeField, Min(1f)] float startOverlayAnimationFps = 12f;
 
     [Header("Scene References (optional)")]
     [SerializeField] Transform   towerRootTransform;
@@ -101,6 +135,12 @@ public class BlockTower : MonoBehaviour
     Sprite         _blockSprite;
     GameObject     _generatedFloor;
     GameObject     _generatedScoreLabel;
+    GameObject     _towerShakeEffectRoot;
+    Transform      _leftTowerShakeEffect;
+    Transform      _rightTowerShakeEffect;
+    bool           _hasTowerShakeAnchor;
+    Vector3        _leftTowerShakeAnchor;
+    Vector3        _rightTowerShakeAnchor;
     GameObject     _leftBoundary;
     GameObject     _rightBoundary;
     GameObject     _towerStackDivider;
@@ -130,6 +170,8 @@ public class BlockTower : MonoBehaviour
     VisualElement  _builderSecondaryViewPanel;
     VisualElement  _builderSecondaryViewImage;
     VisualElement  _builderBlockWeightGuide;
+    VisualElement  _builderStartPanel;
+    Label          _builderStartMessage;
     readonly VisualElement[] _builderWeightGuideImages = new VisualElement[6];
     TextMeshProUGUI _canvasScoreText;
     TextMeshProUGUI _canvasTargetScoreText;
@@ -140,6 +182,8 @@ public class BlockTower : MonoBehaviour
     readonly List<VisualElement> _builderBonusCellElements = new();
     readonly List<VisualElement> _builderBonusNextCellElements = new();
     readonly List<VisualElement> _builderBonusThirdCellElements = new();
+    readonly List<VisualElement> _startShiny1Frames = new();
+    readonly List<VisualElement> _startShiny2Frames = new();
     readonly HashSet<GameObject> _generatedObjects = new();
     readonly List<RectInt> _placementExclusions = new();
     readonly List<GameObject> _placementZoneFillObjects = new();
@@ -148,6 +192,7 @@ public class BlockTower : MonoBehaviour
     bool           _builderBonusPreviewNeedsRefresh;
     Coroutine      _builderScorePopupRoutine;
     Coroutine      _canvasFloatingScoreRoutine;
+    Coroutine      _startSequenceRoutine;
     PanelSettings  _runtimeHudPanelSettings;
     Font           _runtimeHudFont;
     int            _score;
@@ -162,6 +207,15 @@ public class BlockTower : MonoBehaviour
     bool           _freezePlacementZoneVisuals;
     bool           _initialTowerNumbersRandomizedThisPlay;
     bool           _showingResultHud;
+    bool           _isStartSequenceActive;
+    bool           _startSequencePhysicsLocked;
+    bool           _startSequenceWasKinematic;
+    bool           _isEndlessTurnTransitionActive;
+    bool           _endlessTurnWasKinematic;
+    Coroutine      _endlessTurnRoutine;
+    int            _startShiny1FrameIndex;
+    int            _startShiny2FrameIndex;
+    float          _towerShakeVisibleUntil;
 
     // ── 셀 데이터 ─────────────────────────────────────────────────────────
     class CellData
@@ -239,6 +293,13 @@ public class BlockTower : MonoBehaviour
 
     void OnEnable()
     {
+        NormalizeExtractionEffectScale();
+        NormalizeTowerShakeFeedbackSettings();
+#if UNITY_EDITOR
+        ResolveTowerShakeSprite();
+        ResolveExtractionEffectSprites();
+        ResolveDetachedLandingEffectPrefab();
+#endif
         MigrateSecondaryViewDefaults();
         BindBuilderHud();
         if (!Application.isPlaying)
@@ -253,17 +314,20 @@ public class BlockTower : MonoBehaviour
             if (_cells.Count > 0)
             {
                 SetupRuntimeSceneObjectsAfterTowerRestore();
+                BeginStartSequence();
                 return;
             }
             if (TryRestoreRuntimeStateFromScene())
             {
                 SetupRuntimeSceneObjectsAfterTowerRestore();
+                BeginStartSequence();
                 return;
             }
         }
         RebuildEmptyTowerOnly();
         EnsureSecondaryViewObjects();
         UpdateSecondaryViewCamera();
+        BeginStartSequence();
     }
 
     void SetupRuntimeSceneObjectsAfterTowerRestore()
@@ -285,6 +349,12 @@ public class BlockTower : MonoBehaviour
 
     void OnDisable()
     {
+        StopEndlessTurnTransition();
+        DestroyTowerShakeEffects();
+        RemoveStartMessage();
+        UnlockStartSequencePhysics();
+        _isStartSequenceActive = false;
+        _startSequenceRoutine = null;
         if (secondaryViewCamera != null && secondaryViewCamera.targetTexture == _secondaryViewTexture)
             secondaryViewCamera.targetTexture = null;
         if (secondaryViewImage != null && secondaryViewImage.texture == _secondaryViewTexture)
@@ -306,6 +376,12 @@ public class BlockTower : MonoBehaviour
         if (Application.isPlaying)
             return;
 
+        ResolveHardDropBackSprite();
+        ResolveTowerShakeSprite();
+        ResolveExtractionEffectSprites();
+        ResolveDetachedLandingEffectPrefab();
+        NormalizeExtractionEffectScale();
+        NormalizeTowerShakeFeedbackSettings();
         MigrateSecondaryViewDefaults();
         UnityEditor.EditorApplication.delayCall += () =>
         {
@@ -322,6 +398,7 @@ public class BlockTower : MonoBehaviour
     void EnsureEditorSceneObjectsVisible()
     {
         MigrateSecondaryViewDefaults();
+        RemoveLegacyStartCanvas();
         var root = towerRootTransform != null ? towerRootTransform : transform.Find("TowerRoot");
         if (root != null)
         {
@@ -339,6 +416,16 @@ public class BlockTower : MonoBehaviour
 
         EnsurePlacementZoneObjectVisible();
         EnsureSecondaryViewObjects();
+    }
+
+    void RemoveLegacyStartCanvas()
+    {
+        if (Application.isPlaying)
+            return;
+
+        var legacyCanvas = transform.Find("StartCanvas");
+        if (legacyCanvas != null)
+            DestroyImmediate(legacyCanvas.gameObject);
     }
 
     bool BindBuilderHud()
@@ -377,6 +464,11 @@ public class BlockTower : MonoBehaviour
         _builderSecondaryViewPanel = root.Q<VisualElement>("SubCameraPreviewPanel");
         _builderSecondaryViewImage = root.Q<VisualElement>("SubCameraPreviewImage");
         _builderBlockWeightGuide = root.Q<VisualElement>("BlockWeightGuide");
+        _builderStartPanel = root.Q<VisualElement>("StartPanel");
+        _builderStartMessage = root.Q<Label>("StartMessage");
+        RefreshStartOverlayFrameLists(root);
+        if (!_isStartSequenceActive && _builderStartPanel != null)
+            _builderStartPanel.style.display = DisplayStyle.None;
         for (int i = 0; i < _builderWeightGuideImages.Length; i++)
             _builderWeightGuideImages[i] = root.Q<VisualElement>($"WeightGuideImage{i + 1}");
         EnsureRuntimeHudElements(root);
@@ -402,7 +494,8 @@ public class BlockTower : MonoBehaviour
     {
         ForceVisibleHudLabel(_builderScoreTitle, "SCORE");
         ForceVisibleHudLabel(_builderScoreValue, _score.ToString());
-        ForceVisibleHudLabel(_builderTargetScoreValue, targetScore.ToString());
+        if (!IsEndlessMode)
+            ForceVisibleHudLabel(_builderTargetScoreValue, targetScore.ToString());
         ForceVisibleHudLabel(_builderScorePopupText, _builderScorePopupText?.text ?? string.Empty);
         ForceVisibleHudLabel(_builderBonusPreviewTitle, "NEXT");
         ForceVisibleBonusKeyLabel(_builderBonusKeyLabel, PresetKeyText(_bonusTargetPreset));
@@ -502,6 +595,13 @@ public class BlockTower : MonoBehaviour
 
     void StyleHudTargetScorePanel()
     {
+        if (IsEndlessMode)
+        {
+            if (_builderHudTargetScorePanel != null)
+                _builderHudTargetScorePanel.style.display = DisplayStyle.None;
+            return;
+        }
+
         PreserveBuilderHudPanel(_builderHudTargetScorePanel);
         if (_builderHudTargetScorePanel == null) return;
 
@@ -704,6 +804,172 @@ public class BlockTower : MonoBehaviour
         return _runtimeHudFont;
     }
 
+    void BeginStartSequence()
+    {
+        if (!Application.isPlaying)
+            return;
+
+        if (_startSequenceRoutine != null)
+            StopCoroutine(_startSequenceRoutine);
+        _startSequenceRoutine = StartCoroutine(ShowStartMessage());
+    }
+
+    IEnumerator ShowStartMessage()
+    {
+        _isStartSequenceActive = true;
+        LockStartSequencePhysics();
+        BindBuilderHud();
+        if (_builderStartMessage != null)
+            _builderStartMessage.text = "START";
+        if (_builderStartPanel != null)
+            _builderStartPanel.style.display = DisplayStyle.Flex;
+
+        yield return WaitForStartOverlayFrames();
+        _startShiny1FrameIndex = 0;
+        _startShiny2FrameIndex = 0;
+        ShowStartAnimationFrame(_startShiny1Frames, _startShiny1FrameIndex);
+        ShowStartAnimationFrame(_startShiny2Frames, _startShiny2FrameIndex);
+
+        float elapsed = 0f;
+        float animationElapsed = 0f;
+        float animationFrameDuration = 1f / Mathf.Max(1f, startOverlayAnimationFps);
+        while (elapsed < startSequenceDuration)
+        {
+            float deltaTime = Time.unscaledDeltaTime;
+            elapsed += deltaTime;
+            animationElapsed += deltaTime;
+
+            while (animationElapsed >= animationFrameDuration)
+            {
+                animationElapsed -= animationFrameDuration;
+                AdvanceStartOverlayAnimation();
+            }
+
+            yield return null;
+        }
+
+        RemoveStartMessage();
+        UnlockStartSequencePhysics();
+        _isStartSequenceActive = false;
+        _startSequenceRoutine = null;
+    }
+
+    void LockStartSequencePhysics()
+    {
+        if (_rb == null || _startSequencePhysicsLocked)
+            return;
+
+        _startSequenceWasKinematic = _rb.isKinematic;
+        _rb.linearVelocity = Vector3.zero;
+        _rb.angularVelocity = Vector3.zero;
+        _rb.isKinematic = true;
+        _startSequencePhysicsLocked = true;
+    }
+
+    void UnlockStartSequencePhysics()
+    {
+        if (_rb == null || !_startSequencePhysicsLocked)
+            return;
+
+        _rb.isKinematic = _startSequenceWasKinematic;
+        if (!_rb.isKinematic)
+            _rb.WakeUp();
+        _startSequencePhysicsLocked = false;
+    }
+
+    void RemoveStartMessage()
+    {
+        if (_builderStartPanel != null)
+            _builderStartPanel.style.display = DisplayStyle.None;
+        HideStartAnimationFrames(_startShiny1Frames);
+        HideStartAnimationFrames(_startShiny2Frames);
+    }
+
+    IEnumerator WaitForStartOverlayFrames()
+    {
+        const int maxAttempts = 30;
+
+        for (int attempt = 0; attempt < maxAttempts; attempt++)
+        {
+            RefreshStartOverlayFrameLists(hudDocument != null ? hudDocument.rootVisualElement : null);
+            if (_startShiny1Frames.Count > 0 || _startShiny2Frames.Count > 0)
+                yield break;
+            yield return null;
+        }
+    }
+
+    void AdvanceStartOverlayAnimation()
+    {
+        if (!_isStartSequenceActive)
+            return;
+
+        if (_startShiny1Frames.Count > 0)
+        {
+            _startShiny1FrameIndex = (_startShiny1FrameIndex + 1) % _startShiny1Frames.Count;
+            ShowStartAnimationFrame(_startShiny1Frames, _startShiny1FrameIndex);
+        }
+
+        if (_startShiny2Frames.Count > 0)
+        {
+            _startShiny2FrameIndex = (_startShiny2FrameIndex + 1) % _startShiny2Frames.Count;
+            ShowStartAnimationFrame(_startShiny2Frames, _startShiny2FrameIndex);
+        }
+    }
+
+    static void ShowStartAnimationFrame(List<VisualElement> frames, int frame)
+    {
+        if (frames == null || frames.Count == 0)
+            return;
+
+        int visibleFrame = frame % frames.Count;
+        for (int i = 0; i < frames.Count; i++)
+        {
+            frames[i].style.display = DisplayStyle.Flex;
+            frames[i].style.visibility = i == visibleFrame ? Visibility.Visible : Visibility.Hidden;
+        }
+    }
+
+    void RefreshStartOverlayFrameLists(VisualElement root)
+    {
+        _startShiny1Frames.Clear();
+        _startShiny2Frames.Clear();
+        if (root == null)
+            return;
+
+        AddNamedStartAnimationFrames(root, _startShiny1Frames, "Shiny1Frame", 5);
+        AddNamedStartAnimationFrames(root, _startShiny2Frames, "Shiny2Frame", 3);
+
+        if (_startShiny1Frames.Count == 0)
+            root.Query<VisualElement>(className: "shiny1-frame")
+                .ForEach(frame => _startShiny1Frames.Add(frame));
+        if (_startShiny2Frames.Count == 0)
+            root.Query<VisualElement>(className: "shiny2-frame")
+                .ForEach(frame => _startShiny2Frames.Add(frame));
+    }
+
+    static void AddNamedStartAnimationFrames(VisualElement root, List<VisualElement> frames, string namePrefix, int frameCount)
+    {
+        for (int i = 1; i <= frameCount; i++)
+        {
+            var frame = root.Q<VisualElement>($"{namePrefix}{i}");
+            if (frame != null)
+                frames.Add(frame);
+        }
+    }
+
+    static void HideStartAnimationFrames(List<VisualElement> frames)
+    {
+        if (frames == null)
+            return;
+
+        foreach (var frame in frames)
+            if (frame != null)
+            {
+                frame.style.visibility = Visibility.Hidden;
+                frame.style.display = DisplayStyle.None;
+            }
+    }
+
     void EnsureHudPanelSettings()
     {
         if (hudDocument == null)
@@ -803,7 +1069,11 @@ public class BlockTower : MonoBehaviour
         if (_resultCurrentScoreLabel != null)
             _resultCurrentScoreLabel.text = $"SCORE: {score}";
         if (_resultTargetScoreLabel != null)
-            _resultTargetScoreLabel.text = $"TARGET: {target}";
+        {
+            _resultTargetScoreLabel.style.display = target > 0 ? DisplayStyle.Flex : DisplayStyle.None;
+            if (target > 0)
+                _resultTargetScoreLabel.text = $"TARGET: {target}";
+        }
 
         var restartButton = root.Q<UnityEngine.UIElements.Button>("RestartButton");
         if (restartButton != null)
@@ -1104,7 +1374,8 @@ public class BlockTower : MonoBehaviour
         if (count == 0)
             return;
         int minTotal = count * 2;
-        int maxTotal = count * 6;
+        int maximumNumber = IsEndlessMode ? EndlessMaximumBlockNumber : 6;
+        int maxTotal = count * maximumNumber;
         int targetTotal = Mathf.Clamp(initialTowerNumberTotal, minTotal, maxTotal);
 
         var numbers = new int[count];
@@ -1116,7 +1387,7 @@ public class BlockTower : MonoBehaviour
         {
             var available = new List<int>();
             for (int i = 0; i < count; i++)
-                if (numbers[i] < 6)
+                if (numbers[i] < maximumNumber)
                     available.Add(i);
 
             if (available.Count == 0)
@@ -1850,7 +2121,7 @@ public class BlockTower : MonoBehaviour
         BindBuilderHud();
         if (_builderScoreValue != null)
             _builderScoreValue.text = _score.ToString();
-        if (_builderTargetScoreValue != null)
+        if (_builderTargetScoreValue != null && !IsEndlessMode)
             _builderTargetScoreValue.text = targetScore.ToString();
         if (scoreLabel != null)
             scoreLabel.text = $"SCORE\n{_score}";
@@ -2025,13 +2296,24 @@ public class BlockTower : MonoBehaviour
             UpdateEditorPlacementZonePreview();
             return;
         }
+        if (_isStartSequenceActive || _isEndlessTurnTransitionActive)
+        {
+            SetTowerShakeEffectsActive(false);
+            UpdateSecondaryViewCamera();
+            return;
+        }
         if (_isGameOver) return;
         SyncPlacementZoneFromObject();
         CheckTowerBoundaryGameOver();
-        if (_isGameOver) return;
+        if (_isGameOver)
+        {
+            SetTowerShakeEffectsActive(false);
+            return;
+        }
 
         var mouse = Mouse.current;
         var keyboard = Keyboard.current;
+        UpdateTowerShakeFeedback();
         if (mouse == null && keyboard == null) return;
 
         if (_isHolding)
@@ -2105,6 +2387,12 @@ public class BlockTower : MonoBehaviour
 
     void TriggerGameOver()
     {
+        if (IsEndlessMode)
+        {
+            TriggerClear();
+            return;
+        }
+
         if (_isGameOver) return;
         _isGameOver = true;
         _freezePlacementZoneVisuals = true;
@@ -2134,6 +2422,7 @@ public class BlockTower : MonoBehaviour
     void CheckClearCondition()
     {
         if (_isGameOver) return;
+        if (IsEndlessMode) return;
         if (targetScore > 0 && _score >= targetScore)
             TriggerClear();
     }
@@ -2248,7 +2537,7 @@ public class BlockTower : MonoBehaviour
         }
 
         if (ConfirmPressed(keyboard))
-            DropHeldToNearestSurfaceAndPlace();
+            DropHeldToNearestSurfaceAndPlace(keyboard.spaceKey.wasPressedThisFrame);
 
         if (CancelPressed(keyboard))
             CancelHold();
@@ -3172,6 +3461,7 @@ public class BlockTower : MonoBehaviour
 
         _selected.Clear();
         _hasFocusedCell = false;
+        SpawnExtractionEffects(changedCells);
         foreach (var cell in changedCells)
             ApplyCellVisual(cell);
         foreach (var bombCell in bombCells)
@@ -3492,7 +3782,8 @@ public class BlockTower : MonoBehaviour
             if (_cells.TryGetValue(target, out var existing))
             {
                 if (existing.kind == BlockCell.CellKind.Ice) return false;
-                if (existing.number >= 6) return false;
+                int maximumNumber = IsEndlessMode ? EndlessMaximumBlockNumber + 1 : 6;
+                if (existing.number >= maximumNumber) return false;
             }
             targets.Add(target);
         }
@@ -3572,17 +3863,325 @@ public class BlockTower : MonoBehaviour
         return minRelY;
     }
 
-    void DropHeldToNearestSurfaceAndPlace()
+    void DropHeldToNearestSurfaceAndPlace(bool showHardDropEffect)
     {
-        if (!TryFindNearestDropBase(_heldBaseCell, out var dropBase))
+        var startBase = ClampHeldBase(_heldBaseCell);
+        if (!TryFindNearestDropBase(startBase, out var dropBase))
         {
             PlayPlacementFailFeedback();
             return;
         }
 
         _heldBaseCell = dropBase;
+        if (showHardDropEffect)
+            SpawnHardDropEffect(startBase, dropBase);
         TryPlaceBlocks();
     }
+
+    void UpdateTowerShakeFeedback()
+    {
+        NormalizeTowerShakeFeedbackSettings();
+
+        if (_towerRoot == null || _rb == null || _cells.Count == 0 || towerShakeSprite == null)
+        {
+            SetTowerShakeEffectsActive(false);
+            return;
+        }
+
+        float angularShake = Mathf.Abs(_rb.angularVelocity.z);
+        float angleShake = Mathf.Abs(Mathf.DeltaAngle(0f, _towerRoot.eulerAngles.z));
+        if (angularShake >= towerShakeAngularVelocityThreshold || angleShake >= towerShakeAngleThreshold)
+        {
+            if (!_hasTowerShakeAnchor)
+                CaptureTowerShakeAnchors();
+            _towerShakeVisibleUntil = Time.time + towerShakeHoldTime;
+        }
+
+        bool show = Time.time <= _towerShakeVisibleUntil;
+        if (!show)
+        {
+            _hasTowerShakeAnchor = false;
+            SetTowerShakeEffectsActive(false);
+            return;
+        }
+
+        EnsureTowerShakeEffects();
+        if (_towerShakeEffectRoot == null)
+            return;
+
+        if (_hasTowerShakeAnchor)
+        {
+            _leftTowerShakeEffect.localPosition = _leftTowerShakeAnchor;
+            _rightTowerShakeEffect.localPosition = _rightTowerShakeAnchor;
+        }
+
+        _leftTowerShakeEffect.localScale = Vector3.one * towerShakeImageScale;
+        _rightTowerShakeEffect.localScale = Vector3.one * towerShakeImageScale;
+
+        float angle = Mathf.Sin(Time.time * towerShakeRotationSpeed) * towerShakeRotationAngle;
+        _leftTowerShakeEffect.localRotation = Quaternion.Euler(0f, 0f, angle);
+        _rightTowerShakeEffect.localRotation = Quaternion.Euler(0f, 0f, -angle);
+        SetTowerShakeEffectsActive(true);
+    }
+
+    bool TryGetOccupiedCellBounds(out Vector2Int minCell, out Vector2Int maxCell)
+    {
+        minCell = new Vector2Int(int.MaxValue, int.MaxValue);
+        maxCell = new Vector2Int(int.MinValue, int.MinValue);
+
+        if (_cells.Count == 0)
+            return false;
+
+        foreach (var cell in _cells.Keys)
+        {
+            minCell = new Vector2Int(Mathf.Min(minCell.x, cell.x), Mathf.Min(minCell.y, cell.y));
+            maxCell = new Vector2Int(Mathf.Max(maxCell.x, cell.x), Mathf.Max(maxCell.y, cell.y));
+        }
+
+        return minCell.x <= maxCell.x && minCell.y <= maxCell.y;
+    }
+
+    void CaptureTowerShakeAnchors()
+    {
+        if (!TryGetOccupiedCellBounds(out var minCell, out var maxCell))
+        {
+            _hasTowerShakeAnchor = false;
+            return;
+        }
+
+        float centerY = (minCell.y + maxCell.y + 1f) * 0.5f;
+        _leftTowerShakeAnchor = new Vector3(minCell.x - towerShakeHorizontalOffset, centerY, -0.1f);
+        _rightTowerShakeAnchor = new Vector3(maxCell.x + 1f + towerShakeHorizontalOffset, centerY, -0.1f);
+        _hasTowerShakeAnchor = true;
+    }
+
+    void EnsureTowerShakeEffects()
+    {
+        if (_towerShakeEffectRoot != null)
+            return;
+
+        if (_towerRoot == null || towerShakeSprite == null)
+            return;
+
+        _towerShakeEffectRoot = new GameObject("TowerShakeEffects");
+        MarkGeneratedObject(_towerShakeEffectRoot);
+        _towerShakeEffectRoot.transform.SetParent(_towerRoot, false);
+        _towerShakeEffectRoot.AddComponent<NoPostProcessingRenderer>();
+        SetNoPostProcessingLayer(_towerShakeEffectRoot);
+
+        _leftTowerShakeEffect = CreateTowerShakeEffect("TowerShakeLeft", flipX: false);
+        _rightTowerShakeEffect = CreateTowerShakeEffect("TowerShakeRight", flipX: true);
+        SetTowerShakeEffectsActive(false);
+    }
+
+    Transform CreateTowerShakeEffect(string objectName, bool flipX)
+    {
+        var go = new GameObject(objectName);
+        MarkGeneratedObject(go);
+        go.transform.SetParent(_towerShakeEffectRoot.transform, false);
+        go.transform.localScale = Vector3.one * towerShakeImageScale;
+        go.AddComponent<NoPostProcessingRenderer>();
+        SetNoPostProcessingLayer(go);
+
+        var renderer = go.AddComponent<SpriteRenderer>();
+        renderer.sprite = towerShakeSprite;
+        renderer.color = Color.white;
+        renderer.flipX = flipX;
+        renderer.sortingOrder = 80;
+
+        return go.transform;
+    }
+
+    void SetTowerShakeEffectsActive(bool active)
+    {
+        if (_towerShakeEffectRoot != null && _towerShakeEffectRoot.activeSelf != active)
+            _towerShakeEffectRoot.SetActive(active);
+        if (!active)
+            _hasTowerShakeAnchor = false;
+    }
+
+    void DestroyTowerShakeEffects()
+    {
+        if (_towerShakeEffectRoot != null)
+        {
+            DestroyLocal(_towerShakeEffectRoot);
+            _towerShakeEffectRoot = null;
+        }
+
+        _leftTowerShakeEffect = null;
+        _rightTowerShakeEffect = null;
+        _hasTowerShakeAnchor = false;
+        _towerShakeVisibleUntil = 0f;
+    }
+
+    void SpawnHardDropEffect(Vector2Int startBase, Vector2Int dropBase)
+    {
+#if UNITY_EDITOR
+        ResolveHardDropBackSprite();
+#endif
+        if (hardDropBackSprite == null || _towerRoot == null || _heldRelPos.Count == 0)
+            return;
+
+        int minRelX = int.MaxValue;
+        int maxRelX = int.MinValue;
+        int minRelY = int.MaxValue;
+        foreach (var rel in _heldRelPos)
+        {
+            minRelX = Mathf.Min(minRelX, rel.x);
+            maxRelX = Mathf.Max(maxRelX, rel.x);
+            minRelY = Mathf.Min(minRelY, rel.y);
+        }
+
+        float startY = startBase.y + minRelY;
+        float dropY = dropBase.y + minRelY;
+        float height = startY - dropY;
+        if (height <= 0.001f)
+            return;
+
+        float width = maxRelX - minRelX + 1f;
+        float centerX = dropBase.x + (minRelX + maxRelX + 1f) * 0.5f;
+        float centerY = (startY + dropY) * 0.5f;
+
+        var effect = new GameObject("HardDropBack");
+        MarkGeneratedObject(effect);
+        effect.transform.SetParent(_towerRoot, false);
+        effect.transform.localPosition = new Vector3(centerX, centerY, 0f);
+
+        var renderer = effect.AddComponent<SpriteRenderer>();
+        renderer.sprite = hardDropBackSprite;
+        renderer.color = new Color(3f, 3f, 3f, 1f);
+        renderer.sortingOrder = -2;
+
+        var spriteSize = hardDropBackSprite.bounds.size;
+        effect.transform.localScale = new Vector3(
+            spriteSize.x > 0.0001f ? width / spriteSize.x : width,
+            spriteSize.y > 0.0001f ? height / spriteSize.y : height,
+            1f);
+
+        StartCoroutine(FadeOutHardDropEffect(renderer, effect));
+    }
+
+    void SpawnExtractionEffects(IEnumerable<Vector2Int> cells)
+    {
+#if UNITY_EDITOR
+        ResolveExtractionEffectSprites();
+#endif
+        if (cells == null || _towerRoot == null ||
+            extractionEffectSprites == null || extractionEffectSprites.Length == 0)
+            return;
+
+        foreach (var cell in cells)
+            SpawnExtractionEffect(cell);
+    }
+
+    void SpawnExtractionEffect(Vector2Int cell)
+    {
+        float effectScale = Mathf.Max(ExtractionEffectMinimumScale, extractionEffectScale);
+        var effect = new GameObject("ExtractionEffect");
+        MarkGeneratedObject(effect);
+        effect.transform.SetParent(_towerRoot, false);
+        effect.transform.localPosition = new Vector3(cell.x + 0.5f, cell.y + 0.5f, -0.1f);
+        effect.transform.localScale = Vector3.one * effectScale;
+        effect.AddComponent<NoPostProcessingRenderer>();
+        SetNoPostProcessingLayer(effect);
+
+        var renderer = effect.AddComponent<SpriteRenderer>();
+        renderer.sprite = extractionEffectSprites[0];
+        renderer.color = Color.white;
+        renderer.sortingOrder = 60;
+
+        var animation = effect.AddComponent<SpriteFrameEffect>();
+        animation.Initialize(renderer, extractionEffectSprites, extractionEffectFps, destroyOnComplete: true);
+    }
+
+    void NormalizeExtractionEffectScale()
+    {
+        if (extractionEffectScale < ExtractionEffectMinimumScale)
+            extractionEffectScale = ExtractionEffectMinimumScale;
+    }
+
+    void NormalizeTowerShakeFeedbackSettings()
+    {
+        towerShakeAngularVelocityThreshold = TowerShakeAngularVelocityThreshold;
+        towerShakeAngleThreshold = TowerShakeAngleThreshold;
+        towerShakeHoldTime = TowerShakeHoldTime;
+        towerShakeImageScale = TowerShakeImageScale;
+        towerShakeHorizontalOffset = TowerShakeHorizontalOffset;
+        towerShakeRotationAngle = TowerShakeRotationAngle;
+        towerShakeRotationSpeed = TowerShakeRotationSpeed;
+    }
+
+    static void SetNoPostProcessingLayer(GameObject root)
+    {
+        int layer = LayerMask.NameToLayer("BlockTowerNoPost");
+        if (root == null || layer < 0)
+            return;
+
+        root.layer = layer;
+        foreach (Transform child in root.transform)
+            child.gameObject.layer = layer;
+    }
+
+    IEnumerator FadeOutHardDropEffect(SpriteRenderer renderer, GameObject effect)
+    {
+        float duration = Mathf.Max(0.01f, hardDropFadeDuration);
+        float elapsed = 0f;
+        Color startColor = renderer.color;
+        while (elapsed < duration && renderer != null)
+        {
+            elapsed += Time.deltaTime;
+            var color = startColor;
+            color.a = startColor.a * (1f - Mathf.Clamp01(elapsed / duration));
+            renderer.color = color;
+            yield return null;
+        }
+
+        if (effect != null)
+            Destroy(effect);
+    }
+
+#if UNITY_EDITOR
+    void ResolveHardDropBackSprite()
+    {
+        if (hardDropBackSprite == null)
+            hardDropBackSprite = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/UI/effect/Hard drop Back.png");
+    }
+
+    void ResolveTowerShakeSprite()
+    {
+        if (towerShakeSprite == null)
+            towerShakeSprite = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/FX/New Folder/shake.png");
+    }
+
+    void ResolveExtractionEffectSprites()
+    {
+        if (extractionEffectSprites != null && extractionEffectSprites.Length > 0)
+            return;
+
+        var clip = AssetDatabase.LoadAssetAtPath<AnimationClip>("Assets/FX/New Folder/extraction.anim");
+        if (clip == null)
+            return;
+
+        var binding = UnityEditor.EditorCurveBinding.PPtrCurve("", typeof(SpriteRenderer), "m_Sprite");
+        var keyframes = UnityEditor.AnimationUtility.GetObjectReferenceCurve(clip, binding);
+        if (keyframes == null || keyframes.Length == 0)
+            return;
+
+        var frames = new List<Sprite>(keyframes.Length);
+        foreach (var keyframe in keyframes)
+            if (keyframe.value is Sprite sprite)
+                frames.Add(sprite);
+
+        if (frames.Count > 0)
+            extractionEffectSprites = frames.ToArray();
+    }
+
+    void ResolveDetachedLandingEffectPrefab()
+    {
+        if (detachedLandingEffectPrefab == null)
+            detachedLandingEffectPrefab = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/FX/Prefabs/FX002_01.prefab");
+    }
+#endif
 
     bool TryFindNearestDropBase(Vector2Int startBase, out Vector2Int dropBase)
     {
@@ -3620,7 +4219,23 @@ public class BlockTower : MonoBehaviour
             ClearPreviewBlur(data);
             if (_cells.TryGetValue(target, out var existing))
             {
-                existing.number = Mathf.Min(6, existing.number + 1);
+                int mergedNumber = existing.number + 1;
+                if (IsEndlessMode && mergedNumber > EndlessMaximumBlockNumber)
+                {
+                    Vector3 scorePosition = existing.go != null
+                        ? existing.go.transform.position
+                        : _towerRoot.TransformPoint(new Vector3(target.x + 0.5f, target.y + 0.5f, 0f));
+                    SpawnExtractionEffect(target);
+                    _cells.Remove(target);
+                    if (existing.go != null)
+                        Destroy(existing.go);
+                    if (data.go != null)
+                        Destroy(data.go);
+                    AddScore(1, scorePosition);
+                    continue;
+                }
+
+                existing.number = Mathf.Min(6, mergedNumber);
                 UpdateCellDataVisuals(existing);
                 ApplyCellVisual(target);
                 _lastPlacedCells.Add(target);
@@ -3656,6 +4271,8 @@ public class BlockTower : MonoBehaviour
             _lastPlacedCells.Add(target);
         }
 
+        SpawnExtractionEffects(_lastPlacedCells);
+
         Destroy(_heldRoot);
         _heldRoot = null;
         _heldRelPos.Clear();
@@ -3667,7 +4284,8 @@ public class BlockTower : MonoBehaviour
         _usingKeyboardPlacement = false;
         ClearKeyboardFocus();
 
-        UpdateTowerPhysicsState();
+        if (!BeginEndlessTurnTransition())
+            UpdateTowerPhysicsState();
         if (autoReturnCameraAfterPlace)
         {
             UpdateExtractionTowerRowsFromCells();
@@ -3676,6 +4294,228 @@ public class BlockTower : MonoBehaviour
         }
         else if (autoFocusCameraOnLift)
             ShowPlacementCameraView(immediate: false);
+    }
+
+    bool IsEndlessMode =>
+        gameObject.scene.IsValid() &&
+        string.Equals(gameObject.scene.name, EndlessSceneName, System.StringComparison.OrdinalIgnoreCase);
+
+    bool BeginEndlessTurnTransition()
+    {
+        if (!IsEndlessMode || _cells.Count == 0)
+            return false;
+
+        int layerWidth = columns;
+        if (layerWidth <= 0 ||
+            layerWidth > EndlessNewLayerNumberTotal ||
+            layerWidth * EndlessMaximumBlockNumber < EndlessNewLayerNumberTotal)
+        {
+            Debug.LogError(
+                $"Endless layer width {layerWidth} cannot total {EndlessNewLayerNumberTotal} " +
+                $"with block numbers 1-{EndlessMaximumBlockNumber}.",
+                this);
+            return false;
+        }
+
+        if (_endlessTurnRoutine != null)
+            StopCoroutine(_endlessTurnRoutine);
+        _endlessTurnRoutine = StartCoroutine(AdvanceEndlessTurn(layerWidth));
+        return true;
+    }
+
+    IEnumerator AdvanceEndlessTurn(int layerWidth)
+    {
+        _isEndlessTurnTransitionActive = true;
+        LockEndlessTurnPhysics();
+
+        ShiftTowerCellsUpOneRow(_cells);
+        ShiftTowerCellsUpOneRow(_iceCells);
+        ShiftCellSetUpOneRow(_lastPlacedCells);
+        ShiftCellSetUpOneRow(_bombConcealedCells);
+        ShiftCellDictionaryUpOneRow(_bombObscureBlocks);
+        ShiftCellDictionaryUpOneRow(_bombObscureKinds);
+        ShiftPlacementZoneUpOneRow();
+        UpdateExtractionTowerRowsFromCells();
+
+        float holdDuration = Mathf.Max(0f, endlessTowerAirHoldDuration);
+        if (holdDuration > 0f)
+            yield return new WaitForSeconds(holdDuration * 0.5f);
+
+        GetEndlessNewLayerOrigin(layerWidth, out int layerStartX, out int layerY);
+        var numbers = CreateEndlessLayerNumbers(layerWidth);
+        for (int index = 0; index < layerWidth; index++)
+        {
+            var cell = new Vector2Int(layerStartX + index, layerY);
+            _cells[cell] = SpawnCell(
+                cell,
+                numbers[index],
+                isOriginalTower: true);
+        }
+
+        RenameTowerCellsSequentially();
+        UpdateExtractionTowerRowsFromCells();
+        if (holdDuration > 0f)
+            yield return new WaitForSeconds(holdDuration * 0.5f);
+        yield return new WaitForFixedUpdate();
+
+        UnlockEndlessTurnPhysics();
+        _isEndlessTurnTransitionActive = false;
+        _endlessTurnRoutine = null;
+        UpdateTowerPhysicsState();
+        FocusDefaultExtractionCell();
+    }
+
+    void ShiftPlacementZoneUpOneRow()
+    {
+        if (!usePlacementZoneObject || placementZoneTransform == null || _towerRoot == null)
+            return;
+
+        placementZoneTransform.position += _towerRoot.TransformVector(Vector3.up);
+        if (!float.IsNaN(_placementZoneTopLimitLocal))
+            _placementZoneTopLimitLocal += 1f;
+        placementMin += Vector2Int.up;
+        placementMax += Vector2Int.up;
+        SyncPlacementZoneFromObject();
+    }
+
+    void GetEndlessNewLayerOrigin(int layerWidth, out int startX, out int layerY)
+    {
+        int minX = int.MaxValue;
+        int maxX = int.MinValue;
+        int minY = int.MaxValue;
+
+        foreach (var pair in _cells)
+        {
+            if (!pair.Value.isOriginalTower)
+                continue;
+
+            minX = Mathf.Min(minX, pair.Key.x);
+            maxX = Mathf.Max(maxX, pair.Key.x);
+            minY = Mathf.Min(minY, pair.Key.y);
+        }
+
+        if (minY == int.MaxValue)
+        {
+            foreach (var cell in _cells.Keys)
+            {
+                minX = Mathf.Min(minX, cell.x);
+                maxX = Mathf.Max(maxX, cell.x);
+                minY = Mathf.Min(minY, cell.y);
+            }
+        }
+
+        if (minY == int.MaxValue)
+        {
+            startX = 0;
+            layerY = 0;
+            return;
+        }
+
+        int occupiedWidth = maxX >= minX ? maxX - minX + 1 : layerWidth;
+        startX = minX + Mathf.FloorToInt((occupiedWidth - layerWidth) * 0.5f);
+        layerY = minY - 1;
+    }
+
+    void LockEndlessTurnPhysics()
+    {
+        if (_rb == null)
+            return;
+
+        _endlessTurnWasKinematic = _rb.isKinematic;
+        _rb.linearVelocity = Vector3.zero;
+        _rb.angularVelocity = Vector3.zero;
+        _rb.isKinematic = true;
+    }
+
+    void UnlockEndlessTurnPhysics()
+    {
+        if (_rb == null)
+            return;
+
+        _rb.isKinematic = _endlessTurnWasKinematic;
+        if (!_rb.isKinematic)
+            _rb.WakeUp();
+    }
+
+    void StopEndlessTurnTransition()
+    {
+        if (_endlessTurnRoutine != null)
+        {
+            StopCoroutine(_endlessTurnRoutine);
+            _endlessTurnRoutine = null;
+        }
+
+        if (_isEndlessTurnTransitionActive)
+            UnlockEndlessTurnPhysics();
+        _isEndlessTurnTransitionActive = false;
+    }
+
+    void ShiftTowerCellsUpOneRow(Dictionary<Vector2Int, CellData> cells)
+    {
+        if (cells.Count == 0)
+            return;
+
+        var shifted = new Dictionary<Vector2Int, CellData>(cells.Count);
+        foreach (var pair in cells)
+        {
+            var shiftedCell = pair.Key + Vector2Int.up;
+            shifted[shiftedCell] = pair.Value;
+            if (pair.Value.go != null)
+                pair.Value.go.transform.localPosition = new Vector3(
+                    shiftedCell.x + 0.5f,
+                    shiftedCell.y + 0.5f,
+                    pair.Value.go.transform.localPosition.z);
+        }
+
+        cells.Clear();
+        foreach (var pair in shifted)
+            cells[pair.Key] = pair.Value;
+    }
+
+    static void ShiftCellSetUpOneRow(HashSet<Vector2Int> cells)
+    {
+        if (cells.Count == 0)
+            return;
+
+        var shifted = new List<Vector2Int>(cells.Count);
+        foreach (var cell in cells)
+            shifted.Add(cell + Vector2Int.up);
+        cells.Clear();
+        foreach (var cell in shifted)
+            cells.Add(cell);
+    }
+
+    static void ShiftCellDictionaryUpOneRow<T>(Dictionary<Vector2Int, T> cells)
+    {
+        if (cells.Count == 0)
+            return;
+
+        var shifted = new Dictionary<Vector2Int, T>(cells.Count);
+        foreach (var pair in cells)
+            shifted[pair.Key + Vector2Int.up] = pair.Value;
+        cells.Clear();
+        foreach (var pair in shifted)
+            cells[pair.Key] = pair.Value;
+    }
+
+    static int[] CreateEndlessLayerNumbers(int layerWidth)
+    {
+        var numbers = new int[layerWidth];
+        for (int i = 0; i < numbers.Length; i++)
+            numbers[i] = 1;
+
+        int remaining = EndlessNewLayerNumberTotal - layerWidth;
+        while (remaining > 0)
+        {
+            int index = Random.Range(0, numbers.Length);
+            if (numbers[index] >= EndlessMaximumBlockNumber)
+                continue;
+
+            numbers[index]++;
+            remaining--;
+        }
+
+        return numbers;
     }
 
     void RememberLastPlacementCenter(List<Vector2Int> targets)
@@ -4020,9 +4860,59 @@ public class BlockTower : MonoBehaviour
                 detachedAt = Time.time,
                 scorePenalty = Mathf.RoundToInt(totalWeight)
             };
+            var landingEffect = orphanGO.AddComponent<DetachedLandingEffect>();
+            landingEffect.Initialize(this, detached.detachedAt);
             _detachedComponents.Add(detached);
             StartCoroutine(TryReattachDetachedComponent(detached));
         }
+    }
+
+    public bool TrySpawnDetachedLandingEffect(
+        Collision collision,
+        Collider landingSurface,
+        BlockCell landedBlock,
+        float detachedAt)
+    {
+        if (detachedLandingEffectPrefab == null || collision == null || landedBlock == null ||
+            Time.time - detachedAt < 0.1f || collision.relativeVelocity.sqrMagnitude < 0.0225f)
+            return false;
+
+        bool hitBlock = landingSurface != null &&
+                        landingSurface.GetComponentInParent<BlockCell>() != null;
+        bool hitFloor = landingSurface != null &&
+                        ((_generatedFloor != null &&
+                          landingSurface.transform.IsChildOf(_generatedFloor.transform)) ||
+                         (floorTransform != null &&
+                          landingSurface.transform.IsChildOf(floorTransform)) ||
+                         landingSurface.name.Contains("Floor"));
+        if (!hitBlock && !hitFloor)
+            return false;
+
+        Vector3 impactPosition = landedBlock.transform.position + new Vector3(0f, 0.5f, 0f);
+        impactPosition.z = -0.2f;
+
+        var effect = Instantiate(detachedLandingEffectPrefab, impactPosition, Quaternion.identity);
+        effect.transform.localScale *= detachedLandingEffectScale;
+        foreach (var renderer in effect.GetComponentsInChildren<SpriteRenderer>())
+            renderer.sortingOrder = 50;
+        Destroy(effect, LandingEffectLifetime(effect));
+        return true;
+    }
+
+    static float LandingEffectLifetime(GameObject effect)
+    {
+        var animator = effect != null ? effect.GetComponentInChildren<Animator>() : null;
+        var clips = animator != null && animator.runtimeAnimatorController != null
+            ? animator.runtimeAnimatorController.animationClips
+            : null;
+        float lifetime = 0f;
+        if (clips != null)
+        {
+            foreach (var clip in clips)
+                if (clip != null)
+                    lifetime = Mathf.Max(lifetime, clip.length);
+        }
+        return Mathf.Max(0.05f, lifetime);
     }
 
     float LocalColliderSize()
@@ -6357,4 +7247,127 @@ public class BlockTower : MonoBehaviour
         TetrominoPreset.Z => new Color(0.95f, 0.05f, 0.04f),
         _ => Color.white
     };
+}
+
+sealed class DetachedLandingEffect : MonoBehaviour
+{
+    BlockTower _owner;
+    float _detachedAt;
+    readonly HashSet<int> _spawnedColliders = new();
+
+    public void Initialize(BlockTower owner, float detachedAt)
+    {
+        _owner = owner;
+        _detachedAt = detachedAt;
+    }
+
+    void OnCollisionEnter(Collision collision)
+    {
+        SpawnForNewBlockContacts(collision);
+    }
+
+    void SpawnForNewBlockContacts(Collision collision)
+    {
+        if (_owner == null || collision == null)
+            return;
+
+        for (int i = 0; i < collision.contactCount; i++)
+        {
+            var contact = collision.GetContact(i);
+            Collider blockCollider;
+            Collider landingSurface;
+            if (IsDetachedBlockCollider(contact.thisCollider))
+            {
+                blockCollider = contact.thisCollider;
+                landingSurface = contact.otherCollider;
+            }
+            else if (IsDetachedBlockCollider(contact.otherCollider))
+            {
+                blockCollider = contact.otherCollider;
+                landingSurface = contact.thisCollider;
+            }
+            else
+            {
+                continue;
+            }
+
+            var landedBlock = blockCollider.GetComponentInParent<BlockCell>();
+            if (landedBlock == null)
+                continue;
+
+            int blockId = landedBlock.GetInstanceID();
+            if (_spawnedColliders.Contains(blockId))
+                continue;
+
+            if (_owner.TrySpawnDetachedLandingEffect(
+                    collision,
+                    landingSurface,
+                    landedBlock,
+                    _detachedAt))
+                _spawnedColliders.Add(blockId);
+        }
+    }
+
+    bool IsDetachedBlockCollider(Collider candidate)
+    {
+        return candidate != null &&
+               candidate.transform.IsChildOf(transform) &&
+               candidate.GetComponentInParent<BlockCell>() != null;
+    }
+}
+
+sealed class SpriteFrameEffect : MonoBehaviour
+{
+    SpriteRenderer _renderer;
+    Sprite[] _frames;
+    float _fps;
+    bool _destroyOnComplete;
+    float _elapsed;
+    int _frameIndex;
+
+    public void Initialize(SpriteRenderer renderer, Sprite[] frames, float fps, bool destroyOnComplete)
+    {
+        _renderer = renderer;
+        _frames = frames;
+        _fps = Mathf.Max(1f, fps);
+        _destroyOnComplete = destroyOnComplete;
+        _elapsed = 0f;
+        _frameIndex = 0;
+
+        if (_renderer != null && _frames != null && _frames.Length > 0)
+            _renderer.sprite = _frames[0];
+    }
+
+    void Update()
+    {
+        if (_renderer == null || _frames == null || _frames.Length == 0)
+        {
+            Destroy(gameObject);
+            return;
+        }
+
+        _elapsed += Time.deltaTime;
+        int nextFrame = Mathf.FloorToInt(_elapsed * _fps);
+        if (nextFrame == _frameIndex)
+            return;
+
+        if (nextFrame >= _frames.Length)
+        {
+            if (_destroyOnComplete)
+            {
+                Destroy(gameObject);
+                return;
+            }
+
+            nextFrame %= _frames.Length;
+            _elapsed = nextFrame / _fps;
+        }
+
+        _frameIndex = nextFrame;
+        _renderer.sprite = _frames[_frameIndex];
+    }
+}
+
+sealed class NoPostProcessingRenderer : MonoBehaviour
+{
 }

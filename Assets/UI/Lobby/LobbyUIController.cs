@@ -20,7 +20,7 @@ public class LobbyUIController : MonoBehaviour
 
     [Header("이동할 씬 이름")]
     [SerializeField] private string storySceneName = "StageScene";
-    [SerializeField] private string endlessSceneName = "SampleScene";
+    [SerializeField] private string endlessSceneName = "Endless";
 
     private VisualElement root;
     private VisualElement lobbyScreen;
