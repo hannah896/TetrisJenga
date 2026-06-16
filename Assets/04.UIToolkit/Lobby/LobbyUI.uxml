@@ -7,7 +7,7 @@
         <!-- ===================== 로비 화면 ===================== -->
         <ui:VisualElement name="lobby-screen" class="fill screen-bg">
             <ui:Label name="lobby-title" text="Abyss&#10;Stack" class="lobby-title" />
-            <ui:Button name="play-button" text="플레이" class="btn lobby-play-btn" />
+            <ui:Button name="play-button" text="" class="btn lobby-play-btn" />
             <ui:Button name="exit-button" text="Exit" class="btn lobby-exit-btn" />
         </ui:VisualElement>
 
@@ -18,7 +18,7 @@
             </ui:VisualElement>
 
             <ui:Button name="endless-button" text="EndLess Mode" class="btn mode-btn mode-btn--endless" />
-            <ui:Button name="story-button" text="Story" class="btn mode-btn mode-btn--story" />
+            <ui:Button name="story-button" text="메인 스테이지" class="btn mode-btn mode-btn--story" />
             <ui:Button name="multi-button" text="봇전(CPU)" class="btn mode-btn mode-btn--multi btn--disabled" />
 
             <ui:VisualElement name="preview-image" class="preview-image">
