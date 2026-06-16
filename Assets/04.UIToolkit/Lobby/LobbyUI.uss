@@ -37,6 +37,15 @@
     background-color: #9a9a9a;
 }
 
+.lobby-play-btn__label {
+    color: #f5f5f5;
+    font-size: 56px;
+    -unity-text-align: middle-center;
+    -unity-font-style: bold;
+    flex-grow: 1;
+    pointer-events: none;
+}
+
 .lobby-exit-btn {
     position: absolute;
     left: 1780px;
@@ -81,6 +90,8 @@
     font-size: 64px;
     -unity-text-align: middle-center;
     border-radius: 16px;
+    -unity-text-outline-width: 4px;
+    -unity-text-outline-color: #000000;
 }
 
 .mode-btn:hover {

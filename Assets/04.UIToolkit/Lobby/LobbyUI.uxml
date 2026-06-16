@@ -7,7 +7,9 @@
         <!-- ===================== 로비 화면 ===================== -->
         <ui:VisualElement name="lobby-screen" class="fill screen-bg">
             <ui:Label name="lobby-title" text="Abyss&#10;Stack" class="lobby-title" />
-            <ui:Button name="play-button" text="" class="btn lobby-play-btn" />
+            <ui:Button name="play-button" text="" class="btn lobby-play-btn">
+                <ui:Label text="게임시작" class="lobby-play-btn__label" />
+            </ui:Button>
             <ui:Button name="exit-button" text="Exit" class="btn lobby-exit-btn" />
         </ui:VisualElement>
 

@@ -43,6 +43,7 @@ public class StageUIController : MonoBehaviour
     private readonly List<Button> nodeButtons = new();
     private readonly List<Vector2> _nodeUiPositions = new();
     private readonly StageSubmarineController _submarine = new();
+    private int _unlockedIdx = 0;
 
     private readonly UI_Setting_Controller _uiSetting = new();
 
@@ -109,6 +110,7 @@ public class StageUIController : MonoBehaviour
         stageMap.Insert(0, pathElem);
 
         int unlockedIdx = StageProgress.GetHighestUnlockedIndex(mapData.nodes.Count);
+        _unlockedIdx = unlockedIdx;
 
         // 잠금 해제된 구간까지만 경로 표시
         int activeEndIndex = unlockedIdx >= 1
@@ -258,7 +260,7 @@ public class StageUIController : MonoBehaviour
 
         // 휠 위 → 높은 인덱스(상위 스테이지), 휠 아래 → 낮은 인덱스
         int dir  = e.delta.y < 0 ? 1 : -1;
-        int next = Mathf.Clamp(selectedNodeIndex + dir, 0, mapData.nodes.Count - 1);
+        int next = Mathf.Clamp(selectedNodeIndex + dir, 0, _unlockedIdx);
         if (next == selectedNodeIndex) return;
 
         e.StopPropagation(); // ScrollView 기본 스크롤 차단

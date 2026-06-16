@@ -341,8 +341,10 @@ public class GameUIController : MonoBehaviour
 
     void SyncWeightGuideImages()
     {
-        // 숫자 스프라이트 동기화는 BlockTower가 GetPresetCells를 통해 할 수 없으므로
-        // 필요 시 별도 이벤트로 확장. 현재는 기본 표시 상태 유지.
+        var spriteSet = _tower?.NumberSpriteSetAsset;
+        if (spriteSet == null) return;
+        for (int i = 0; i < _weightGuideImages.Length; i++)
+            UISprites.Apply(_weightGuideImages[i], spriteSet.GetSprite(i + 1));
     }
 
     // ── 결과 화면 ─────────────────────────────────────────────────────────
