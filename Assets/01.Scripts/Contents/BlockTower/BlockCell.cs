@@ -4,13 +4,6 @@ using UnityEngine;
 // DetachComponent에서 무게 중심 계산 시 참조한다.
 public class BlockCell : MonoBehaviour
 {
-    public enum CellKind
-    {
-        Normal,
-        Bomb,
-        Ice
-    }
-
     public float Weight;
     public bool IsOriginalTower;
     public CellKind Kind;

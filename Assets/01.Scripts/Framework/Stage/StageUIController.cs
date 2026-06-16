@@ -247,6 +247,8 @@ public class StageUIController : MonoBehaviour
         // SO에 지정이 없으면 스테이지 순서대로 Level1, Level2... 로 이동한다.
         if (string.IsNullOrEmpty(scene))
             scene = $"Level{selectedNodeIndex + 1}";
+        // 인게임(BlockTower/GameManager)이 결과를 어느 스테이지에 기록할지 알 수 있도록 전달.
+        GameManager.Instance.CurrentStageIndex = selectedNodeIndex;
         LoadScene(scene);
     }
     private void GoToLobby() => LoadScene(lobbySceneName);

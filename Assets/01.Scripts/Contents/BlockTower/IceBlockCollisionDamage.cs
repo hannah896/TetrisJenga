@@ -47,7 +47,7 @@ public sealed class IceBlockCollisionDamage : MonoBehaviour
 
         var body = collision.rigidbody;
         var blockCell = collision.collider.GetComponentInParent<BlockCell>();
-        if (blockCell != null && blockCell.Kind == BlockCell.CellKind.Ice)
+        if (blockCell != null && blockCell.Kind == CellKind.Ice)
             return;
 
         int id = GetContactId(collision);

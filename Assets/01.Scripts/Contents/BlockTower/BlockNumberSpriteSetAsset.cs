@@ -3,13 +3,6 @@ using UnityEngine;
 [CreateAssetMenu(fileName = "Block Number Sprite Set", menuName = "Tetris Jenga/Block Number Sprite Set")]
 public class BlockNumberSpriteSetAsset : ScriptableObject
 {
-    public enum BombObscureKind
-    {
-        Center,
-        Edge,
-        Corner
-    }
-
     [Header("Number Blocks")]
     [SerializeField] Sprite number1Sprite;
     [SerializeField] Sprite number2Sprite;
