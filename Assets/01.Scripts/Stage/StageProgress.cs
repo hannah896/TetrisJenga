@@ -30,6 +30,14 @@ public static class StageProgress
         return Mathf.Max(0, totalCount - 1);
     }
 
+    public static bool IsAllCleared(int totalCount)
+    {
+        if (totalCount <= 0) return false;
+        for (int i = 0; i < totalCount; i++)
+            if (!IsCleared(i)) return false;
+        return true;
+    }
+
     /// <summary>개발 편의용 — 모든 진행 데이터 초기화.</summary>
     public static void ResetAll(int totalCount)
     {

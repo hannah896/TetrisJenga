@@ -21,7 +21,7 @@ public class LobbyUIController : MonoBehaviour
 
     [Header("이동할 씬 이름")]
     [SerializeField] private string storySceneName = "StageScene";
-    [SerializeField] private string endlessSceneName = "SampleScene";
+    [SerializeField] private string endlessSceneName = "Endless";
 
     private VisualElement root;
     private VisualElement lobbyScreen;
@@ -38,6 +38,10 @@ public class LobbyUIController : MonoBehaviour
     private const string StoryDesc = "스테이지를 하나씩 클리어하며 진행합니다.";
     private const string MultiTitle = "봇전 (CPU)";
     private const string MultiDesc = "준비 중입니다. (잠금)";
+
+    private const string EndlessUnlockShownKey = "endless_unlock_notified";
+    private Button _endlessButton;
+    private bool _endlessUnlocked;
 
     private void Awake()
     {
@@ -71,6 +75,7 @@ public class LobbyUIController : MonoBehaviour
         ApplySprites();
         _uiSetting.Initialize(root, settingImages, onRestart: ShowLobby);
         BindButtons();
+        RefreshEndlessUnlockState();
         ShowLobby();
     }
 
@@ -110,12 +115,12 @@ public class LobbyUIController : MonoBehaviour
             exitButton.clicked += () => AudioManager.PlaySound(_AudioLibrarySounds.BtnClick);
         }
 
-        Button endlessButton = root.Q<Button>("endless-button");
-        if (endlessButton != null)
+        _endlessButton = root.Q<Button>("endless-button");
+        if (_endlessButton != null)
         {
-            endlessButton.clicked += () => LoadScene(endlessSceneName);
-            endlessButton.clicked += () => AudioManager.PlaySound(_AudioLibrarySounds.BtnClick);
-            endlessButton.RegisterCallback<PointerEnterEvent>(_ => SetPreview(EndlessTitle, EndlessDesc));
+            _endlessButton.clicked += () => { if (_endlessUnlocked) LoadScene(endlessSceneName); };
+            _endlessButton.clicked += () => { if (_endlessUnlocked) AudioManager.PlaySound(_AudioLibrarySounds.BtnClick); };
+            _endlessButton.RegisterCallback<PointerEnterEvent>(_ => SetPreview(EndlessTitle, EndlessDesc));
         }
 
         Button storyButton = root.Q<Button>("story-button");
@@ -184,6 +189,56 @@ public class LobbyUIController : MonoBehaviour
         SetVisible(lobbyScreen, false);
         SetVisible(modeSelectScreen, true);
         SetPreview(EndlessTitle, EndlessDesc);
+
+        if (_endlessUnlocked && PlayerPrefs.GetInt(EndlessUnlockShownKey, 0) == 0)
+        {
+            PlayerPrefs.SetInt(EndlessUnlockShownKey, 1);
+            PlayerPrefs.Save();
+            ShowUnlockNotification("엔드리스 모드가 해금되었습니다!");
+        }
+    }
+
+    private void RefreshEndlessUnlockState()
+    {
+        int stageCount = GameManager.Instance != null ? GameManager.Instance.StageCount : 6;
+        _endlessUnlocked = StageProgress.IsAllCleared(stageCount);
+
+        if (_endlessButton == null) return;
+
+        if (_endlessUnlocked)
+            _endlessButton.RemoveFromClassList("btn--disabled");
+        else
+            _endlessButton.AddToClassList("btn--disabled");
+    }
+
+    private void ShowUnlockNotification(string message)
+    {
+        var notify = new Label(message);
+        notify.style.position = Position.Absolute;
+        notify.style.top = 40;
+        notify.style.left = 0;
+        notify.style.right = 0;
+        notify.style.unityTextAlign = TextAnchor.UpperCenter;
+        notify.style.fontSize = 22;
+        notify.style.color = new UnityEngine.Color(1f, 0.92f, 0.3f, 1f);
+        notify.style.unityFontStyleAndWeight = UnityEngine.FontStyle.Bold;
+        notify.style.opacity = 1f;
+        modeSelectScreen.Add(notify);
+
+        float elapsed = 0f;
+        const float duration = 2.5f;
+        const float fadeStart = 1.5f;
+        root.schedule.Execute(() =>
+        {
+            elapsed += 0.016f;
+            float t = Mathf.Clamp01((elapsed - fadeStart) / (duration - fadeStart));
+            notify.style.opacity = 1f - t;
+            if (elapsed >= duration)
+            {
+                notify.RemoveFromHierarchy();
+                return;
+            }
+        }).Every(16).Until(() => elapsed >= duration);
     }
 
     private void LoadScene(string sceneName)
