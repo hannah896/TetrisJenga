@@ -1,0 +1,289 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!1 &3630738249296482633
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1531433012787628842}
+  - component: {fileID: 3534626316493220697}
+  - component: {fileID: 5256509366926186308}
+  - component: {fileID: 1975337149047990076}
+  - component: {fileID: 465263587042941305}
+  - component: {fileID: 2726891468996133974}
+  - component: {fileID: 5174047259693294720}
+  - component: {fileID: 6826441162828593124}
+  - component: {fileID: 7359242181595054501}
+  - component: {fileID: 5704423664668020367}
+  - component: {fileID: 7506918656937528439}
+  - component: {fileID: 6831716103678682681}
+  - component: {fileID: 2975249170760660017}
+  m_Layer: 0
+  m_Name: BlockTower_
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1531433012787628842
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3630738249296482633}
+  serializedVersion: 2
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &3534626316493220697
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3630738249296482633}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d85b928d935b66c45a7d7e510242813d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::BlockTower
+  columns: 4
+  rows: 10
+  placementController: {fileID: 465263587042941305}
+  heldController: {fileID: 2726891468996133974}
+  selectionController: {fileID: 5174047259693294720}
+  bonusTetrominoSpriteSet: {fileID: 11400000, guid: 6a29f9d5587247068303383cbb605f32, type: 2}
+  blockFriction: 100
+  toppleTorque: 4
+  toppleMargin: 0.05
+  detachedReattachStableTime: 0.15
+  detachedReattachVelocity: 0.55
+  detachedMinAirTime: 0.35
+  detachedPenaltyDelay: 2
+  blockBodyScale: 0.94
+  blockColliderScale: 0.92
+  _bombIceController: {fileID: 5704423664668020367}
+  _visualizer: {fileID: 7506918656937528439}
+  initialTowerNumberTotal: 320
+  randomizeInitialTowerNumbersOnPlay: 1
+  towerRootTransform: {fileID: 0}
+  floorTransform: {fileID: 0}
+  _cameraController: {fileID: 7359242181595054501}
+  _scoreController: {fileID: 2975249170760660017}
+--- !u!114 &5256509366926186308
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3630738249296482633}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 13e72aed385fe3e46b1f59bedfefc0fe, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::BlockNumberSpriteSet
+  number1Sprite: {fileID: 1117672490, guid: 0e30242e61e1efa40a0b31591a9d0541, type: 3}
+  number2Sprite: {fileID: 1809870135, guid: 01051b369f5e5e0418d6227f5c9d4588, type: 3}
+  number3Sprite: {fileID: -454466172, guid: 45998c79cfb0b6a4abc384b2b3c2d7a8, type: 3}
+  number4Sprite: {fileID: 294918899, guid: ed07675bc28a33a428e0becf1c631f49, type: 3}
+  number5Sprite: {fileID: 1285319904, guid: a2818dea18ac44246b8b756578a9de02, type: 3}
+  number6Sprite: {fileID: 2021005482, guid: 93e042bc6f88d5d42856a3a5cd6da1c8, type: 3}
+--- !u!114 &1975337149047990076
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3630738249296482633}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1a4780de36a14dd6a59a83d5a40f7c2d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PostProcessingExclusionCamera
+  sourceCamera: {fileID: 0}
+  targetRoot: {fileID: 1531433012787628842}
+  exclusionLayerName: BlockTowerNoPost
+  overlayCameraName: BlockTower No Post Camera
+  includeInactiveRenderers: 1
+  extraExcludedRootNames:
+  - PlacementZone
+  - TowerStackDivider
+  - BoundaryLeft
+  - BoundaryRight
+  - Floor
+  camerasThatShouldSeeExcludedLayer:
+  - SubViewCamera
+--- !u!114 &465263587042941305
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3630738249296482633}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1132da1fd88df2a40a938d3a385edd0e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PlacementZoneController
+  towerRoot: {fileID: 0}
+  towerStackDivider: {fileID: 0}
+  usePlacementZoneObject: 1
+  placementZoneTransform: {fileID: 0}
+  placementMin: {x: -3, y: 12}
+  placementMax: {x: 6, y: 20}
+--- !u!114 &2726891468996133974
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3630738249296482633}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f848d0fffd71e5c4185937ef8f8de72b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::HeldBlockController
+  placementFailDuration: 0.18
+  placementFailShakeDistance: 0.12
+  placementFailShakeCount: 3
+--- !u!114 &5174047259693294720
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3630738249296482633}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 42348e663a9032d4da9b6c4a457e6014, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::TetrominoSelectionController
+--- !u!114 &6826441162828593124
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3630738249296482633}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: af0d3e611e6989b468521a5cfe29dc22, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::InputHandler
+  _tower: {fileID: 3534626316493220697}
+  _camera: {fileID: 7359242181595054501}
+  keyboardControlsEnabled: 1
+  moveHoldInitialDelay: 0.22
+  moveHoldRepeatInterval: 0.08
+--- !u!114 &7359242181595054501
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3630738249296482633}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: da1f9fa74136b41409ce4d60edbb6e6f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CameraController
+  _tower: {fileID: 3534626316493220697}
+  autoFocusCameraOnLift: 1
+  autoReturnCameraAfterPlace: 1
+  scrollSpeed: 1.5
+  cameraFocusSpeed: 8
+  cameraTopPadding: 2
+  cameraReturnBodyAnchor: 0.55
+  extractionViewPadding: 1.25
+  placementViewTopOffset: 1
+  secondaryViewCamera: {fileID: 0}
+  secondaryViewImage: {fileID: 0}
+  secondaryViewPanelSize: {x: 540, y: 360}
+  secondaryViewPanelPosition: {x: 40, y: 0}
+  secondaryViewOrthographicSize: 3
+  secondaryViewTextureSize: 768
+  secondaryViewDefaultsMigrated: 1
+--- !u!114 &5704423664668020367
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3630738249296482633}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f73727b570be3be4489377b0b3c009f9, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::BombIceEffectController
+  _tower: {fileID: 3534626316493220697}
+  _bombObscureSprite: {fileID: 0}
+  _bombObscureColor: {r: 0.45, g: 0.45, b: 0.45, a: 0.92}
+--- !u!114 &7506918656937528439
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3630738249296482633}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8ee413a2becaf174a8d9e6c99d239bac, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::TowerCellVisualizer
+  _tower: {fileID: 3534626316493220697}
+  placedBlockColor: {r: 0.55, g: 0.58, b: 0.6, a: 1}
+  numberSpriteSetAsset: {fileID: 11400000, guid: 83a26e48666546c0a956700e08e3aa0c, type: 2}
+  numberSpriteSet: {fileID: 5256509366926186308}
+  focusedOutlineColor: {r: 1, g: 0.95, b: 0.05, a: 1}
+  selectedOutlineColor: {r: 1, g: 1, b: 1, a: 0.95}
+  focusedOutlineScale: 1.18
+  selectedOutlineScale: 1.1
+  previewBlurEnabled: 1
+  previewBlurRadius: 0.12
+  previewBlurAlpha: 0.1
+  previewBlurCopies: 8
+--- !u!114 &6831716103678682681
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3630738249296482633}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c845dfc03fa11454db83044076381132, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::GameUIController
+  _tower: {fileID: 3534626316493220697}
+  _scoreController: {fileID: 0}
+  _camera: {fileID: 7359242181595054501}
+  hudDocument: {fileID: 0}
+  hudVisualTree: {fileID: 9197481963319205126, guid: 2eb717a31a1c2704ba2e7d7084f02234, type: 3}
+  gameOverVisualTree: {fileID: 9197481963319205126, guid: 8f1f3b9f7e1940f4b8f4b1bd51c1c021, type: 3}
+  clearVisualTree: {fileID: 9197481963319205126, guid: 8b2c80905ab341a48b6c10dd93f84fa1, type: 3}
+  hudPanelSettings: {fileID: 11400000, guid: 9e1f9a6d6e7e4f2dbb7c4d1c8f35a911, type: 2}
+  hudImageLibrary: {fileID: 11400000, guid: 5358f87cc1fd5bc44bea6899aa0859c7, type: 2}
+--- !u!114 &2975249170760660017
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3630738249296482633}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 87f8fcf6b2dbb644e9935574d0b5278c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ScoreController
+  _tower: {fileID: 3534626316493220697}
+  targetScore: 30
+  goldFishDeadlineScore: 20
+  scoreLabel: {fileID: 0}

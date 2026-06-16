@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
@@ -16,6 +17,13 @@ public class InputHandler : MonoBehaviour
     float      _nextMoveRepeatTime;
 
     # region Life Cycle
+
+    private void OnValidate()
+    {
+        if (_tower ==null) _tower = GetComponent<BlockTower>();
+        if (_camera ==null) _camera = GetComponent<CameraController>();
+    }
+
     void Awake()
     {
         if (_tower == null)  _tower  = GetComponent<BlockTower>();

@@ -42,6 +42,20 @@ class HeldSourceCell
     public CellKind kind;
 }
 
+//[RequireComponent(typeof(PlacementZoneController))]
+//[RequireComponent(typeof(PlacementZoneController))]
+[RequireComponent(typeof(BlockNumberSpriteSet))]
+[RequireComponent(typeof(PlacementZoneController))]
+[RequireComponent(typeof(BlockNumberSpriteSet))]
+[RequireComponent(typeof(PostProcessingExclusionCamera))]
+[RequireComponent(typeof(HeldBlockController))]
+[RequireComponent(typeof(TetrominoSelectionController))]
+[RequireComponent(typeof(InputHandler))]
+[RequireComponent(typeof(CameraController))]
+[RequireComponent(typeof(BombIceEffectController))]
+[RequireComponent(typeof(TowerCellVisualizer))]
+[RequireComponent(typeof(GameUIController))]
+[RequireComponent(typeof(ScoreController))]
 [ExecuteAlways]
 public class BlockTower : MonoBehaviour
 {

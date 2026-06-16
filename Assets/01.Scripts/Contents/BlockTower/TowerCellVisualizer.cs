@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 using TMPro;
@@ -39,6 +40,11 @@ public class TowerCellVisualizer : MonoBehaviour
     public float SelectedOutlineScale => selectedOutlineScale;
     public float PreviewBlurAlpha     => previewBlurAlpha;
     public BlockNumberSpriteSetAsset NumberSpriteSetAsset => numberSpriteSetAsset;
+
+    private void OnValidate()
+    {
+        if (_tower == null) _tower = GetComponent<BlockTower>();
+    }
 
     void Awake()
     {

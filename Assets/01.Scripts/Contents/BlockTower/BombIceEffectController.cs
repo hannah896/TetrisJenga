@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 using TMPro;
@@ -21,6 +22,11 @@ public class BombIceEffectController : MonoBehaviour
     BlockNumberSpriteSetAsset         SpriteSetAsset => _tower.NumberSpriteSetAsset;
 
     public Color BombObscureColor => _bombObscureColor;
+
+    private void OnValidate()
+    {
+        _tower = GetComponent<BlockTower>();
+    }
 
     void Awake()
     {

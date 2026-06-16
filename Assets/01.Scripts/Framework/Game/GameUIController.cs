@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -56,6 +57,14 @@ public class GameUIController : MonoBehaviour
     Coroutine _scorePopupRoutine;
 
     #region Lifecycle Function
+
+    private void OnValidate()
+    {
+        if (_tower == null) _tower = GetComponent<BlockTower>();
+        if (_scoreController == null) _scoreController = GetComponent<ScoreController>();
+        if (_camera == null) _camera = GetComponent<CameraController>();
+    }
+
     void Awake()
     {
         if (_tower == null)           _tower           = GetComponent<BlockTower>();

@@ -132,6 +132,11 @@ PhysicsMaterial:
   m_Bounciness: 0
   m_FrictionCombine: 0
   m_BounceCombine: 0
+--- !u!4 &56216647 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 3402663788336563277, guid: 6551af1e25c1a2349b89315968e264d4, type: 3}
+  m_PrefabInstance: {fileID: 702665423}
+  m_PrefabAsset: {fileID: 0}
 --- !u!212 &82123313
 SpriteRenderer:
   serializedVersion: 2
@@ -331,7 +336,7 @@ SpriteRenderer:
   m_Size: {x: 1, y: 1}
   m_AdaptiveModeThreshold: 0.5
   m_SpriteTileMode: 0
-  m_WasSpriteAssigned: 1
+  m_WasSpriteAssigned: 0
   m_SpriteSortPoint: 0
 --- !u!1 &223400100
 GameObject:
@@ -530,7 +535,7 @@ SpriteRenderer:
   m_Size: {x: 1, y: 1}
   m_AdaptiveModeThreshold: 0.5
   m_SpriteTileMode: 0
-  m_WasSpriteAssigned: 1
+  m_WasSpriteAssigned: 0
   m_SpriteSortPoint: 0
 --- !u!1 &330585543
 GameObject:
@@ -735,6 +740,37 @@ PhysicsMaterial:
   m_Bounciness: 0
   m_FrictionCombine: 0
   m_BounceCombine: 0
+--- !u!1 &549970157
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 549970158}
+  m_Layer: 0
+  m_Name: FocusOutline
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &549970158
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 549970157}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!134 &559378867
 PhysicsMaterial:
   m_ObjectHideFlags: 0
@@ -888,7 +924,7 @@ SpriteRenderer:
   m_Size: {x: 1, y: 1}
   m_AdaptiveModeThreshold: 0.5
   m_SpriteTileMode: 0
-  m_WasSpriteAssigned: 1
+  m_WasSpriteAssigned: 0
   m_SpriteSortPoint: 0
 --- !u!1 &633804134
 GameObject:
@@ -1017,7 +1053,7 @@ SpriteRenderer:
   m_Size: {x: 1, y: 1}
   m_AdaptiveModeThreshold: 0.5
   m_SpriteTileMode: 0
-  m_WasSpriteAssigned: 1
+  m_WasSpriteAssigned: 0
   m_SpriteSortPoint: 0
 --- !u!134 &681825973
 PhysicsMaterial:
@@ -1032,6 +1068,37 @@ PhysicsMaterial:
   m_Bounciness: 0
   m_FrictionCombine: 0
   m_BounceCombine: 0
+--- !u!1 &688660826
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 688660827}
+  m_Layer: 0
+  m_Name: FocusOutline
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &688660827
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 688660826}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1001 &702665423
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -1183,7 +1250,7 @@ Transform:
   m_GameObject: {fileID: 720000007}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 0, y: 6, z: 0.02}
+  m_LocalPosition: {x: 0, y: 1, z: 0.02}
   m_LocalScale: {x: 8, y: 0.12, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -1434,7 +1501,7 @@ SpriteRenderer:
   m_Size: {x: 1, y: 1}
   m_AdaptiveModeThreshold: 0.5
   m_SpriteTileMode: 0
-  m_WasSpriteAssigned: 1
+  m_WasSpriteAssigned: 0
   m_SpriteSortPoint: 0
 --- !u!1 &758178019
 GameObject:
@@ -1563,7 +1630,7 @@ SpriteRenderer:
   m_Size: {x: 1, y: 1}
   m_AdaptiveModeThreshold: 0.5
   m_SpriteTileMode: 0
-  m_WasSpriteAssigned: 1
+  m_WasSpriteAssigned: 0
   m_SpriteSortPoint: 0
 --- !u!1 &786453314
 GameObject:
@@ -1692,7 +1759,7 @@ SpriteRenderer:
   m_Size: {x: 1, y: 1}
   m_AdaptiveModeThreshold: 0.5
   m_SpriteTileMode: 0
-  m_WasSpriteAssigned: 1
+  m_WasSpriteAssigned: 0
   m_SpriteSortPoint: 0
 --- !u!1 &831704158
 GameObject:
@@ -1821,7 +1888,7 @@ SpriteRenderer:
   m_Size: {x: 1, y: 1}
   m_AdaptiveModeThreshold: 0.5
   m_SpriteTileMode: 0
-  m_WasSpriteAssigned: 1
+  m_WasSpriteAssigned: 0
   m_SpriteSortPoint: 0
 --- !u!1 &832575517
 GameObject:
@@ -1846,6 +1913,37 @@ Transform:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 832575517}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &842923437
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 842923438}
+  m_Layer: 0
+  m_Name: FocusOutline
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &842923438
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 842923437}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
@@ -2053,7 +2151,7 @@ SpriteRenderer:
   m_Size: {x: 1, y: 1}
   m_AdaptiveModeThreshold: 0.5
   m_SpriteTileMode: 0
-  m_WasSpriteAssigned: 1
+  m_WasSpriteAssigned: 0
   m_SpriteSortPoint: 0
 --- !u!1 &945452939
 GameObject:
@@ -2375,7 +2473,7 @@ SpriteRenderer:
   m_Size: {x: 1, y: 1}
   m_AdaptiveModeThreshold: 0.5
   m_SpriteTileMode: 0
-  m_WasSpriteAssigned: 1
+  m_WasSpriteAssigned: 0
   m_SpriteSortPoint: 0
 --- !u!1 &1020354793
 GameObject:
@@ -2583,7 +2681,7 @@ SpriteRenderer:
   m_Size: {x: 1, y: 1}
   m_AdaptiveModeThreshold: 0.5
   m_SpriteTileMode: 0
-  m_WasSpriteAssigned: 1
+  m_WasSpriteAssigned: 0
   m_SpriteSortPoint: 0
 --- !u!134 &1116360321
 PhysicsMaterial:
@@ -2725,7 +2823,7 @@ SpriteRenderer:
   m_Size: {x: 1, y: 1}
   m_AdaptiveModeThreshold: 0.5
   m_SpriteTileMode: 0
-  m_WasSpriteAssigned: 1
+  m_WasSpriteAssigned: 0
   m_SpriteSortPoint: 0
 --- !u!1 &1120646346
 GameObject:
@@ -2854,7 +2952,7 @@ SpriteRenderer:
   m_Size: {x: 1, y: 1}
   m_AdaptiveModeThreshold: 0.5
   m_SpriteTileMode: 0
-  m_WasSpriteAssigned: 1
+  m_WasSpriteAssigned: 0
   m_SpriteSortPoint: 0
 --- !u!134 &1129927939
 PhysicsMaterial:
@@ -2996,7 +3094,7 @@ SpriteRenderer:
   m_Size: {x: 1, y: 1}
   m_AdaptiveModeThreshold: 0.5
   m_SpriteTileMode: 0
-  m_WasSpriteAssigned: 1
+  m_WasSpriteAssigned: 0
   m_SpriteSortPoint: 0
 --- !u!1 &1236858478
 GameObject:
@@ -3125,7 +3223,7 @@ SpriteRenderer:
   m_Size: {x: 1, y: 1}
   m_AdaptiveModeThreshold: 0.5
   m_SpriteTileMode: 0
-  m_WasSpriteAssigned: 1
+  m_WasSpriteAssigned: 0
   m_SpriteSortPoint: 0
 --- !u!134 &1294288897
 PhysicsMaterial:
@@ -3293,7 +3391,7 @@ SpriteRenderer:
   m_Size: {x: 1, y: 1}
   m_AdaptiveModeThreshold: 0.5
   m_SpriteTileMode: 0
-  m_WasSpriteAssigned: 1
+  m_WasSpriteAssigned: 0
   m_SpriteSortPoint: 0
 --- !u!134 &1387534719
 PhysicsMaterial:
@@ -3404,7 +3502,7 @@ Camera:
   m_Depth: -10
   m_CullingMask:
     serializedVersion: 2
-    m_Bits: 4294967039
+    m_Bits: 4294967295
   m_RenderingPath: -1
   m_TargetTexture: {fileID: 0}
   m_TargetDisplay: 0
@@ -3602,7 +3700,7 @@ SpriteRenderer:
   m_Size: {x: 1, y: 1}
   m_AdaptiveModeThreshold: 0.5
   m_SpriteTileMode: 0
-  m_WasSpriteAssigned: 1
+  m_WasSpriteAssigned: 0
   m_SpriteSortPoint: 0
 --- !u!134 &1585515040
 PhysicsMaterial:
@@ -3757,7 +3855,7 @@ SpriteRenderer:
   m_Size: {x: 1, y: 1}
   m_AdaptiveModeThreshold: 0.5
   m_SpriteTileMode: 0
-  m_WasSpriteAssigned: 1
+  m_WasSpriteAssigned: 0
   m_SpriteSortPoint: 0
 --- !u!134 &1607089568
 PhysicsMaterial:
@@ -4049,7 +4147,7 @@ SpriteRenderer:
   m_Size: {x: 1, y: 1}
   m_AdaptiveModeThreshold: 0.5
   m_SpriteTileMode: 0
-  m_WasSpriteAssigned: 1
+  m_WasSpriteAssigned: 0
   m_SpriteSortPoint: 0
 --- !u!1 &2000892895
 GameObject:
@@ -4137,14 +4235,14 @@ RectTransform:
   m_GameObject: {fileID: 2000892895}
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: -0.04}
-  m_LocalScale: {x: 8, y: 9, z: 1}
+  m_LocalScale: {x: 8, y: 14, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 5075146791259158289}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 0, y: 10.5}
+  m_AnchoredPosition: {x: 0, y: 8}
   m_SizeDelta: {x: 1, y: 1}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &2000892898
@@ -4155,6 +4253,37 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 2000892895}
   m_CullTransparentMesh: 1
+--- !u!1 &2016545312
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 2016545313}
+  m_Layer: 0
+  m_Name: FocusOutline
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &2016545313
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2016545312}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &2017085975
 GameObject:
   m_ObjectHideFlags: 0
@@ -4364,7 +4493,7 @@ SpriteRenderer:
   m_Size: {x: 1, y: 1}
   m_AdaptiveModeThreshold: 0.5
   m_SpriteTileMode: 0
-  m_WasSpriteAssigned: 1
+  m_WasSpriteAssigned: 0
   m_SpriteSortPoint: 0
 --- !u!134 &2072089715
 PhysicsMaterial:
@@ -4506,7 +4635,7 @@ SpriteRenderer:
   m_Size: {x: 1, y: 1}
   m_AdaptiveModeThreshold: 0.5
   m_SpriteTileMode: 0
-  m_WasSpriteAssigned: 1
+  m_WasSpriteAssigned: 0
   m_SpriteSortPoint: 0
 --- !u!134 &2083380351
 PhysicsMaterial:
@@ -4722,7 +4851,7 @@ SpriteRenderer:
   m_Size: {x: 1, y: 1}
   m_AdaptiveModeThreshold: 0.5
   m_SpriteTileMode: 0
-  m_WasSpriteAssigned: 1
+  m_WasSpriteAssigned: 0
   m_SpriteSortPoint: 0
 --- !u!114 &8800000001093
 MonoBehaviour:
@@ -4851,7 +4980,7 @@ SpriteRenderer:
   m_Size: {x: 1, y: 1}
   m_AdaptiveModeThreshold: 0.5
   m_SpriteTileMode: 0
-  m_WasSpriteAssigned: 1
+  m_WasSpriteAssigned: 0
   m_SpriteSortPoint: 0
 --- !u!114 &8800000001103
 MonoBehaviour:
@@ -4980,7 +5109,7 @@ SpriteRenderer:
   m_Size: {x: 1, y: 1}
   m_AdaptiveModeThreshold: 0.5
   m_SpriteTileMode: 0
-  m_WasSpriteAssigned: 1
+  m_WasSpriteAssigned: 0
   m_SpriteSortPoint: 0
 --- !u!114 &8800000001133
 MonoBehaviour:
@@ -5109,7 +5238,7 @@ SpriteRenderer:
   m_Size: {x: 1, y: 1}
   m_AdaptiveModeThreshold: 0.5
   m_SpriteTileMode: 0
-  m_WasSpriteAssigned: 1
+  m_WasSpriteAssigned: 0
   m_SpriteSortPoint: 0
 --- !u!114 &8800000001143
 MonoBehaviour:
@@ -5238,7 +5367,7 @@ SpriteRenderer:
   m_Size: {x: 1, y: 1}
   m_AdaptiveModeThreshold: 0.5
   m_SpriteTileMode: 0
-  m_WasSpriteAssigned: 1
+  m_WasSpriteAssigned: 0
   m_SpriteSortPoint: 0
 --- !u!114 &8800000001153
 MonoBehaviour:
@@ -5367,7 +5496,7 @@ SpriteRenderer:
   m_Size: {x: 1, y: 1}
   m_AdaptiveModeThreshold: 0.5
   m_SpriteTileMode: 0
-  m_WasSpriteAssigned: 1
+  m_WasSpriteAssigned: 0
   m_SpriteSortPoint: 0
 --- !u!114 &8800000001173
 MonoBehaviour:
@@ -5496,7 +5625,7 @@ SpriteRenderer:
   m_Size: {x: 1, y: 1}
   m_AdaptiveModeThreshold: 0.5
   m_SpriteTileMode: 0
-  m_WasSpriteAssigned: 1
+  m_WasSpriteAssigned: 0
   m_SpriteSortPoint: 0
 --- !u!114 &8800000001183
 MonoBehaviour:
@@ -5625,7 +5754,7 @@ SpriteRenderer:
   m_Size: {x: 1, y: 1}
   m_AdaptiveModeThreshold: 0.5
   m_SpriteTileMode: 0
-  m_WasSpriteAssigned: 1
+  m_WasSpriteAssigned: 0
   m_SpriteSortPoint: 0
 --- !u!114 &8800000001193
 MonoBehaviour:
@@ -5754,7 +5883,7 @@ SpriteRenderer:
   m_Size: {x: 1, y: 1}
   m_AdaptiveModeThreshold: 0.5
   m_SpriteTileMode: 0
-  m_WasSpriteAssigned: 1
+  m_WasSpriteAssigned: 0
   m_SpriteSortPoint: 0
 --- !u!114 &8800000001213
 MonoBehaviour:
@@ -5883,7 +6012,7 @@ SpriteRenderer:
   m_Size: {x: 1, y: 1}
   m_AdaptiveModeThreshold: 0.5
   m_SpriteTileMode: 0
-  m_WasSpriteAssigned: 1
+  m_WasSpriteAssigned: 0
   m_SpriteSortPoint: 0
 --- !u!114 &8800000001253
 MonoBehaviour:
@@ -6012,7 +6141,7 @@ SpriteRenderer:
   m_Size: {x: 1, y: 1}
   m_AdaptiveModeThreshold: 0.5
   m_SpriteTileMode: 0
-  m_WasSpriteAssigned: 1
+  m_WasSpriteAssigned: 0
   m_SpriteSortPoint: 0
 --- !u!114 &8800000001293
 MonoBehaviour:
@@ -6141,7 +6270,7 @@ SpriteRenderer:
   m_Size: {x: 1, y: 1}
   m_AdaptiveModeThreshold: 0.5
   m_SpriteTileMode: 0
-  m_WasSpriteAssigned: 1
+  m_WasSpriteAssigned: 0
   m_SpriteSortPoint: 0
 --- !u!114 &8800000001303
 MonoBehaviour:
@@ -6270,7 +6399,7 @@ SpriteRenderer:
   m_Size: {x: 1, y: 1}
   m_AdaptiveModeThreshold: 0.5
   m_SpriteTileMode: 0
-  m_WasSpriteAssigned: 1
+  m_WasSpriteAssigned: 0
   m_SpriteSortPoint: 0
 --- !u!114 &8800000001313
 MonoBehaviour:
@@ -6399,7 +6528,7 @@ SpriteRenderer:
   m_Size: {x: 1, y: 1}
   m_AdaptiveModeThreshold: 0.5
   m_SpriteTileMode: 0
-  m_WasSpriteAssigned: 1
+  m_WasSpriteAssigned: 0
   m_SpriteSortPoint: 0
 --- !u!114 &8800000001333
 MonoBehaviour:
@@ -6528,7 +6657,7 @@ SpriteRenderer:
   m_Size: {x: 1, y: 1}
   m_AdaptiveModeThreshold: 0.5
   m_SpriteTileMode: 0
-  m_WasSpriteAssigned: 1
+  m_WasSpriteAssigned: 0
   m_SpriteSortPoint: 0
 --- !u!114 &8800000001343
 MonoBehaviour:
@@ -6657,7 +6786,7 @@ SpriteRenderer:
   m_Size: {x: 1, y: 1}
   m_AdaptiveModeThreshold: 0.5
   m_SpriteTileMode: 0
-  m_WasSpriteAssigned: 1
+  m_WasSpriteAssigned: 0
   m_SpriteSortPoint: 0
 --- !u!114 &8800000001353
 MonoBehaviour:
@@ -6786,7 +6915,7 @@ SpriteRenderer:
   m_Size: {x: 1, y: 1}
   m_AdaptiveModeThreshold: 0.5
   m_SpriteTileMode: 0
-  m_WasSpriteAssigned: 1
+  m_WasSpriteAssigned: 0
   m_SpriteSortPoint: 0
 --- !u!114 &8800000001373
 MonoBehaviour:
@@ -6915,7 +7044,7 @@ SpriteRenderer:
   m_Size: {x: 1, y: 1}
   m_AdaptiveModeThreshold: 0.5
   m_SpriteTileMode: 0
-  m_WasSpriteAssigned: 1
+  m_WasSpriteAssigned: 0
   m_SpriteSortPoint: 0
 --- !u!114 &8800000001383
 MonoBehaviour:
@@ -7044,7 +7173,7 @@ SpriteRenderer:
   m_Size: {x: 1, y: 1}
   m_AdaptiveModeThreshold: 0.5
   m_SpriteTileMode: 0
-  m_WasSpriteAssigned: 1
+  m_WasSpriteAssigned: 0
   m_SpriteSortPoint: 0
 --- !u!114 &8800000001393
 MonoBehaviour:
@@ -7094,6 +7223,15 @@ GameObject:
   - component: {fileID: 6341053575168085858}
   - component: {fileID: 6341053575168085860}
   - component: {fileID: 6341053575168085861}
+  - component: {fileID: 6341053575168085864}
+  - component: {fileID: 6341053575168085863}
+  - component: {fileID: 6341053575168085862}
+  - component: {fileID: 6341053575168085870}
+  - component: {fileID: 6341053575168085869}
+  - component: {fileID: 6341053575168085868}
+  - component: {fileID: 6341053575168085867}
+  - component: {fileID: 6341053575168085866}
+  - component: {fileID: 6341053575168085865}
   m_Layer: 0
   m_Name: BlockTower
   m_TagString: Untagged
@@ -7134,30 +7272,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BlockTower
   columns: 4
   rows: 10
-  placementMin: {x: -2, y: 12}
-  placementMax: {x: 5, y: 20}
-  usePlacementZoneObject: 1
-  placementZoneTransform: {fileID: 2000892897}
-  previewBlurEnabled: 1
-  previewBlurRadius: 0.12
-  previewBlurAlpha: 0.1
-  previewBlurCopies: 8
-  placementFailDuration: 0.18
-  placementFailShakeDistance: 0.12
-  placementFailShakeCount: 3
-  placedBlockColor: {r: 0.55, g: 0.58, b: 0.6, a: 1}
-  numberSpriteSetAsset: {fileID: 11400000, guid: 83a26e48666546c0a956700e08e3aa0c, type: 2}
-  numberSpriteSet: {fileID: 6341053575168085860}
+  placementController: {fileID: 6341053575168085862}
+  heldController: {fileID: 6341053575168085870}
+  selectionController: {fileID: 6341053575168085869}
   bonusTetrominoSpriteSet: {fileID: 11400000, guid: 6a29f9d5587247068303383cbb605f32, type: 2}
-  hudImageLibrary: {fileID: 11400000, guid: 5358f87cc1fd5bc44bea6899aa0859c7, type: 2}
-  keyboardControlsEnabled: 1
-  focusedCellColor: {r: 0.2588235, g: 1, b: 0.97367656, a: 1}
-  moveHoldInitialDelay: 0.22
-  moveHoldRepeatInterval: 0.08
-  focusedOutlineColor: {r: 0.05098039, g: 1, b: 0.2017622, a: 1}
-  selectedOutlineColor: {r: 1, g: 1, b: 1, a: 0.95}
-  focusedOutlineScale: 1.18
-  selectedOutlineScale: 1.1
   blockFriction: 100
   toppleTorque: 4
   toppleMargin: 0.05
@@ -7167,35 +7285,14 @@ MonoBehaviour:
   detachedPenaltyDelay: 2
   blockBodyScale: 0.94
   blockColliderScale: 0.92
-  bombObscureSprite: {fileID: 0}
-  bombObscureColor: {r: 0.45, g: 0.45, b: 0.45, a: 0.92}
-  goldFishDeadlineScore: 20
-  targetScore: 100
+  _bombIceController: {fileID: 6341053575168085863}
+  _visualizer: {fileID: 6341053575168085864}
   initialTowerNumberTotal: 320
   randomizeInitialTowerNumbersOnPlay: 1
-  towerRootTransform: {fileID: 0}
-  floorTransform: {fileID: 0}
-  scoreLabel: {fileID: 0}
-  hudDocument: {fileID: 2017085976}
-  hudVisualTree: {fileID: 9197481963319205126, guid: 2eb717a31a1c2704ba2e7d7084f02234, type: 3}
-  gameOverVisualTree: {fileID: 9197481963319205126, guid: 8f1f3b9f7e1940f4b8f4b1bd51c1c021, type: 3}
-  clearVisualTree: {fileID: 9197481963319205126, guid: 8b2c80905ab341a48b6c10dd93f84fa1, type: 3}
-  hudPanelSettings: {fileID: 11400000, guid: 9e1f9a6d6e7e4f2dbb7c4d1c8f35a911, type: 2}
-  scrollSpeed: 3
-  autoFocusCameraOnLift: 1
-  autoReturnCameraAfterPlace: 1
-  cameraFocusSpeed: 8
-  cameraTopPadding: 2
-  cameraReturnBodyAnchor: 0.55
-  extractionViewPadding: 1.25
-  placementViewTopOffset: 1
-  secondaryViewCamera: {fileID: 1546765162}
-  secondaryViewImage: {fileID: 0}
-  secondaryViewPanelSize: {x: 540, y: 360}
-  secondaryViewPanelPosition: {x: 40, y: 0}
-  secondaryViewOrthographicSize: 3
-  secondaryViewTextureSize: 768
-  secondaryViewDefaultsMigrated: 1
+  towerRootTransform: {fileID: 5075146791259158289}
+  floorTransform: {fileID: 56216647}
+  _cameraController: {fileID: 6341053575168085867}
+  _scoreController: {fileID: 6341053575168085865}
 --- !u!114 &6341053575168085860
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -7239,6 +7336,172 @@ MonoBehaviour:
   - Floor
   camerasThatShouldSeeExcludedLayer:
   - SubViewCamera
+--- !u!114 &6341053575168085862
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 807996989065584167}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1132da1fd88df2a40a938d3a385edd0e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PlacementZoneController
+  towerRoot: {fileID: 5075146791259158289}
+  towerStackDivider: {fileID: 720000008}
+  usePlacementZoneObject: 1
+  placementZoneTransform: {fileID: 2000892897}
+  placementMin: {x: -4, y: 1}
+  placementMax: {x: 3, y: 14}
+--- !u!114 &6341053575168085863
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 807996989065584167}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f73727b570be3be4489377b0b3c009f9, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::BombIceEffectController
+  _tower: {fileID: 6341053575168085858}
+  _bombObscureSprite: {fileID: 0}
+  _bombObscureColor: {r: 0.45, g: 0.45, b: 0.45, a: 0.92}
+--- !u!114 &6341053575168085864
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 807996989065584167}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8ee413a2becaf174a8d9e6c99d239bac, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::TowerCellVisualizer
+  _tower: {fileID: 6341053575168085858}
+  placedBlockColor: {r: 0.55, g: 0.58, b: 0.6, a: 1}
+  numberSpriteSetAsset: {fileID: 11400000, guid: 83a26e48666546c0a956700e08e3aa0c, type: 2}
+  numberSpriteSet: {fileID: 0}
+  focusedOutlineColor: {r: 1, g: 0.95, b: 0.05, a: 1}
+  selectedOutlineColor: {r: 1, g: 1, b: 1, a: 0.95}
+  focusedOutlineScale: 1.18
+  selectedOutlineScale: 1.1
+  previewBlurEnabled: 1
+  previewBlurRadius: 0.12
+  previewBlurAlpha: 0.1
+  previewBlurCopies: 8
+--- !u!114 &6341053575168085865
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 807996989065584167}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 87f8fcf6b2dbb644e9935574d0b5278c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ScoreController
+  _tower: {fileID: 6341053575168085858}
+  targetScore: 30
+  goldFishDeadlineScore: 20
+  scoreLabel: {fileID: 0}
+--- !u!114 &6341053575168085866
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 807996989065584167}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c845dfc03fa11454db83044076381132, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::GameUIController
+  _tower: {fileID: 6341053575168085858}
+  _scoreController: {fileID: 6341053575168085865}
+  _camera: {fileID: 6341053575168085867}
+  hudDocument: {fileID: 2017085976}
+  hudVisualTree: {fileID: 9197481963319205126, guid: 2eb717a31a1c2704ba2e7d7084f02234, type: 3}
+  gameOverVisualTree: {fileID: 9197481963319205126, guid: 8f1f3b9f7e1940f4b8f4b1bd51c1c021, type: 3}
+  clearVisualTree: {fileID: 9197481963319205126, guid: 8b2c80905ab341a48b6c10dd93f84fa1, type: 3}
+  hudPanelSettings: {fileID: 11400000, guid: 9e1f9a6d6e7e4f2dbb7c4d1c8f35a911, type: 2}
+  hudImageLibrary: {fileID: 11400000, guid: 5358f87cc1fd5bc44bea6899aa0859c7, type: 2}
+--- !u!114 &6341053575168085867
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 807996989065584167}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: da1f9fa74136b41409ce4d60edbb6e6f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CameraController
+  _tower: {fileID: 6341053575168085858}
+  autoFocusCameraOnLift: 1
+  autoReturnCameraAfterPlace: 1
+  scrollSpeed: 1.5
+  cameraFocusSpeed: 8
+  cameraTopPadding: 2
+  cameraReturnBodyAnchor: 0.55
+  extractionViewPadding: 1.25
+  placementViewTopOffset: 1
+  secondaryViewCamera: {fileID: 1546765162}
+  secondaryViewImage: {fileID: 0}
+  secondaryViewPanelSize: {x: 540, y: 360}
+  secondaryViewPanelPosition: {x: 40, y: 0}
+  secondaryViewOrthographicSize: 3
+  secondaryViewTextureSize: 768
+  secondaryViewDefaultsMigrated: 1
+--- !u!114 &6341053575168085868
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 807996989065584167}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: af0d3e611e6989b468521a5cfe29dc22, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::InputHandler
+  _tower: {fileID: 6341053575168085858}
+  _camera: {fileID: 6341053575168085867}
+  keyboardControlsEnabled: 1
+  moveHoldInitialDelay: 0.22
+  moveHoldRepeatInterval: 0.08
+--- !u!114 &6341053575168085869
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 807996989065584167}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 42348e663a9032d4da9b6c4a457e6014, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::TetrominoSelectionController
+--- !u!114 &6341053575168085870
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 807996989065584167}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f848d0fffd71e5c4185937ef8f8de72b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::HeldBlockController
+  placementFailDuration: 0.18
+  placementFailShakeDistance: 0.12
+  placementFailShakeCount: 3
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0
@@ -7254,3 +7517,7 @@ SceneRoots:
   - {fileID: 223400101}
   - {fileID: 945452942}
   - {fileID: 702665423}
+  - {fileID: 688660827}
+  - {fileID: 2016545313}
+  - {fileID: 842923438}
+  - {fileID: 549970158}

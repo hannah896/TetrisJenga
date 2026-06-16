@@ -1,7 +1,9 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using TMPro;
+using Random = UnityEngine.Random;
 
 /// <summary>
 /// 점수 계산, 표시, 플로팅 텍스트, 클리어/게임오버 판정, 보너스 프리셋 큐를 총관리.
@@ -41,6 +43,11 @@ public class ScoreController : MonoBehaviour
     public TetrominoPreset BonusTargetPreset      => _bonusTargetPreset;
     public TetrominoPreset NextBonusTargetPreset  => _nextBonusTargetPreset;
     public TetrominoPreset ThirdBonusTargetPreset => _thirdBonusTargetPreset;
+
+    private void OnValidate()
+    {
+        if (_tower == null) _tower = GetComponent<BlockTower>();
+    }
 
     void Awake()
     {

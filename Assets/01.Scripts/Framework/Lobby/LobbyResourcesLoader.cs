@@ -40,35 +40,14 @@ namespace Framework.Lobby
             // default 라벨로 묶인 핵심 자산(AudioManager, Main Camera 등)을 '동기'로 가장 먼저 소환한다.
             LoadByLabel(DefaultLabel);
             // 소환된 AudioManager가 초기화된 뒤 로비 BGM 재생
-            await PlayLobbyBgmAsync(cancellation);
-            Debug.Log("[LobbyResourcesLoader] 로비 리소스 로드 완료");
-        }
+            await UniTask.WaitUntil(
+                () => AudioManager.Instance != null &&
+                      AudioManager.Instance.Initialized,
+                cancellationToken: cancellation);
 
-        private async UniTask PlayLobbyBgmAsync(System.Threading.CancellationToken cancellation)
-        {
-            // 동기 소환된 AudioManager가 Awake/Start로 초기화될 때까지 대기한다.
-            // (InstantiateAsync 직후에는 GameObject만 존재하고 InternalInstance가 아직 준비되지 않을 수 있다)
-            // AudioManager.Instance 게터는 못 찾을 때마다 에러를 찍으므로, 부수효과 없는 FindAnyObjectByType로 폴링하고
-            // 일정 시간 내 나타나지 않으면(=default 라벨 등록 누락 등) 무한 대기 대신 경고 후 건너뛴다.
-            const float timeoutSeconds = 5f;
-            float deadline = Time.realtimeSinceStartup + timeoutSeconds;
-            AudioManager manager = null;
-            while (Time.realtimeSinceStartup < deadline)
-            {
-                manager = UnityEngine.Object.FindAnyObjectByType<AudioManager>();
-                if (manager != null && manager.Initialized)
-                    break;
-                await UniTask.Yield(PlayerLoopTiming.Update, cancellation);
-            }
+            await UniTask.NextFrame(cancellation);
 
-            if (manager == null || !manager.Initialized)
-            {
-                Debug.LogWarning("[LobbyResourcesLoader] AudioManager를 찾지 못해 BGM 재생을 건너뜁니다. (default 라벨에 AudioManager 프리팹이 등록/저장됐는지 확인)");
-                return;
-            }
-
-            // AudioLibrary가 생성한 enum으로 재생 (AudioManager.preloadedLibraries에 _AudioLibrary가 등록돼 있어야 함)
-            AudioManager.PlayMusic(_AudioLibraryMusic.LobbyBGM, isMainMusic: true);
+            AudioManager.PlayMusic(_AudioLibraryMusic.LobbyBGM);
         }
 
         private void LoadByLabel(string label)

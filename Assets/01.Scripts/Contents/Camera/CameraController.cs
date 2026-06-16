@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 
 /// <summary>
@@ -33,6 +34,14 @@ public class CameraController : MonoBehaviour
     RenderTexture _secondaryViewTexture;
 
     public System.Action<RenderTexture> OnSecondaryViewTextureChanged;
+
+    private void OnValidate()
+    {
+        if (_tower == null)
+            _tower = GetComponent<BlockTower>();
+        if (secondaryViewCamera == null)
+            secondaryViewCamera = transform.Find("SubViewCamera").GetComponent<Camera>();
+    }
 
     void Awake()
     {
