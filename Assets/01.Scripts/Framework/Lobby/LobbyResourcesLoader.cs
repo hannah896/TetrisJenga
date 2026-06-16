@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using Cysharp.Threading.Tasks;
+using JSAM;
 using UnityEngine;
 using UnityEngine.AddressableAssets;
 using UnityEngine.ResourceManagement.AsyncOperations;
@@ -11,11 +12,16 @@ namespace Framework.Lobby
     /// <summary>
     /// VContainer IAsyncStartable을 통해 씬 시작 시 로비 어드레서블 에셋을 로드하고 GameObject는 생성한다.
     /// LifetimeScope에 등록 후 자동 실행된다.
+    ///
+    /// default 라벨 자산(AudioManager, Main Camera 등)은 다른 로더(UI 등)보다 반드시 먼저 생성돼야 하므로
+    /// WaitForCompletion으로 '동기' 소환한다. (await로 yield하면 동기 로드인 LobbyUIResourcesLoader가
+    /// 그 사이에 먼저 완성되어 카메라/오디오가 뒤로 밀린다. 또한 PlayMode에서 Addressables ToUniTask await가
+    /// 멈추는 이슈도 WaitForCompletion으로 회피된다.)
     /// </summary>
     public class LobbyResourcesLoader : IAsyncStartable, IDisposable
     {
-        // Addressables에서 로비 에셋을 묶는 라벨
-        private const string LobbyLabel = "Lobby";
+        // Addressables에서 로비 핵심 에셋(AudioManager, Main Camera 등)을 묶는 라벨
+        private const string DefaultLabel = "default";
         private const string SpawnRootName = "Lobby Addressables";
 
         private readonly LobbyResources _lobbyResources;
@@ -31,55 +37,60 @@ namespace Framework.Lobby
         public async UniTask StartAsync(System.Threading.CancellationToken cancellation)
         {
             _spawnRoot = new GameObject(SpawnRootName);
-            await LoadByLabelAsync(LobbyLabel, cancellation);
-            Debug.Log("[LobbyResourcesLoader] 로비 리소스 로드 완료");
+            // default 라벨로 묶인 핵심 자산(AudioManager, Main Camera 등)을 '동기'로 가장 먼저 소환한다.
+            LoadByLabel(DefaultLabel);
+            // 소환된 AudioManager가 초기화된 뒤 로비 BGM 재생
+            await UniTask.WaitUntil(
+                () => AudioManager.Instance != null &&
+                      AudioManager.Instance.Initialized,
+                cancellationToken: cancellation);
+
+            await UniTask.NextFrame(cancellation);
+
+            AudioManager.StopAllMusic();
+            AudioManager.PlayMusic(_AudioLibraryMusic.LobbyBGM);
         }
 
-        private async UniTask LoadByLabelAsync(string label, System.Threading.CancellationToken cancellation)
+        private void LoadByLabel(string label)
         {
-            // 라벨에 속한 모든 위치(key) 목록을 가져온다
+            // 라벨에 속한 모든 위치(key) 목록을 동기로 가져온다
             var locationsHandle = Addressables.LoadResourceLocationsAsync(label);
-            await locationsHandle.ToUniTask(cancellationToken: cancellation);
+            var locations = locationsHandle.WaitForCompletion();
 
-            if (locationsHandle.Status != AsyncOperationStatus.Succeeded)
+            if (locationsHandle.Status != AsyncOperationStatus.Succeeded || locations == null)
             {
                 Debug.LogWarning($"[LobbyResourcesLoader] 라벨 '{label}' 위치 로드 실패");
                 Addressables.Release(locationsHandle);
                 return;
             }
 
-            var locations = locationsHandle.Result;
             _handles.Add(locationsHandle);
-
-            var tasks = new List<UniTask>(locations.Count);
 
             foreach (var location in locations)
             {
-                tasks.Add(LoadSingleAssetAsync(location.PrimaryKey, cancellation));
+                LoadSingleAsset(location.PrimaryKey);
             }
-
-            await UniTask.WhenAll(tasks);
         }
 
-        private async UniTask LoadSingleAssetAsync(string key, System.Threading.CancellationToken cancellation)
+        private void LoadSingleAsset(string key)
         {
             var handle = Addressables.LoadAssetAsync<UnityEngine.Object>(key);
-            await handle.ToUniTask(cancellationToken: cancellation);
+            var asset = handle.WaitForCompletion();
 
-            if (handle.Status != AsyncOperationStatus.Succeeded)
+            if (handle.Status != AsyncOperationStatus.Succeeded || asset == null)
             {
                 Debug.LogWarning($"[LobbyResourcesLoader] 에셋 로드 실패: {key}");
                 return;
             }
 
             _handles.Add(handle);
-            await RegisterAssetAsync(key, handle.Result, cancellation);
+            RegisterAsset(key, asset);
         }
 
-        private async UniTask InstantiatePrefabAsync(string key, System.Threading.CancellationToken cancellation)
+        private void InstantiatePrefab(string key)
         {
             var handle = Addressables.InstantiateAsync(key, _spawnRoot.transform);
-            await handle.ToUniTask(cancellationToken: cancellation);
+            handle.WaitForCompletion();
 
             if (handle.Status != AsyncOperationStatus.Succeeded)
             {
@@ -90,13 +101,13 @@ namespace Framework.Lobby
             _instanceHandles.Add(handle);
         }
 
-        private async UniTask RegisterAssetAsync(string key, UnityEngine.Object asset, System.Threading.CancellationToken cancellation)
+        private void RegisterAsset(string key, UnityEngine.Object asset)
         {
             switch (asset)
             {
                 case GameObject prefab:
                     _lobbyResources.RegisterPrefab(key, prefab);
-                    await InstantiatePrefabAsync(key, cancellation);
+                    InstantiatePrefab(key);
                     break;
                 case Sprite sprite:
                     _lobbyResources.RegisterSprite(key, sprite);

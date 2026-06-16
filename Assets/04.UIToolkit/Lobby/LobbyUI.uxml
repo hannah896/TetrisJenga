@@ -1,0 +1,60 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements" editor-extension-mode="False">
+    <Style src="../UnityThemes/UITheme.uss" />
+    <Style src="LobbyUI.uss" />
+
+    <ui:VisualElement name="root" class="ui-root">
+
+        <!-- ===================== 로비 화면 ===================== -->
+        <ui:VisualElement name="lobby-screen" class="fill screen-bg">
+            <ui:Label name="lobby-title" text="Abyss&#10;Stack" class="lobby-title" />
+            <ui:Button name="play-button" text="플레이" class="btn lobby-play-btn" />
+            <ui:Button name="exit-button" text="Exit" class="btn lobby-exit-btn" />
+        </ui:VisualElement>
+
+        <!-- ===================== 모드 선택 화면 ===================== -->
+        <ui:VisualElement name="mode-select-screen" class="fill screen-bg hidden">
+            <ui:VisualElement name="main-title" class="mode-title-box">
+                <ui:Label text="Main Menu" class="mode-title-box__text" />
+            </ui:VisualElement>
+
+            <ui:Button name="endless-button" text="EndLess Mode" class="btn mode-btn mode-btn--endless" />
+            <ui:Button name="story-button" text="Story" class="btn mode-btn mode-btn--story" />
+            <ui:Button name="multi-button" text="봇전(CPU)" class="btn mode-btn mode-btn--multi btn--disabled" />
+
+            <ui:VisualElement name="preview-image" class="preview-image">
+                <ui:Label name="preview-label" text="Preview" class="preview-image__label" />
+            </ui:VisualElement>
+            <ui:VisualElement name="mode-explain" class="mode-explain">
+                <ui:Label name="mode-explain-text" text="난이도, 부가설명 등" class="mode-explain__text" />
+            </ui:VisualElement>
+
+            <ui:VisualElement class="tooltip-bar">
+                <ui:Label text="좌클릭(이미지): 선택   우클릭(이미지): 뒤로   ESC: 설정" class="tooltip-bar__text" />
+            </ui:VisualElement>
+        </ui:VisualElement>
+
+        <!-- ===================== 설정 팝업 (공통) ===================== -->
+        <ui:VisualElement name="setting-popup" class="setting-overlay hidden">
+            <ui:VisualElement class="setting-panel">
+                <ui:VisualElement class="setting-row">
+                    <ui:Label name="preset-guide-label" text="프리셋 가이드 창 여부" class="setting-row__label setting-row__label--wide" />
+                    <ui:VisualElement class="setting-row__spacer" />
+                    <ui:Toggle name="preset-guide-toggle" class="setting-toggle" />
+                </ui:VisualElement>
+                <ui:VisualElement class="setting-row">
+                    <ui:Label name="bgm-label" text="BGM" class="setting-row__label" />
+                    <ui:Slider name="bgm-slider" low-value="0" high-value="1" value="1" class="setting-slider" />
+                </ui:VisualElement>
+                <ui:VisualElement class="setting-row">
+                    <ui:Label name="sfx-label" text="SFX" class="setting-row__label" />
+                    <ui:Slider name="sfx-slider" low-value="0" high-value="1" value="1" class="setting-slider" />
+                </ui:VisualElement>
+                <ui:VisualElement class="setting-button-row">
+                    <ui:Button name="setting-restart-button" text="Restart" class="setting-button" />
+                    <ui:Button name="setting-back-button" text="Back" class="setting-button" />
+                </ui:VisualElement>
+            </ui:VisualElement>
+        </ui:VisualElement>
+
+    </ui:VisualElement>
+</ui:UXML>
