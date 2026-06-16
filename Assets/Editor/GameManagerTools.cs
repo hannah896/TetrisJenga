@@ -15,15 +15,15 @@ public static class GameManagerTools
         if (File.Exists(path))
         {
             File.Delete(path);
-            Debug.Log($"저장 데이터 삭제 완료\n{path}");
+            Debug.Log($"[GameManagerTools] JSON 삭제 완료: {path}");
         }
         else
         {
-            Debug.Log("삭제할 저장 데이터가 없습니다.");
+            Debug.Log("[GameManagerTools] 삭제할 JSON 파일이 없습니다.");
         }
 
-        // 혹시 StageProgress가 PlayerPrefs를 쓴다면 같이 삭제
-        // PlayerPrefs.DeleteAll();
-        // PlayerPrefs.Save();
+        // StageProgress는 PlayerPrefs 기반 → 스테이지 수만큼 키를 정확히 지운다
+        StageProgress.ResetAll(GameManager.Instance.StageCount);
+        Debug.Log("[GameManagerTools] StageProgress PlayerPrefs 초기화 완료");
     }
 }

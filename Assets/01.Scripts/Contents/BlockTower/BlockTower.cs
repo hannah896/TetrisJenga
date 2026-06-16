@@ -81,6 +81,10 @@ public class BlockTower : MonoBehaviour
     [SerializeField] float detachedReattachVelocity = 0.55f;
     [SerializeField] float detachedMinAirTime = 0.35f;
     [SerializeField] float detachedPenaltyDelay = 2f;
+    [Tooltip("활성화 시 분리 블록이 데드라인 아래로 떨어지면 즉시 게임오버 (빙판 스테이지용)")]
+    [SerializeField] bool  deadlineFallGameOver = false;
+    [Tooltip("플로어 Y에서 몇 유닛 아래까지 떨어지면 게임오버로 처리할지")]
+    [SerializeField] float deadlineFallDepth    = 3f;
     [SerializeField, Range(0.85f, 1f)] float blockBodyScale = 0.94f;
     [SerializeField, Range(0.85f, 1f)] float blockColliderScale = 0.92f;
 
@@ -2201,6 +2205,15 @@ public class BlockTower : MonoBehaviour
 
         while (!detached.resolved && detached.root != null && detached.rb != null && !IsGameOver)
         {
+            if (deadlineFallGameOver && IsBelowDeadline(detached))
+            {
+                detached.resolved = true;
+                _detachedComponents.Remove(detached);
+                if (detached.root != null) Destroy(detached.root);
+                _scoreController?.TriggerGameOver();
+                yield break;
+            }
+
             stable = IsDetachedStable(detached.rb) ? stable + Time.deltaTime : 0f;
 
             bool canTryReattach = Time.time - detached.detachedAt >= detachedMinAirTime &&
@@ -2253,6 +2266,15 @@ public class BlockTower : MonoBehaviour
                 continue;
             }
 
+            if (deadlineFallGameOver && IsBelowDeadline(detached))
+            {
+                detached.resolved = true;
+                _detachedComponents.RemoveAt(i);
+                if (detached.root != null) Destroy(detached.root);
+                _scoreController?.TriggerGameOver();
+                continue;
+            }
+
             bool canTryReattach = CanTryReattach(detached);
             if (canTryReattach && (_bombIceController?.ApplyIceColumnDamageToDetached(detached) ?? false))
             {
@@ -2290,6 +2312,10 @@ public class BlockTower : MonoBehaviour
             Destroy(detached.root);
         _scoreController?.AddScore(-Mathf.Max(0, detached.scorePenalty), scorePosition);
     }
+
+    bool IsBelowDeadline(DetachedComponent detached) =>
+        detached.root != null &&
+        detached.root.transform.position.y < _floorY - deadlineFallDepth;
 
     bool TriggerDetachedBombLanding(DetachedComponent detached)
     {

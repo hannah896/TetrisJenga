@@ -77,7 +77,12 @@ public class ScoreController : MonoBehaviour
         _score += delta;
         
         if (delta < 0)
-            Debug.Log($"Score: {delta}");
+        {
+            Debug.LogWarning(
+                $"Negative Score : {delta}\n{Environment.StackTrace}"
+            );
+        }
+        
         // 0이하로 떨어지지않게 방어 코드
         _score = Math.Max(_score, 0);
         UpdateScoreDisplay();
