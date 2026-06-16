@@ -88,6 +88,8 @@ public class BlockTower : MonoBehaviour
     [SerializeField] float deadlineFallDepth    = 3f;
     [SerializeField, Range(0.85f, 1f)] float blockBodyScale = 0.94f;
     [SerializeField, Range(0.85f, 1f)] float blockColliderScale = 0.92f;
+    [SerializeField] GameObject detachedLandingEffectPrefab;
+    [SerializeField, Min(0.1f)] float detachedLandingEffectScale = 1f;
 
     [Header("Special Blocks")] [SerializeField]
     BombIceEffectController _bombIceController;
@@ -268,6 +270,8 @@ public class BlockTower : MonoBehaviour
         if (_scoreController == null)
             _scoreController = GetComponent<ScoreController>();
 
+        ResolveDetachedLandingEffectPrefab();
+
         if (Application.isPlaying)
             return;
 
@@ -286,6 +290,12 @@ public class BlockTower : MonoBehaviour
             UnityEditor.EditorUtility.SetDirty(this);
             UnityEditor.SceneManagement.EditorSceneManager.MarkSceneDirty(gameObject.scene);
         };
+    }
+
+    void ResolveDetachedLandingEffectPrefab()
+    {
+        if (detachedLandingEffectPrefab == null)
+            detachedLandingEffectPrefab = UnityEditor.AssetDatabase.LoadAssetAtPath<GameObject>("Assets/FX/Prefabs/FX002_01.prefab");
     }
 #endif
     void EnsureEditorSceneObjectsVisible()
@@ -2192,6 +2202,8 @@ public class BlockTower : MonoBehaviour
                 detachedAt = Time.time,
                 scorePenalty = Mathf.RoundToInt(totalWeight)
             };
+            var landingEffect = orphanGO.AddComponent<DetachedLandingEffect>();
+            landingEffect.Initialize(this, detached.detachedAt);
             _detachedComponents.Add(detached);
             StartCoroutine(TryReattachDetachedComponent(detached));
         }
@@ -3154,6 +3166,52 @@ public class BlockTower : MonoBehaviour
     }
     
     void CheckTowerBoundaryGameOver() { }
+    
+    public bool TrySpawnDetachedLandingEffect(
+        Collision collision,
+        Collider landingSurface,
+        BlockCell landedBlock,
+        float detachedAt)
+    {
+        if (detachedLandingEffectPrefab == null || collision == null || landedBlock == null ||
+            Time.time - detachedAt < 0.1f || collision.relativeVelocity.sqrMagnitude < 0.0225f)
+            return false;
+
+        bool hitBlock = landingSurface != null &&
+                        landingSurface.GetComponentInParent<BlockCell>() != null;
+        bool hitFloor = landingSurface != null &&
+                        ((_generatedFloor != null &&
+                          landingSurface.transform.IsChildOf(_generatedFloor.transform)) ||
+                         (floorTransform != null &&
+                          landingSurface.transform.IsChildOf(floorTransform)) ||
+                         landingSurface.name.Contains("Floor"));
+        if (!hitBlock && !hitFloor)
+            return false;
+
+        Vector3 impactPosition = landedBlock.transform.position + new Vector3(0f, 0.5f, 0f);
+        impactPosition.z = -0.2f;
+
+        var effect = Instantiate(detachedLandingEffectPrefab, impactPosition, Quaternion.identity);
+        effect.transform.localScale *= detachedLandingEffectScale;
+        foreach (var renderer in effect.GetComponentsInChildren<SpriteRenderer>())
+            renderer.sortingOrder = 50;
+        Destroy(effect, LandingEffectLifetime(effect));
+        return true;
+    }
+
+    static float LandingEffectLifetime(GameObject effect)
+    {
+        var animator = effect != null ? effect.GetComponentInChildren<Animator>() : null;
+        var clips = animator != null && animator.runtimeAnimatorController != null
+            ? animator.runtimeAnimatorController.animationClips
+            : null;
+        float lifetime = 0f;
+        if (clips != null)
+            foreach (var clip in clips)
+                if (clip != null)
+                    lifetime = Mathf.Max(lifetime, clip.length);
+        return Mathf.Max(0.05f, lifetime);
+    }
 
     void OnDrawGizmos() { }
 }
