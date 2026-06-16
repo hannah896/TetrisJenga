@@ -139,13 +139,13 @@ public class UI_Setting_Controller
 
     private void ApplyToggleSprite(SettingUIImageLibrarySO images, bool isOn)
     {
-        if (images == null || presetGuideToggle == null)
-        {
-            return;
-        }
-
+        if (images == null || presetGuideToggle == null) return;
+        var checkmark = presetGuideToggle.Q<VisualElement>(className: "unity-toggle__checkmark");
+        if (checkmark == null) return;
         Sprite sprite = isOn ? images.toggleOn : images.toggleOff;
-        UISprites.Apply(presetGuideToggle.Q<VisualElement>(className: "unity-toggle__checkmark"), sprite);
+        if (sprite == null) return;
+        // backgroundColor는 USS에서 관리 — UISprites.Apply 사용 시 Clear되므로 직접 설정
+        checkmark.style.backgroundImage = new StyleBackground(sprite);
     }
 
     // ── JSAM AudioManager 볼륨 연동 ──────────────────────────────────────

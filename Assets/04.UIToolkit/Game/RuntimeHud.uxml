@@ -1,4 +1,5 @@
 <ui:UXML xmlns:ui="UnityEngine.UIElements" editor-extension-mode="False">
+    <Style src="../UnityThemes/UITheme.uss" />
     <ui:VisualElement name="RuntimeHudRoot" style="width: 1920px; height: 1080px; position: relative; flex-shrink: 0; background-color: rgba(0, 0, 0, 0);">
         <ui:VisualElement name="Panel" style="position: absolute; left: 0; top: -4px; width: 1920px; height: 1080px; background-color: rgba(255, 255, 255, 0);">
             <ui:VisualElement name="Floating Score" style="position: absolute; left: 1460px; top: 512px; width: 200px; height: 200px;">
@@ -29,18 +30,39 @@
             <ui:VisualElement name="WeightGuideImage2" style="width: 80px; height: 80px; margin-top: 5px; margin-bottom: 5px; background-color: rgb(169, 169, 169); -unity-background-scale-mode: scale-to-fit;"/>
             <ui:VisualElement name="WeightGuideImage1" style="width: 80px; height: 80px; margin-top: 5px; margin-bottom: 5px; background-color: rgb(169, 169, 169); -unity-background-scale-mode: scale-to-fit;"/>
         </ui:VisualElement>
-        <ui:VisualElement name="BonusPreview" style="position: absolute; left: 1493px; top: 11px; width: 421px; height: 624px; background-color: rgba(144, 144, 144, 0.35); border-top-width: 0; border-right-width: 0; border-bottom-width: 0; border-left-width: 0; border-color: rgb(54, 214, 201); align-items: center; flex-direction: column; display: flex;">
-            <ui:VisualElement name="BonusPreview1" style="width: 380px; height: 214px; flex-direction: row; align-items: center; justify-content: flex-start; margin-top: 10px; margin-bottom: 10px; align-self: flex-start;">
-                <ui:VisualElement name="BonusPreview1Cells" style="width: 314px; height: 220px; position: relative; align-self: center; flex-shrink: 0; background-color: rgb(169, 169, 169); -unity-background-scale-mode: scale-to-fit; align-items: flex-start;"/>
+        <ui:VisualElement name="BonusPreview" style="position: absolute; left: 1493px; top: 20px; width: 421px; height: 570px; background-color: rgba(144, 144, 144, 0.35); border-top-width: 0; border-right-width: 0; border-bottom-width: 0; border-left-width: 0; border-color: rgb(54, 214, 201); align-items: center; flex-direction: column; display: flex;">
+            <ui:VisualElement name="BonusPreview1" style="width: 390px; height: 195px; flex-direction: row; align-items: center; justify-content: center; margin-top: 10px; margin-bottom: 10px; align-self: center;">
+                <ui:VisualElement name="BonusPreview1Cells" style="width: 255px; height: 175px; position: relative; align-self: center; flex-shrink: 0; background-color: rgb(169, 169, 169); -unity-background-scale-mode: scale-to-fit; align-items: center; justify-content: center;"/>
                 <ui:Label name="BonusPreview1Key" text="Q" style="width: 90px; height: 90px; font-size: 68px; -unity-font-style: bold; -unity-font-style-and-weight: bold; -unity-text-align: middle-center; color: rgb(255, 255, 255); background-color: rgba(0, 0, 0, 0.25); flex-shrink: 0; opacity: 1; align-self: flex-end; display: flex; visibility: visible; text-overflow: clip; margin-left: 12px; justify-content: flex-start; align-items: flex-start; flex-direction: column; -unity-font-definition: url(&quot;project://database/Library/unity%20default%20resources?fileID=10102&amp;guid=0000000000000000e000000000000000&amp;type=0#LegacyRuntime&quot;);"/>
             </ui:VisualElement>
-            <ui:VisualElement name="BonusPreview2" style="width: 380px; height: 175px; flex-direction: row; align-items: center; justify-content: flex-start; margin-top: 10px; margin-bottom: 10px; align-self: flex-start;">
-                <ui:VisualElement name="BonusPreview2Cells" style="width: 260px; height: 175px; position: relative; align-self: center; flex-shrink: 0; background-color: rgb(169, 169, 169); -unity-background-scale-mode: scale-and-crop; background-image: none;"/>
-                <ui:Label name="BonusPreview2Key" text="Q" style="width: 90px; height: 90px; font-size: 68px; -unity-font-style: bold; -unity-font-style-and-weight: bold; -unity-text-align: middle-center; color: rgb(255, 255, 255); background-color: rgba(0, 0, 0, 0.25); flex-shrink: 0; opacity: 1; align-self: flex-end; display: flex; visibility: visible; text-overflow: clip; margin-left: 12px; align-items: flex-start; -unity-font-definition: url(&quot;project://database/Library/unity%20default%20resources?fileID=10102&amp;guid=0000000000000000e000000000000000&amp;type=0#LegacyRuntime&quot;);"/>
+            <ui:VisualElement name="BonusPreview2" style="width: 390px; height: 160px; flex-direction: row; align-items: center; justify-content: center; margin-top: 10px; margin-bottom: 10px; align-self: center;">
+                <ui:VisualElement name="BonusPreview2Cells" style="width: 210px; height: 140px; position: relative; align-self: center; flex-shrink: 0; background-color: rgb(169, 169, 169); -unity-background-scale-mode: scale-to-fit; align-items: center; justify-content: center;"/>
+                <ui:Label name="BonusPreview2Key" text="Q" style="width: 75px; height: 75px; font-size: 56px; -unity-font-style: bold; -unity-font-style-and-weight: bold; -unity-text-align: middle-center; color: rgb(255, 255, 255); background-color: rgba(0, 0, 0, 0.25); flex-shrink: 0; opacity: 1; align-self: flex-end; display: flex; visibility: visible; text-overflow: clip; margin-left: 12px; align-items: flex-start; -unity-font-definition: url(&quot;project://database/Library/unity%20default%20resources?fileID=10102&amp;guid=0000000000000000e000000000000000&amp;type=0#LegacyRuntime&quot;);"/>
             </ui:VisualElement>
-            <ui:VisualElement name="BonusPreview3" style="width: 380px; height: 175px; flex-direction: row; align-items: center; justify-content: flex-start; margin-top: 10px; margin-bottom: 10px; align-self: flex-start;">
-                <ui:VisualElement name="BonusPreview3Cells" style="width: 260px; height: 175px; position: relative; align-self: center; flex-shrink: 0; background-color: rgb(169, 169, 169); -unity-background-scale-mode: scale-to-fit;"/>
-                <ui:Label name="BonusPreview3Key" text="Q" style="width: 90px; height: 90px; font-size: 68px; -unity-font-style: bold; -unity-font-style-and-weight: bold; -unity-text-align: middle-center; color: rgb(255, 255, 255); background-color: rgba(0, 0, 0, 0.25); flex-shrink: 0; opacity: 1; align-self: flex-end; display: flex; visibility: visible; text-overflow: clip; margin-left: 12px; align-items: flex-start; -unity-font-definition: url(&quot;project://database/Library/unity%20default%20resources?fileID=10102&amp;guid=0000000000000000e000000000000000&amp;type=0#LegacyRuntime&quot;);"/>
+            <ui:VisualElement name="BonusPreview3" style="width: 390px; height: 160px; flex-direction: row; align-items: center; justify-content: center; margin-top: 10px; margin-bottom: 10px; align-self: center;">
+                <ui:VisualElement name="BonusPreview3Cells" style="width: 210px; height: 140px; position: relative; align-self: center; flex-shrink: 0; background-color: rgb(169, 169, 169); -unity-background-scale-mode: scale-to-fit; align-items: center; justify-content: center;"/>
+                <ui:Label name="BonusPreview3Key" text="Q" style="width: 75px; height: 75px; font-size: 56px; -unity-font-style: bold; -unity-font-style-and-weight: bold; -unity-text-align: middle-center; color: rgb(255, 255, 255); background-color: rgba(0, 0, 0, 0.25); flex-shrink: 0; opacity: 1; align-self: flex-end; display: flex; visibility: visible; text-overflow: clip; margin-left: 12px; align-items: flex-start; -unity-font-definition: url(&quot;project://database/Library/unity%20default%20resources?fileID=10102&amp;guid=0000000000000000e000000000000000&amp;type=0#LegacyRuntime&quot;);"/>
+            </ui:VisualElement>
+        </ui:VisualElement>
+        <ui:VisualElement name="setting-popup" class="setting-overlay hidden">
+            <ui:VisualElement class="setting-panel">
+                <ui:VisualElement class="setting-row">
+                    <ui:Label name="preset-guide-label" text="프리셋 가이드 창 여부" class="setting-row__label setting-row__label--wide" />
+                    <ui:VisualElement class="setting-row__spacer" />
+                    <ui:Toggle name="preset-guide-toggle" class="setting-toggle" />
+                </ui:VisualElement>
+                <ui:VisualElement class="setting-row">
+                    <ui:Label name="bgm-label" text="BGM" class="setting-row__label" />
+                    <ui:Slider name="bgm-slider" low-value="0" high-value="1" value="1" class="setting-slider" />
+                </ui:VisualElement>
+                <ui:VisualElement class="setting-row">
+                    <ui:Label name="sfx-label" text="SFX" class="setting-row__label" />
+                    <ui:Slider name="sfx-slider" low-value="0" high-value="1" value="1" class="setting-slider" />
+                </ui:VisualElement>
+                <ui:VisualElement class="setting-button-row">
+                    <ui:Button name="setting-restart-button" text="Restart" class="setting-button" />
+                    <ui:Button name="setting-back-button" text="Back" class="setting-button" />
+                </ui:VisualElement>
             </ui:VisualElement>
         </ui:VisualElement>
     </ui:VisualElement>

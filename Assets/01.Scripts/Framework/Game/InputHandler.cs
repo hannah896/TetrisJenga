@@ -220,7 +220,7 @@ public class InputHandler : MonoBehaviour
         kb.spaceKey.wasPressedThisFrame || kb.enterKey.wasPressedThisFrame || kb.numpadEnterKey.wasPressedThisFrame;
 
     bool CancelPressed(Keyboard kb) =>
-        kb.escapeKey.wasPressedThisFrame || kb.backspaceKey.wasPressedThisFrame;
+        kb.backspaceKey.wasPressedThisFrame;
     
     #endregion
 }

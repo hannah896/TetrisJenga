@@ -108,6 +108,7 @@
     font-size: 40px;
     padding-left: 24px;
     padding-right: 24px;
+    -unity-font-definition: url("project://database/Assets/00.Resources/Font/DNFBitBitv2.ttf?fileID=12800000&guid=f696af773a4d9964880d5f416fe7512a&type=3#DNFBitBitv2");
 }
 
 .setting-row__label--wide {
@@ -125,6 +126,10 @@
     height: 124px;
     align-items: center;
     justify-content: center;
+}
+
+.setting-toggle .unity-base-field__label {
+    display: none;
 }
 
 .setting-toggle .unity-toggle__input {
@@ -189,6 +194,7 @@
     -unity-text-align: middle-center;
     -unity-font-style: bold;
     border-width: 0;
+    -unity-font-definition: url("project://database/Assets/00.Resources/Font/DNFBitBitv2.ttf?fileID=12800000&guid=f696af773a4d9964880d5f416fe7512a&type=3#DNFBitBitv2");
 }
 
 .setting-button:hover {

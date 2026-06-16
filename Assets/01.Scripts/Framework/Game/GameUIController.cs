@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using JSAM;
 using UnityEngine;
+using UnityEngine.InputSystem;
 using UnityEngine.SceneManagement;
 using UnityEngine.UIElements;
 
@@ -23,6 +24,8 @@ public class GameUIController : MonoBehaviour
     [SerializeField] VisualTreeAsset clearVisualTree;
     [SerializeField] PanelSettings hudPanelSettings;
     [SerializeField] RuntimeHudImageLibrarySO hudImageLibrary;
+
+    [SerializeField] SettingUIImageLibrarySO settingImageLibrary;
 
     [Header("결과 화면 씬 이름")]
     [SerializeField] string _stageSelectSceneName = "StageScene";
@@ -60,6 +63,7 @@ public class GameUIController : MonoBehaviour
     Font _runtimeHudFont;
     bool _showingResultHud;
     Coroutine _scorePopupRoutine;
+    readonly UI_Setting_Controller _uiSetting = new();
 
     #region Lifecycle Function
 
@@ -122,6 +126,13 @@ public class GameUIController : MonoBehaviour
             _scoreController.OnFloatingScore -= HandleFloatingScore;
         }
         if (_camera != null) _camera.OnSecondaryViewTextureChanged -= HandleSecondaryViewTexture;
+    }
+
+    void Update()
+    {
+        if (_showingResultHud) return;
+        if (Keyboard.current != null && Keyboard.current.escapeKey.wasPressedThisFrame)
+            _uiSetting.Toggle();
     }
     #endregion
     
@@ -223,6 +234,9 @@ public class GameUIController : MonoBehaviour
 
         if (_scoreController != null)
             HandleScoreChanged(_scoreController.Score, _scoreController.TargetScore);
+
+        _uiSetting.Initialize(root, settingImageLibrary,
+            onRestart: () => SceneManager.LoadScene(_stageSelectSceneName));
     }
 
     void EnsureHudDocument()
