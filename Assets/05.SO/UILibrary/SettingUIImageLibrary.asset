@@ -13,9 +13,14 @@ MonoBehaviour:
   m_Name: SettingUIImageLibrary
   m_EditorClassIdentifier: Assembly-CSharp::SettingUIImageLibrarySO
   panel: {fileID: -1401965954, guid: 13937dead7d09fe4f84432d224d04922, type: 3}
-  toggleOn: {fileID: 588223810, guid: 61c7e48efe2cc1943acf03a4a2595038, type: 3}
-  toggleOff: {fileID: 588223810, guid: 61c7e48efe2cc1943acf03a4a2595038, type: 3}
-  sliderTrack: {fileID: -1759811611, guid: b8ab1101da63de846964149bdd1472b8, type: 3}
-  sliderHandle: {fileID: 294918899, guid: ed07675bc28a33a428e0becf1c631f49, type: 3}
+  presetGuideLabel: {fileID: 1841256739, guid: fb105b751a3692641a850db542e75fbc, type: 3}
+  toggleOn: {fileID: -962456180, guid: bd8ea124d97d16d449f303c48c86a84a, type: 3}
+  toggleOff: {fileID: -962456180, guid: bd8ea124d97d16d449f303c48c86a84a, type: 3}
+  bgmLabel: {fileID: -962456180, guid: bd8ea124d97d16d449f303c48c86a84a, type: 3}
+  bgmSliderTrack: {fileID: 0}
+  bgmSliderHandle: {fileID: 23282649, guid: 2a7dbdb561b9d2e43a03a5295022ee27, type: 3}
+  sfxLabel: {fileID: -962456180, guid: bd8ea124d97d16d449f303c48c86a84a, type: 3}
+  sfxSliderTrack: {fileID: 0}
+  sfxSliderHandle: {fileID: 23282649, guid: 2a7dbdb561b9d2e43a03a5295022ee27, type: 3}
   restartButton: {fileID: -962456180, guid: bd8ea124d97d16d449f303c48c86a84a, type: 3}
   backButton: {fileID: -962456180, guid: bd8ea124d97d16d449f303c48c86a84a, type: 3}
