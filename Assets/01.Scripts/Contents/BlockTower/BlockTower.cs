@@ -6,6 +6,7 @@ using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 using UnityEngine.UIElements;
 using TMPro;
+using JSAM;
 #if UNITY_EDITOR
 using UnityEditor;
 #endif
@@ -1954,6 +1955,7 @@ public class BlockTower : MonoBehaviour
         Held.UsingKeyboardPlacement = false;
         ClearKeyboardFocus();
 
+        AudioManager.PlaySound(_AudioLibrarySounds.Drop);
         UpdateTowerPhysicsState();
         UpdateExtractionTowerRowsFromCells();
         _cameraController?.ShowAfterPlace();
@@ -2455,6 +2457,7 @@ public class BlockTower : MonoBehaviour
         }
 
         Destroy(detachedRoot);
+        AudioManager.PlaySound(_AudioLibrarySounds.Drop);
         UpdateTowerPhysicsState();
         UpdateExtractionTowerRowsFromCells();
         if (!Held.IsHolding)
