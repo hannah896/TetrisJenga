@@ -1,7 +1,10 @@
     public enum _AudioLibrarySounds {
         BtnClick,
         Drop,
-        Play
+        Play,
+        GameOver,
+        Hold,
+        Success
     }
     public enum _AudioLibraryMusic {
         LobbyBGM,

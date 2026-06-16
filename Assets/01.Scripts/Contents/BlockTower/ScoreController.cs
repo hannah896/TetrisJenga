@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using TMPro;
+using JSAM;
 using Random = UnityEngine.Random;
 
 /// <summary>
@@ -119,6 +120,7 @@ public class ScoreController : MonoBehaviour
     {
         if (_isGameOver) return;
         _isGameOver = true;
+        AudioManager.PlaySound(_AudioLibrarySounds.GameOver);
         _tower?.PerformGameEndCleanup();
         if (GameManager.Instance != null)
             GameManager.Instance.RecordStageResult(GameManager.Instance.CurrentStageIndex, _score, isClear: false);
@@ -129,6 +131,7 @@ public class ScoreController : MonoBehaviour
     {
         if (_isGameOver) return;
         _isGameOver = true;
+        AudioManager.PlaySound(_AudioLibrarySounds.Success);
         _tower?.PerformGameEndCleanup();
         if (GameManager.Instance != null)
             GameManager.Instance.RecordStageResult(GameManager.Instance.CurrentStageIndex, _score, isClear: true);

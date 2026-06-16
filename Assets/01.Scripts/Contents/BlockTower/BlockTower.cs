@@ -1633,6 +1633,7 @@ public class BlockTower : MonoBehaviour
         CheckForDetachment();
         UpdateTowerPhysicsState();
 
+        AudioManager.PlaySound(_AudioLibrarySounds.Hold);
         Held.IsHolding = true;
         Held.BaseCell = GetDefaultHeldBaseCell();
         Held.UsingKeyboardPlacement = true;
