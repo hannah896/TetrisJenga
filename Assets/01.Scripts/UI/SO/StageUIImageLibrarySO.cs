@@ -27,4 +27,8 @@ public class StageUIImageLibrarySO : ScriptableObject
     public Sprite explainBox;
     [Tooltip("플레이 스타트 버튼")]
     public Sprite startButton;
+
+    [Header("잠수함")]
+    [Tooltip("스테이지 맵 위에서 이동하는 잠수함 스프라이트")]
+    public Sprite submarine;
 }

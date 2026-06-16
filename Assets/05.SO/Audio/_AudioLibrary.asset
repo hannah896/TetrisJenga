@@ -13,26 +13,50 @@ MonoBehaviour:
   m_Name: _AudioLibrary
   m_EditorClassIdentifier: com.Brogrammist.JSAM::JSAM.AudioLibrary
   soundCategories:
-  - 
+  - UI
   musicCategories:
-  - 
-  Sounds: []
-  Music: []
+  - BGM
+  Sounds:
+  - {fileID: 11400000, guid: 99e7ad8e994796449a209a93b38cd473, type: 2}
+  - {fileID: 11400000, guid: 7ece0c5436f899148b1f21fd28d34a9a, type: 2}
+  - {fileID: 11400000, guid: d4ffd9dc56a49f949acbaeafd15f7b28, type: 2}
+  Music:
+  - {fileID: 11400000, guid: e2a535f1e5552cb47a05cbce341c1712, type: 2}
+  - {fileID: 11400000, guid: 5c452802b93800e4c911c64a81f94684, type: 2}
+  - {fileID: 11400000, guid: 43772eb6c4d3a944181591195013b307, type: 2}
+  - {fileID: 11400000, guid: 4b9108edd33cbcd4d91f8fe3fba10805, type: 2}
+  - {fileID: 11400000, guid: 541520a2be2b4c743ae6086b63378212, type: 2}
+  - {fileID: 11400000, guid: 1440bfadfb32bc54686da482fc7511a7, type: 2}
+  - {fileID: 11400000, guid: eafe3a8f199c0e44086e04818178b720, type: 2}
+  - {fileID: 11400000, guid: d1ea8ae01777afc42af9b8dac70a98a8, type: 2}
+  - {fileID: 11400000, guid: 70162e4992e13ab4c977e0a69449ba9c, type: 2}
   useCustomNames: 0
-  generatedName: 
+  generatedName: _AudioLibrary
   musicEnum: 
-  musicEnumGenerated: 
+  musicEnumGenerated: _AudioLibraryMusic
   musicNamespace: 
   musicNamespaceGenerated: 
   soundEnum: 
-  soundEnumGenerated: 
+  soundEnumGenerated: _AudioLibrarySounds
   soundNamespace: 
   soundNamespaceGenerated: 
   soundCategoriesToList:
-  - name: 
-    files: []
+  - name: UI
+    files:
+    - {fileID: 11400000, guid: 99e7ad8e994796449a209a93b38cd473, type: 2}
+    - {fileID: 11400000, guid: 7ece0c5436f899148b1f21fd28d34a9a, type: 2}
+    - {fileID: 11400000, guid: d4ffd9dc56a49f949acbaeafd15f7b28, type: 2}
     foldout: 1
   musicCategoriesToList:
-  - name: 
-    files: []
+  - name: BGM
+    files:
+    - {fileID: 11400000, guid: e2a535f1e5552cb47a05cbce341c1712, type: 2}
+    - {fileID: 11400000, guid: 5c452802b93800e4c911c64a81f94684, type: 2}
+    - {fileID: 11400000, guid: 43772eb6c4d3a944181591195013b307, type: 2}
+    - {fileID: 11400000, guid: 4b9108edd33cbcd4d91f8fe3fba10805, type: 2}
+    - {fileID: 11400000, guid: 541520a2be2b4c743ae6086b63378212, type: 2}
+    - {fileID: 11400000, guid: 1440bfadfb32bc54686da482fc7511a7, type: 2}
+    - {fileID: 11400000, guid: eafe3a8f199c0e44086e04818178b720, type: 2}
+    - {fileID: 11400000, guid: d1ea8ae01777afc42af9b8dac70a98a8, type: 2}
+    - {fileID: 11400000, guid: 70162e4992e13ab4c977e0a69449ba9c, type: 2}
     foldout: 1

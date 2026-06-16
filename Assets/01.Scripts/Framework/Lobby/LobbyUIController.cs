@@ -1,3 +1,4 @@
+using JSAM;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UIElements;
@@ -29,7 +30,7 @@ public class LobbyUIController : MonoBehaviour
     private Label previewLabel;
     private Label modeExplainText;
 
-    private readonly SettingPopupController setting = new SettingPopupController();
+    private readonly UI_Setting_Controller _uiSetting = new UI_Setting_Controller();
 
     private const string EndlessTitle = "Endless Mode";
     private const string EndlessDesc = "끝없이 블록을 쌓아 최고 점수에 도전합니다.";
@@ -68,7 +69,7 @@ public class LobbyUIController : MonoBehaviour
         }
 
         ApplySprites();
-        setting.Initialize(root, settingImages, onRestart: ShowLobby);
+        _uiSetting.Initialize(root, settingImages, onRestart: ShowLobby);
         BindButtons();
         ShowLobby();
     }
@@ -82,12 +83,12 @@ public class LobbyUIController : MonoBehaviour
 
         if (WasEscapePressedThisFrame())
         {
-            setting.Toggle();
+            _uiSetting.Toggle();
             return;
         }
 
         // 모드 선택 화면에서 우클릭 시 로비로 복귀 (피그마 툴팁: 우클릭 = 뒤로)
-        if (!setting.IsOpen && IsVisible(modeSelectScreen) && WasRightClickThisFrame())
+        if (!_uiSetting.IsOpen && IsVisible(modeSelectScreen) && WasRightClickThisFrame())
         {
             ShowLobby();
         }
@@ -99,18 +100,21 @@ public class LobbyUIController : MonoBehaviour
         if (playButton != null)
         {
             playButton.clicked += ShowModeSelect;
+            playButton.clicked += () => AudioManager.PlaySound(_AudioLibrarySounds.Play);
         }
 
         Button exitButton = root.Q<Button>("exit-button");
         if (exitButton != null)
         {
             exitButton.clicked += QuitGame;
+            exitButton.clicked += () => AudioManager.PlaySound(_AudioLibrarySounds.BtnClick);
         }
 
         Button endlessButton = root.Q<Button>("endless-button");
         if (endlessButton != null)
         {
             endlessButton.clicked += () => LoadScene(endlessSceneName);
+            endlessButton.clicked += () => AudioManager.PlaySound(_AudioLibrarySounds.BtnClick);
             endlessButton.RegisterCallback<PointerEnterEvent>(_ => SetPreview(EndlessTitle, EndlessDesc));
         }
 
@@ -118,6 +122,7 @@ public class LobbyUIController : MonoBehaviour
         if (storyButton != null)
         {
             storyButton.clicked += () => LoadScene(storySceneName);
+            storyButton.clicked+= () => AudioManager.PlaySound(_AudioLibrarySounds.BtnClick);
             storyButton.RegisterCallback<PointerEnterEvent>(_ => SetPreview(StoryTitle, StoryDesc));
         }
 
@@ -169,7 +174,7 @@ public class LobbyUIController : MonoBehaviour
 
     private void ShowLobby()
     {
-        setting.Hide();
+        _uiSetting.Hide();
         SetVisible(lobbyScreen, true);
         SetVisible(modeSelectScreen, false);
     }
