@@ -385,11 +385,10 @@ public class PlacementZoneController : MonoBehaviour
         if (!TryGetTowerLocalBounds(source, out var minX, out var maxX, out var minY, out var maxY))
             return false;
 
-        const float gridEpsilon = 0.001f;
-        int xMin = Mathf.FloorToInt(minX + gridEpsilon);
-        int yMin = Mathf.FloorToInt(minY + gridEpsilon);
-        int xMax = Mathf.CeilToInt(maxX - gridEpsilon);
-        int yMax = Mathf.CeilToInt(maxY - gridEpsilon);
+        int xMin = Mathf.RoundToInt(minX);
+        int yMin = Mathf.RoundToInt(minY);
+        int xMax = Mathf.RoundToInt(maxX);
+        int yMax = Mathf.RoundToInt(maxY);
         if (xMax <= xMin || yMax <= yMin)
             return false;
 

@@ -1,7 +1,9 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using JSAM;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 using UnityEngine.UIElements;
 
 /// <summary>
@@ -21,6 +23,9 @@ public class GameUIController : MonoBehaviour
     [SerializeField] VisualTreeAsset clearVisualTree;
     [SerializeField] PanelSettings hudPanelSettings;
     [SerializeField] RuntimeHudImageLibrarySO hudImageLibrary;
+
+    [Header("결과 화면 씬 이름")]
+    [SerializeField] string _stageSelectSceneName = "StageScene";
 
     // ── VisualElement 참조 (BindHud 이후 유효) ───────────────────────────
     Label _scoreTitle;
@@ -74,6 +79,19 @@ public class GameUIController : MonoBehaviour
     void Start()
     {
         BindHud();
+        PlayStageBGM();
+    }
+
+    void PlayStageBGM()
+    {
+        if (AudioManager.Instance == null || !AudioManager.Instance.Initialized) return;
+
+        AudioManager.StopAllMusic();
+        int idx = GameManager.Instance.CurrentStageIndex;
+        if (idx >= 0 && idx <= 5)
+            AudioManager.PlayMusic((_AudioLibraryMusic)((int)_AudioLibraryMusic.Stage1 + idx));
+        else
+            AudioManager.PlayMusic(_AudioLibraryMusic.EndlessBGM);
     }
 
     void OnEnable()
@@ -348,6 +366,8 @@ public class GameUIController : MonoBehaviour
         root.style.display    = DisplayStyle.Flex;
         root.style.visibility = Visibility.Visible;
         root.style.opacity    = 1f;
+        // BindHud에서 PickingMode.Ignore로 설정된 값을 복원해 버튼 클릭이 막히지 않게 한다.
+        root.pickingMode = PickingMode.Position;
 
         _resultTitleLabel        = root.Q<Label>("Title");
         _resultCurrentScoreLabel = root.Q<Label>("CurrentScore");
@@ -359,9 +379,27 @@ public class GameUIController : MonoBehaviour
 
         var restartButton = root.Q<UnityEngine.UIElements.Button>("RestartButton");
         if (restartButton != null)
-        {
             restartButton.clicked += () => _tower?.Restart();
+
+        var mainMenuButton = root.Q<UnityEngine.UIElements.Button>("MainMenuButton");
+        if (mainMenuButton != null)
+            mainMenuButton.clicked += () => SceneManager.LoadScene(_stageSelectSceneName);
+
+        var nextButton = root.Q<UnityEngine.UIElements.Button>("NextButton");
+        if (nextButton != null)
+            nextButton.clicked += GoToNextStage;
+    }
+
+    void GoToNextStage()
+    {
+        int nextIndex = GameManager.Instance.CurrentStageIndex + 1;
+        if (nextIndex >= GameManager.Instance.StageCount)
+        {
+            SceneManager.LoadScene(_stageSelectSceneName);
+            return;
         }
+        GameManager.Instance.CurrentStageIndex = nextIndex;
+        SceneManager.LoadScene($"Level{nextIndex + 1}");
     }
 
     static VisualTreeAsset LoadVisualTree(VisualTreeAsset assigned, string assetPath)

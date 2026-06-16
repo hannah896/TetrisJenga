@@ -47,6 +47,7 @@ namespace Framework.Lobby
 
             await UniTask.NextFrame(cancellation);
 
+            AudioManager.StopAllMusic();
             AudioManager.PlayMusic(_AudioLibraryMusic.LobbyBGM);
         }
 

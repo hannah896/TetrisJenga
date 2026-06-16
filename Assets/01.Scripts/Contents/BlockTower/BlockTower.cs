@@ -1632,7 +1632,8 @@ public class BlockTower : MonoBehaviour
         Held.BaseCell = GetDefaultHeldBaseCell();
         Held.UsingKeyboardPlacement = true;
         _cameraController?.FocusHeldCenter();
-        _scoreController?.AddScore(Held.MatchesBonus ? 2 : 1, extractionScorePos);
+        _scoreController?.
+            AddScore(Held.MatchesBonus ? 2 : 1, extractionScorePos);
         _scoreController?.RollBonusTarget();
     }
     

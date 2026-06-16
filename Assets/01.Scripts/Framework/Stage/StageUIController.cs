@@ -30,6 +30,7 @@ public class StageUIController : MonoBehaviour
     [SerializeField] private string gameSceneName = "SampleScene";
     [SerializeField] private string lobbySceneName = "LobbyScene";
 
+
     private StageUIImageLibrarySO images;
     private SettingUIImageLibrarySO settingImages;
     private StageMapSO mapData;
@@ -40,6 +41,8 @@ public class StageUIController : MonoBehaviour
 
     private int selectedNodeIndex = -1;
     private readonly List<Button> nodeButtons = new();
+    private readonly List<Vector2> _nodeUiPositions = new();
+    private readonly StageSubmarineController _submarine = new();
 
     private readonly UI_Setting_Controller _uiSetting = new();
 
@@ -81,6 +84,9 @@ public class StageUIController : MonoBehaviour
             startButton.style.display = DisplayStyle.None;
         }
 
+        if (stageMapScroll != null)
+            stageMapScroll.RegisterCallback<WheelEvent>(OnWheel, TrickleDown.TrickleDown);
+
         if (mapSpline != null && mapData != null && mapData.nodes.Count > 0)
             BuildMap();
     }
@@ -112,6 +118,7 @@ public class StageUIController : MonoBehaviour
 
         // 노드 버튼 생성
         nodeButtons.Clear();
+        _nodeUiPositions.Clear();
         for (int i = 0; i < mapData.nodes.Count; i++)
         {
             var node = mapData.nodes[i];
@@ -121,10 +128,17 @@ public class StageUIController : MonoBehaviour
             float3 pt = SplineUtility.EvaluatePosition(spline, node.splineT);
             var uiPos = new Vector2(pt.x * MapWidth, (1f - pt.y) * MapHeight);
 
+            _nodeUiPositions.Add(uiPos);
+
             var btn = CreateNodeButton(i, uiPos, isVisible, isCleared, node);
             stageMap.Add(btn);
             nodeButtons.Add(btn);
         }
+
+        // 잠수함 초기 배치 (기본 선택 노드에 즉시 배치 후 SelectStage에서 MoveTo 호출)
+        _submarine.Initialize(stageMap, images?.submarine);
+        if (unlockedIdx >= 0 && unlockedIdx < _nodeUiPositions.Count)
+            _submarine.PlaceAt(_nodeUiPositions[unlockedIdx]);
 
         // 잠금 해제된 마지막 스테이지로 스크롤
         ScrollToNode(unlockedIdx);
@@ -172,6 +186,9 @@ public class StageUIController : MonoBehaviour
         if (mapData == null || index < 0 || index >= mapData.nodes.Count) return;
 
         selectedNodeIndex = index;
+
+        if (index < _nodeUiPositions.Count)
+            _submarine.MoveTo(_nodeUiPositions[index]);
         var info = mapData.nodes[index].stageInfo;
 
         // 미리보기 이미지
@@ -233,6 +250,20 @@ public class StageUIController : MonoBehaviour
         UISprites.Apply(root.Q<VisualElement>("explain-box"), images.explainBox);
         UISprites.Apply(root.Q<Button>("start-button"), images.startButton);
         UISprites.Apply(root.Q<VisualElement>("preview-image"), images.previewImage);
+    }
+
+    private void OnWheel(WheelEvent e)
+    {
+        if (mapData == null || mapData.nodes.Count == 0) return;
+
+        // 휠 위 → 높은 인덱스(상위 스테이지), 휠 아래 → 낮은 인덱스
+        int dir  = e.delta.y < 0 ? 1 : -1;
+        int next = Mathf.Clamp(selectedNodeIndex + dir, 0, mapData.nodes.Count - 1);
+        if (next == selectedNodeIndex) return;
+
+        e.StopPropagation(); // ScrollView 기본 스크롤 차단
+        SelectStage(next);
+        ScrollToNode(next);
     }
 
     private void StartSelectedStage()

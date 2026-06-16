@@ -75,6 +75,11 @@ public class ScoreController : MonoBehaviour
     {
         if (_isGameOver) return;
         _score += delta;
+        
+        if (delta < 0)
+            Debug.Log($"Score: {delta}");
+        // 0이하로 떨어지지않게 방어 코드
+        _score = Math.Max(_score, 0);
         UpdateScoreDisplay();
         if (delta > 0)
             CheckClearCondition();

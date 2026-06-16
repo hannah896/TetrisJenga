@@ -1,5 +1,6 @@
 using System;
 using Cysharp.Threading.Tasks;
+using JSAM;
 using UnityEngine;
 using UnityEngine.AddressableAssets;
 using UnityEngine.ResourceManagement.AsyncOperations;
@@ -41,6 +42,12 @@ public class StageUIResourcesLoader : IAsyncStartable, IDisposable
         if (_controller != null)
         {
             _controller.Initialize(images, setting, map);
+        }
+
+        if (AudioManager.Instance != null && AudioManager.Instance.Initialized)
+        {
+            AudioManager.StopAllMusic();
+            AudioManager.PlayMusic(_AudioLibraryMusic.StageBGM);
         }
 
         Debug.Log("[StageUIResourcesLoader] 스테이지 UI 리소스 로드 완료");
