@@ -8,11 +8,11 @@ using UnityEngine.UIElements;
 /// 인스턴스로 보유하고 Initialize(root, ...)로 바인딩한다.
 /// 설정 팝업 마크업(name="setting-popup" 등)은 각 씬 uxml에 포함되어 있어야 한다.
 /// </summary>
-public class SettingPopupController
+public class UI_Setting_Controller
 {
     private const string PresetGuideKey = "Settings.PresetGuide";
     private const float DefaultVolume = 1f;
-
+    
     private VisualElement popup;
     private Slider bgmSlider;
     private Slider sfxSlider;
@@ -22,6 +22,10 @@ public class SettingPopupController
     private Label sfxLabel;
     private Button restartButton;
     private Button backButton;
+    
+    private const float VolumeStep = 0.075f;
+
+
 
     public bool IsOpen => popup != null && !popup.ClassListContains("hidden");
 
@@ -156,21 +160,25 @@ public class SettingPopupController
 
     private void ApplyMusicVolume(float value)
     {
-        if (!AudioReady)
-        {
-            return;
-        }
+        value = Mathf.Round(value / VolumeStep) * VolumeStep;
 
-        AudioManager.MusicVolume = Mathf.Clamp01(value);
+        bgmSlider?.SetValueWithoutNotify(value);
+
+        if (!AudioReady)
+            return;
+
+        AudioManager.MusicVolume = value;
     }
 
     private void ApplySoundVolume(float value)
     {
-        if (!AudioReady)
-        {
-            return;
-        }
+        value = Mathf.Round(value / VolumeStep) * VolumeStep;
 
-        AudioManager.SoundVolume = Mathf.Clamp01(value);
+        sfxSlider?.SetValueWithoutNotify(value);
+
+        if (!AudioReady)
+            return;
+
+        AudioManager.SoundVolume = value;
     }
 }

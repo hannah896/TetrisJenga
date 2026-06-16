@@ -41,7 +41,7 @@ public class StageUIController : MonoBehaviour
     private int selectedNodeIndex = -1;
     private readonly List<Button> nodeButtons = new();
 
-    private readonly SettingPopupController setting = new();
+    private readonly UI_Setting_Controller _uiSetting = new();
 
     // 맵 콘텐츠 크기 (USS .stage-map 과 동기화)
     private const float MapWidth = 1127f;
@@ -72,7 +72,7 @@ public class StageUIController : MonoBehaviour
         stageMap = root.Q<VisualElement>("stage-map");
 
         ApplyStaticSprites();
-        setting.Initialize(root, settingImages, onRestart: GoToLobby);
+        _uiSetting.Initialize(root, settingImages, onRestart: GoToLobby);
 
         var startButton = root.Q<Button>("start-button");
         if (startButton != null)
@@ -266,8 +266,8 @@ public class StageUIController : MonoBehaviour
     private void Update()
     {
         if (root == null) return;
-        if (WasEscapePressedThisFrame()) { setting.Toggle(); return; }
-        if (!setting.IsOpen && WasRightClickThisFrame()) GoToLobby();
+        if (WasEscapePressedThisFrame()) { _uiSetting.Toggle(); return; }
+        if (!_uiSetting.IsOpen && WasRightClickThisFrame()) GoToLobby();
     }
 
     private bool WasEscapePressedThisFrame()
