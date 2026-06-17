@@ -55,6 +55,8 @@ class HeldSourceCell
 [RequireComponent(typeof(CameraController))]
 [RequireComponent(typeof(BombIceEffectController))]
 [RequireComponent(typeof(TowerCellVisualizer))]
+[RequireComponent(typeof(TowerPhysicsController))]
+[RequireComponent(typeof(TowerSceneBuilder))]
 [RequireComponent(typeof(GameUIController))]
 [RequireComponent(typeof(ScoreController))]
 [ExecuteAlways]
@@ -72,28 +74,13 @@ public class BlockTower : MonoBehaviour
     [SerializeField] BonusTetrominoSpriteSet bonusTetrominoSpriteSet;
     # endregion
 
-    [Header("Physics")] public float blockFriction = 1f;
-    [SerializeField] float toppleTorque = 4f;
-    [SerializeField] float toppleMargin = 0.05f;
-
-    [Header("Detached Blocks")] [SerializeField]
-    float detachedReattachStableTime = 0.15f;
-
-    [SerializeField] float detachedReattachVelocity = 0.55f;
-    [SerializeField] float detachedMinAirTime = 0.35f;
-    [SerializeField] float detachedPenaltyDelay = 2f;
-    [Tooltip("활성화 시 분리 블록이 데드라인 아래로 떨어지면 즉시 게임오버 (빙판 스테이지용)")]
-    [SerializeField] bool  deadlineFallGameOver = false;
-    [Tooltip("플로어 Y에서 몇 유닛 아래까지 떨어지면 게임오버로 처리할지")]
-    [SerializeField] float deadlineFallDepth    = 3f;
-    [SerializeField, Range(0.85f, 1f)] float blockBodyScale = 0.94f;
-    [SerializeField, Range(0.85f, 1f)] float blockColliderScale = 0.92f;
-    [SerializeField] GameObject detachedLandingEffectPrefab;
-    [SerializeField, Min(0.1f)] float detachedLandingEffectScale = 1f;
-
     [Header("Special Blocks")] [SerializeField]
-    BombIceEffectController _bombIceController;
+    TowerPhysicsController _physicsController;
+    [SerializeField] BombIceEffectController _bombIceController;
     [SerializeField] TowerCellVisualizer _visualizer;
+    [SerializeField] TowerSceneBuilder _sceneBuilder;
+
+    float blockBodyScale => _physicsController?.BlockBodyScale ?? 0.94f;
 
     [Header("Initial Tower Numbers")] [SerializeField]
     int initialTowerNumberTotal = 160;
@@ -109,7 +96,6 @@ public class BlockTower : MonoBehaviour
     [SerializeField] ScoreController           _scoreController;
 
     Transform _towerRoot;
-    Rigidbody _rb;
     GameObject _generatedFloor;
     GameObject _generatedScoreLabel;
     GameObject _leftBoundary;
@@ -132,7 +118,6 @@ public class BlockTower : MonoBehaviour
     Vector2 _lastPlacementCenter;
     bool _hasLastPlacementCenter;
     Vector2 _lastExtractionCenter;
-    readonly List<DetachedComponent> _detachedComponents = new();
 
 
     
@@ -179,6 +164,31 @@ public class BlockTower : MonoBehaviour
 
     public float      FloorY                => _floorY;
     public Transform  TowerRoot             => _towerRoot;
+    public ScoreController  Score           => _scoreController;
+    public CameraController Cam             => _cameraController;
+    public GameObject       GeneratedFloor  => _generatedFloor;
+    public Transform        FloorTransformRef => floorTransform;
+    public void DestroyTracked(GameObject go) => DestroyLocal(go);
+
+    // TowerSceneBuilder 공개 API
+    public void SetFloorY(float y)                    => _floorY = y;
+    public void SetGeneratedFloor(GameObject floor)   => _generatedFloor = floor;
+    public GameObject LeftBoundary                    => _leftBoundary;
+    public void SetLeftBoundary(GameObject b)         => _leftBoundary = b;
+    public GameObject RightBoundary                   => _rightBoundary;
+    public void SetRightBoundary(GameObject b)        => _rightBoundary = b;
+    public GameObject TowerStackDividerGO             => _towerStackDivider;
+    public void SetTowerStackDividerGO(GameObject go) => _towerStackDivider = go;
+    public bool IsTrackedObject(GameObject go)        => IsGeneratedObject(go);
+    public Transform FindSceneObject(string name)     => FindSceneObjectByName(name);
+    public Transform FindTowerChildObject(string name) => FindBlockTowerChild(name);
+    public void ParentToSelf(Transform child)         => ParentToBlockTowerPreserveWorld(child);
+    public void SyncPlacementZone()                   => SyncPlacementZoneFromObject();
+    public Vector2Int PlacementMinCell                => placementMin;
+    public Vector2Int PlacementMaxCell                => placementMax;
+    public void SetPlacementTowerStackDivider(Transform t) => EnsurePlacementController().SetTowerStackDivider(t);
+    public void AlignPlacementZoneToDividerY(float y) => EnsurePlacementController().AlignPlacementZoneToDivider(y);
+
     public Vector2Int HeldBaseCell          => Held.BaseCell;
     public Vector2    HeldCenter            => Held.Center;
     public bool       HasLastPlacementCenter => _hasLastPlacementCenter;
@@ -210,10 +220,14 @@ public class BlockTower : MonoBehaviour
 
     void OnEnable()
     {
+        if (_physicsController == null)
+            _physicsController = GetComponent<TowerPhysicsController>() ?? gameObject.AddComponent<TowerPhysicsController>();
         if (_visualizer == null)
             _visualizer = GetComponent<TowerCellVisualizer>() ?? gameObject.AddComponent<TowerCellVisualizer>();
         if (_bombIceController == null)
             _bombIceController = GetComponent<BombIceEffectController>() ?? gameObject.AddComponent<BombIceEffectController>();
+        if (_sceneBuilder == null)
+            _sceneBuilder = GetComponent<TowerSceneBuilder>() ?? gameObject.AddComponent<TowerSceneBuilder>();
         if (_cameraController == null)
             _cameraController = GetComponent<CameraController>();
         if (_scoreController == null)
@@ -261,16 +275,19 @@ public class BlockTower : MonoBehaviour
 #if UNITY_EDITOR
     void OnValidate()
     {
+        if (_physicsController == null)
+            _physicsController = GetComponent<TowerPhysicsController>();
         if (_visualizer == null)
             _visualizer = GetComponent<TowerCellVisualizer>();
         if (_bombIceController == null)
             _bombIceController = GetComponent<BombIceEffectController>();
+        if (_sceneBuilder == null)
+            _sceneBuilder = GetComponent<TowerSceneBuilder>();
         if (_cameraController == null)
             _cameraController = GetComponent<CameraController>();
         if (_scoreController == null)
             _scoreController = GetComponent<ScoreController>();
 
-        ResolveDetachedLandingEffectPrefab();
 
         if (Application.isPlaying)
             return;
@@ -292,11 +309,6 @@ public class BlockTower : MonoBehaviour
         };
     }
 
-    void ResolveDetachedLandingEffectPrefab()
-    {
-        if (detachedLandingEffectPrefab == null)
-            detachedLandingEffectPrefab = UnityEditor.AssetDatabase.LoadAssetAtPath<GameObject>("Assets/FX/Prefabs/FX002_01.prefab");
-    }
 #endif
     void EnsureEditorSceneObjectsVisible()
     {
@@ -483,7 +495,6 @@ public class BlockTower : MonoBehaviour
             return false;
 
         _towerRoot = root;
-        _rb = root.GetComponent<Rigidbody>();
         ConfigureTowerRigidbody();
 
         _grid.Clear();
@@ -515,7 +526,7 @@ public class BlockTower : MonoBehaviour
         Selection.Selected.Clear();
         _lastPlacedCells.Clear();
         _hasLastPlacementCenter = false;
-        _detachedComponents.Clear();
+        _physicsController?.ClearDetachedBlocks();
         _bombIceController?.ClearBombState();
         Held.RelPos.Clear();
         Held.Data.Clear();
@@ -789,7 +800,6 @@ public class BlockTower : MonoBehaviour
         Selection.Selected.Clear();
         _lastPlacedCells.Clear();
         _hasLastPlacementCenter = false;
-        _detachedComponents.Clear();
         Held.IsHolding = false;
         SetPlacementZoneFrozen(false);
         Selection.HasFocusedCell = false;
@@ -848,7 +858,7 @@ public class BlockTower : MonoBehaviour
             }
 
             _towerRoot = null;
-            _rb = null;
+            _physicsController?.ClearRigidbody();
         }
 
         if (_generatedFloor == null)
@@ -981,33 +991,6 @@ public class BlockTower : MonoBehaviour
         }
     }
 
-    void ClearDetachedBlocks()
-    {
-        var roots = new HashSet<GameObject>();
-        foreach (var detached in _detachedComponents)
-        {
-            detached.resolved = true;
-            if (detached.root != null)
-                roots.Add(detached.root);
-        }
-
-        _detachedComponents.Clear();
-
-        var staleDetachedRoots = new List<Transform>();
-        foreach (Transform child in transform)
-            if (child.name == "DetachedBlocks")
-                staleDetachedRoots.Add(child);
-
-        foreach (var child in staleDetachedRoots)
-            roots.Add(child.gameObject);
-
-        foreach (var root in roots)
-        {
-            if (root != null)
-                DestroyLocal(root);
-        }
-    }
-
     void DestroyLocal(GameObject go)
     {
         if (!Application.isPlaying)
@@ -1106,7 +1089,7 @@ public class BlockTower : MonoBehaviour
             ParentToBlockTowerPreserveWorld(exclusion);
     }
 
-    void HideResultScreens() => OnHudRebind?.Invoke();
+    public void HideResultScreens() => OnHudRebind?.Invoke();
     
     void MarkGeneratedObject(GameObject go)
     {
@@ -1139,7 +1122,7 @@ public class BlockTower : MonoBehaviour
         UpdatePresetOutlineFeedback();
     }
     
-    void TriggerGameOver() => _scoreController?.TriggerGameOver();
+    public void TriggerGameOver() => _scoreController?.TriggerGameOver();
 
     public void PerformGameEndCleanup()
     {
@@ -1667,6 +1650,19 @@ public class BlockTower : MonoBehaviour
         SetHeldPreviewColor(previewColor, canPlace && !isFailing);
     }
 
+    public void UpdateHeldBaseFromMousePosition()
+    {
+        if (_towerRoot == null) return;
+        var local = _towerRoot.InverseTransformPoint(Util.MouseWorldPos());
+        Held.BaseCell = ClampHeldBase(new Vector2Int(
+            Mathf.RoundToInt(local.x - Held.Center.x),
+            Mathf.RoundToInt(local.y - Held.Center.y)));
+    }
+
+    public void TryPlaceHeldBlocks() => TryPlaceBlocks();
+
+    public void SetMousePlacementMode() => Held.UsingKeyboardPlacement = false;
+
     Vector3 FailShakeOffset(bool isFailing)
     {
         return Held.FailShakeOffset(isFailing);
@@ -2006,7 +2002,7 @@ public class BlockTower : MonoBehaviour
         return sum / cells.Count;
     }
 
-    void FocusDefaultExtractionCell()
+    public void FocusDefaultExtractionCell()
     {
         ClearKeyboardFocus();
         if (TryFindFocusNearLastExtraction(ignoreLastPlaced: true, out var lastCell) ||
@@ -2080,316 +2076,6 @@ public class BlockTower : MonoBehaviour
         UpdateExtractionTowerRowsFromCells();
     }
 
-    void CheckForDetachment()
-    {
-        if (_grid.Count == 0) return;
-
-        DetachOriginalTowerBlocksSupportedOnlyByTop();
-
-        var components = _grid.FindConnectedComponents();
-        if (components.Count <= 1) return;
-
-        int mainIdx = FindMainTowerComponentIndex(components);
-
-        for (int i = 0; i < components.Count; i++)
-        {
-            if (i == mainIdx) continue;
-            DetachComponent(components[i]);
-        }
-    }
-
-    void DetachOriginalTowerBlocksSupportedOnlyByTop()
-    {
-        var components = _grid.FindOriginalTowerComponents();
-        if (components.Count <= 1) return;
-
-        int mainIdx = FindMainTowerComponentIndex(components);
-        for (int i = 0; i < components.Count; i++)
-        {
-            if (i == mainIdx) continue;
-            if (_grid.TouchesPlacedTopBlock(components[i]))
-                DetachComponent(components[i]);
-        }
-    }
-
-    int FindMainTowerComponentIndex(List<List<Vector2Int>> components)
-    {
-        int bestIdx = 0;
-        for (int i = 1; i < components.Count; i++)
-        {
-            if (IsBetterMainTowerComponent(components[i], components[bestIdx]))
-                bestIdx = i;
-        }
-
-        return bestIdx;
-    }
-
-    bool IsBetterMainTowerComponent(List<Vector2Int> candidate, List<Vector2Int> current)
-    {
-        bool candidateGrounded = _grid.TouchesGround(candidate);
-        bool currentGrounded = _grid.TouchesGround(current);
-        if (candidateGrounded != currentGrounded)
-            return candidateGrounded;
-
-        int candidateMinY = _grid.MinComponentY(candidate);
-        int currentMinY = _grid.MinComponentY(current);
-        if (candidateMinY != currentMinY)
-            return candidateMinY < currentMinY;
-
-        return candidate.Count > current.Count;
-    }
-
-    void DetachComponent(List<Vector2Int> component)
-    {
-        var centroid = Vector3.zero;
-        int valid = 0;
-        foreach (var cell in component)
-        {
-            if (_cellViews.TryGetValue(cell, out var v))
-            {
-                centroid += v.go.transform.position;
-                valid++;
-            }
-        }
-
-        if (valid == 0) return;
-        centroid /= valid;
-
-        var orphanGO = new GameObject("DetachedBlocks");
-        MarkGeneratedObject(orphanGO);
-        orphanGO.transform.SetParent(transform);
-        orphanGO.transform.position = centroid;
-
-        var orphanRb = orphanGO.AddComponent<Rigidbody>();
-        orphanRb.useGravity = true;
-        orphanRb.interpolation = RigidbodyInterpolation.Interpolate;
-        orphanRb.collisionDetectionMode = CollisionDetectionMode.ContinuousSpeculative;
-        orphanRb.linearVelocity = _rb.linearVelocity;
-        orphanRb.angularVelocity = _rb.angularVelocity;
-        orphanRb.linearDamping = 0.3f;
-        orphanRb.angularDamping = 1f;
-        orphanRb.constraints = RigidbodyConstraints.FreezePositionZ
-                               | RigidbodyConstraints.FreezeRotationX
-                               | RigidbodyConstraints.FreezeRotationY;
-
-        float totalWeight = 0f;
-        Vector2 weightedSum = Vector2.zero;
-
-        foreach (var cell in component)
-        {
-            if (!_grid.TryGetCell(cell, out var state)) continue;
-            if (!_cellViews.TryGetValue(cell, out var view)) continue;
-
-            view.go.transform.SetParent(orphanGO.transform, worldPositionStays: true);
-
-            var localPos = (Vector2)view.go.transform.localPosition;
-            weightedSum += localPos * state.number;
-            totalWeight += state.number;
-
-            _grid.RemoveCell(cell);
-            _cellViews.Remove(cell);
-        }
-
-        if (totalWeight > 0f)
-            orphanRb.centerOfMass = new Vector3(weightedSum.x / totalWeight, weightedSum.y / totalWeight, 0f);
-
-        if (Application.isPlaying)
-        {
-            var detached = new DetachedComponent
-            {
-                root = orphanGO,
-                rb = orphanRb,
-                detachedAt = Time.time,
-                scorePenalty = Mathf.RoundToInt(totalWeight)
-            };
-            var landingEffect = orphanGO.AddComponent<DetachedLandingEffect>();
-            landingEffect.Initialize(this, detached.detachedAt);
-            _detachedComponents.Add(detached);
-            StartCoroutine(TryReattachDetachedComponent(detached));
-        }
-    }
-
-    float LocalColliderSize()
-    {
-        return blockBodyScale > 0.001f ? blockColliderScale / blockBodyScale : blockColliderScale;
-    }
-
-    IEnumerator TryReattachDetachedComponent(DetachedComponent detached)
-    {
-        float stable = 0f;
-
-        while (!detached.resolved && detached.root != null && detached.rb != null && !IsGameOver)
-        {
-            if (deadlineFallGameOver && IsBelowDeadline(detached))
-            {
-                detached.resolved = true;
-                _detachedComponents.Remove(detached);
-                if (detached.root != null) Destroy(detached.root);
-                _scoreController?.TriggerGameOver();
-                yield break;
-            }
-
-            stable = IsDetachedStable(detached.rb) ? stable + Time.deltaTime : 0f;
-
-            bool canTryReattach = Time.time - detached.detachedAt >= detachedMinAirTime &&
-                                  stable >= detachedReattachStableTime;
-            if (canTryReattach && (_bombIceController?.ApplyIceColumnDamageToDetached(detached) ?? false))
-            {
-                detached.resolved = true;
-                _detachedComponents.Remove(detached);
-                yield break;
-            }
-
-            if (canTryReattach && TryAbsorbDetachedComponent(detached.root, detached.rb))
-            {
-                detached.resolved = true;
-                _detachedComponents.Remove(detached);
-                yield break;
-            }
-
-            if (canTryReattach && TriggerDetachedBombLanding(detached))
-            {
-                detached.resolved = true;
-                _detachedComponents.Remove(detached);
-                yield break;
-            }
-
-            if (Time.time - detached.detachedAt >= detachedPenaltyDelay)
-            {
-                ApplyDetachedPenalty(detached);
-                yield break;
-            }
-
-            yield return null;
-        }
-    }
-
-    public void RefreshDetachedComponents()
-    {
-        for (int i = _detachedComponents.Count - 1; i >= 0; i--)
-        {
-            var detached = _detachedComponents[i];
-            if (detached.root == null || detached.rb == null)
-            {
-                _detachedComponents.RemoveAt(i);
-                continue;
-            }
-
-            if (detached.resolved)
-            {
-                _detachedComponents.RemoveAt(i);
-                continue;
-            }
-
-            if (deadlineFallGameOver && IsBelowDeadline(detached))
-            {
-                detached.resolved = true;
-                _detachedComponents.RemoveAt(i);
-                if (detached.root != null) Destroy(detached.root);
-                _scoreController?.TriggerGameOver();
-                continue;
-            }
-
-            bool canTryReattach = CanTryReattach(detached);
-            if (canTryReattach && (_bombIceController?.ApplyIceColumnDamageToDetached(detached) ?? false))
-            {
-                detached.resolved = true;
-                _detachedComponents.RemoveAt(i);
-                continue;
-            }
-
-            if (canTryReattach && TryAbsorbDetachedComponent(detached.root, detached.rb))
-            {
-                detached.resolved = true;
-                _detachedComponents.RemoveAt(i);
-                continue;
-            }
-
-            if (canTryReattach && TriggerDetachedBombLanding(detached))
-            {
-                detached.resolved = true;
-                _detachedComponents.RemoveAt(i);
-                continue;
-            }
-
-            if (Time.time - detached.detachedAt >= detachedPenaltyDelay)
-                ApplyDetachedPenalty(detached);
-        }
-    }
-
-    void ApplyDetachedPenalty(DetachedComponent detached)
-    {
-        if (detached.resolved) return;
-        detached.resolved = true;
-        var scorePosition = detached.root != null ? detached.root.transform.position : transform.position;
-        _detachedComponents.Remove(detached);
-        if (detached.root != null)
-            Destroy(detached.root);
-        _scoreController?.AddScore(-Mathf.Max(0, detached.scorePenalty), scorePosition);
-    }
-
-    bool IsBelowDeadline(DetachedComponent detached) =>
-        detached.root != null &&
-        detached.root.transform.position.y < _floorY - deadlineFallDepth;
-
-    bool TriggerDetachedBombLanding(DetachedComponent detached)
-    {
-        if (detached == null || detached.root == null)
-            return false;
-
-        bool triggered = false;
-        foreach (Transform child in detached.root.transform)
-        {
-            if (child == null) continue;
-            var blockCell = child.GetComponent<BlockCell>();
-            if (blockCell == null || blockCell.Kind != CellKind.Bomb) continue;
-            if (TryWorldToGridCell(child.position, out var cell))
-            {
-                _bombIceController?.TriggerBombAt(cell);
-                triggered = true;
-            }
-        }
-
-        if (!triggered)
-            return false;
-
-        Destroy(detached.root);
-        return true;
-    }
-
-
-    HashSet<Vector2Int> CollectStableDetachedCells()
-    {
-        var cells = new HashSet<Vector2Int>();
-        foreach (var detached in _detachedComponents)
-        {
-            if (detached.root == null || detached.rb == null) continue;
-            if (!IsDetachedStable(detached.rb)) continue;
-
-            foreach (Transform child in detached.root.transform)
-            {
-                if (TryWorldToGridCell(child.position, out var cell))
-                    cells.Add(cell);
-            }
-        }
-
-        return cells;
-    }
-
-    bool IsDetachedStable(Rigidbody rb)
-    {
-        return rb.linearVelocity.sqrMagnitude <= detachedReattachVelocity * detachedReattachVelocity &&
-               rb.angularVelocity.sqrMagnitude <= detachedReattachVelocity * detachedReattachVelocity;
-    }
-
-    bool CanTryReattach(DetachedComponent detached)
-    {
-        return detached.root != null &&
-               detached.rb != null &&
-               Time.time - detached.detachedAt >= detachedMinAirTime &&
-               IsDetachedStable(detached.rb);
-    }
-
     public bool TryWorldToGridCell(Vector3 worldPosition, out Vector2Int cell)
     {
         var local = _towerRoot.InverseTransformPoint(worldPosition);
@@ -2402,101 +2088,6 @@ public class BlockTower : MonoBehaviour
         return cell.x >= minGridX && cell.x <= maxGridX && cell.y >= 0;
     }
 
-    bool TryAbsorbDetachedComponent(GameObject detachedRoot, Rigidbody detachedRb)
-    {
-        var children = new List<Transform>();
-        foreach (Transform child in detachedRoot.transform)
-            children.Add(child);
-        if (children.Count == 0) return false;
-
-        var attach = new List<(Transform child, Vector2Int cell)>(children.Count);
-        var duplicates = new List<Transform>();
-        var used = new HashSet<Vector2Int>();
-        foreach (var child in children)
-        {
-            if (!TryWorldToGridCell(child.position, out var cell)) return false;
-            if (_grid.TryGetCell(cell, out var existing) && existing.kind == CellKind.Ice)
-                return false;
-
-            if (_grid.HasCell(cell) || !used.Add(cell))
-            {
-                duplicates.Add(child);
-                continue;
-            }
-
-            attach.Add((child, cell));
-        }
-
-        if (attach.Count == 0 && duplicates.Count == 0) return false;
-        if (!HasDetachedFaceContact(used)) return false;
-
-        detachedRb.isKinematic = true;
-        foreach (var duplicate in duplicates)
-            Destroy(duplicate.gameObject);
-
-        foreach (var item in attach)
-        {
-            var child = item.child;
-            var cell = item.cell;
-            child.SetParent(_towerRoot, worldPositionStays: false);
-            child.localPosition = new Vector3(cell.x + 0.5f, cell.y + 0.5f, 0f);
-            child.localRotation = Quaternion.identity;
-
-            var sr = child.GetComponent<SpriteRenderer>();
-            var label = child.GetComponentInChildren<TextMeshPro>();
-            var blockCell = child.GetComponent<BlockCell>();
-
-            var state = new CellState
-            {
-                number = Mathf.Max(1, blockCell?.Weight is float w ? Mathf.RoundToInt(w) : 1),
-                isOriginalTower = blockCell != null && blockCell.IsOriginalTower,
-                kind = blockCell != null ? blockCell.Kind : CellKind.Normal,
-                concealedByBomb = _bombIceController?.IsConcealedByBomb(cell) ?? false
-            };
-            var view = new CellView
-            {
-                go = child.gameObject,
-                sr = sr,
-                outline = child.Find("FocusOutline")?.GetComponent<SpriteRenderer>(),
-                label = label
-            };
-
-            _grid.AddCell(cell, state);
-            _cellViews[cell] = view;
-            _bombIceController?.ApplyIceColumnLandingDamage(cell, state);
-            if (view.go == null)
-                continue;
-            ApplyCellVisual(cell);
-        }
-
-        Destroy(detachedRoot);
-        AudioManager.PlaySound(_AudioLibrarySounds.Drop);
-        UpdateTowerPhysicsState();
-        UpdateExtractionTowerRowsFromCells();
-        if (!Held.IsHolding)
-        {
-            _cameraController?.ShowExtractionView(immediate: true);
-            FocusDefaultExtractionCell();
-        }
-
-        return true;
-    }
-
-    bool HasDetachedFaceContact(HashSet<Vector2Int> detachedCells)
-    {
-        foreach (var cell in detachedCells)
-        {
-            foreach (var neighbor in Neighbors(cell))
-            {
-                if (detachedCells.Contains(neighbor)) continue;
-                if (_grid.IsMergeableCell(neighbor))
-                    return true;
-            }
-        }
-
-        return false;
-    }
-
     public bool ApplyIceContactDamage(BlockCell blockCell)
         => _bombIceController?.ApplyIceContactDamage(blockCell) ?? false;
 
@@ -2506,80 +2097,17 @@ public class BlockTower : MonoBehaviour
     public bool ApplyIceDamage(BlockCell iceBlockCell, Vector3 iceWorldPosition)
         => _bombIceController?.ApplyIceDamage(iceBlockCell, iceWorldPosition) ?? false;
 
-    
+    public void UpdateTowerPhysicsState()                         => _physicsController?.UpdateTowerPhysicsState();
+    public void RefreshDetachedComponents()                        => _physicsController?.RefreshDetachedComponents();
+    void        CheckForDetachment()                               => _physicsController?.CheckForDetachment();
+    void        ClearDetachedBlocks()                              => _physicsController?.ClearDetachedBlocks();
+    void        ConfigureTowerRigidbody()                          => _physicsController?.ConfigureTowerRigidbody();
+    float       LocalColliderSize()                                => _physicsController?.LocalColliderSize() ?? 0.92f;
+    PhysicsMaterial CreateFrictionMaterial()                       => _physicsController?.CreateFrictionMaterial();
+    HashSet<Vector2Int> CollectStableDetachedCells()               => _physicsController?.CollectStableDetachedCells() ?? new HashSet<Vector2Int>();
+    public bool TrySpawnDetachedLandingEffect(Collision collision, Collider landingSurface, BlockCell landedBlock, float detachedAt)
+        => _physicsController?.TrySpawnDetachedLandingEffect(collision, landingSurface, landedBlock, detachedAt) ?? false;
 
-    Vector3 CalculateCenterOfMass()
-    {
-        float totalWeight = 0f;
-        Vector2 weightedSum = Vector2.zero;
-        foreach (var (cell, state) in _grid.AllCells)
-        {
-            if (state.kind == CellKind.Ice)
-                continue;
-
-            var localPos = new Vector2(cell.x + 0.5f, cell.y + 0.5f);
-            weightedSum += localPos * state.number;
-            totalWeight += state.number;
-        }
-
-        var com = totalWeight > 0f
-            ? weightedSum / totalWeight
-            : new Vector2(columns * 0.5f, rows * 0.5f);
-        return new Vector3(com.x, com.y, 0f);
-    }
-
-    public void UpdateTowerPhysicsState()
-    {
-        if (!Application.isPlaying || _rb == null || _grid.Count == 0) return;
-
-        var centerOfMass = CalculateCenterOfMass();
-        _rb.centerOfMass = centerOfMass;
-        _rb.WakeUp();
-        ApplyToppleTorqueIfUnsupported(centerOfMass);
-    }
-
-    void ApplyToppleTorqueIfUnsupported(Vector3 centerOfMass)
-    {
-        if (toppleTorque <= 0f) return;
-        if (!TryGetLowestSupportRange(out float supportMinX, out float supportMaxX)) return;
-
-        float torqueSign = 0f;
-        if (centerOfMass.x < supportMinX - toppleMargin)
-            torqueSign = 1f;
-        else if (centerOfMass.x > supportMaxX + toppleMargin)
-            torqueSign = -1f;
-
-        if (Mathf.Approximately(torqueSign, 0f)) return;
-
-        _rb.AddTorque(Vector3.forward * torqueSign * toppleTorque, ForceMode.Impulse);
-    }
-
-    bool TryGetLowestSupportRange(out float minX, out float maxX)
-    {
-        minX = float.MaxValue;
-        maxX = float.MinValue;
-        int minY = int.MaxValue;
-
-        foreach (var pair in _grid.AllCells)
-        {
-            if (pair.Value.kind == CellKind.Ice) continue;
-            minY = Mathf.Min(minY, pair.Key.y);
-        }
-
-        if (minY == int.MaxValue) return false;
-
-        foreach (var pair in _grid.AllCells)
-        {
-            if (pair.Value.kind == CellKind.Ice) continue;
-            var cell = pair.Key;
-            if (cell.y != minY) continue;
-            minX = Mathf.Min(minX, cell.x);
-            maxX = Mathf.Max(maxX, cell.x + 1f);
-        }
-
-        return minX <= maxX;
-    }
-    
     bool IsAdjacentToSelected(Vector2Int cell)
     {
         foreach (var s in Selection.Selected)
@@ -2642,7 +2170,7 @@ public class BlockTower : MonoBehaviour
         _towerRoot = towerRootGO.transform;
 
         if (Application.isPlaying)
-            ConfigureTowerRigidbody();
+            _physicsController?.ConfigureTowerRigidbody();
 
         for (int row = 0; row < rows; row++)
         {
@@ -2662,7 +2190,7 @@ public class BlockTower : MonoBehaviour
         RenameTowerCellsSequentially();
 
         if (Application.isPlaying)
-            _rb.centerOfMass = CalculateCenterOfMass();
+            _physicsController?.UpdateTowerPhysicsState();
 
         UpdateExtractionTowerRowsFromCells();
         EnsurePlacementZoneObjectVisible();
@@ -2676,24 +2204,6 @@ public class BlockTower : MonoBehaviour
         _scoreController?.RollBonusTarget();
         CreateGameOverScreen();
         _cameraController?.FitCamera();
-    }
-
-    void ConfigureTowerRigidbody()
-    {
-        if (!Application.isPlaying || _towerRoot == null)
-            return;
-
-        if (!_towerRoot.TryGetComponent(out _rb))
-            _rb = _towerRoot.gameObject.AddComponent<Rigidbody>();
-        _rb.useGravity = true;
-        _rb.isKinematic = false;
-        _rb.interpolation = RigidbodyInterpolation.Interpolate;
-        _rb.collisionDetectionMode = CollisionDetectionMode.ContinuousSpeculative;
-        _rb.linearDamping = 0.3f;
-        _rb.angularDamping = 2f;
-        _rb.constraints = RigidbodyConstraints.FreezePositionZ
-                          | RigidbodyConstraints.FreezeRotationX
-                          | RigidbodyConstraints.FreezeRotationY;
     }
 
     (CellState state, CellView view) SpawnCell(Vector2Int cell, int number, bool isOriginalTower)
@@ -2738,210 +2248,10 @@ public class BlockTower : MonoBehaviour
         return (state, view);
     }
 
-    void CreateFloor()
-    {
-        float floorY = _floorY = -rows * 0.5f - 1.5f;
-        float floorWidth = columns + 4f;
+    void CreateFloor() => _sceneBuilder?.CreateFloor();
+    void CreateBoundaries() => _sceneBuilder?.CreateBoundaries();
 
-        GameObject floorGO;
-        bool created = false;
-        if (floorTransform != null)
-        {
-            floorGO = floorTransform.gameObject;
-        }
-        else
-        {
-            if (_generatedFloor == null)
-            {
-                var existing = FindSceneObjectByName("Floor");
-                if (existing != null)
-                    _generatedFloor = existing.gameObject;
-            }
-
-            if (_generatedFloor != null)
-            {
-                floorGO = _generatedFloor;
-            }
-            else
-            {
-                _floorY = floorY;
-                return;
-            }
-        }
-
-        if (created)
-        {
-            floorGO.transform.position = new Vector3(0f, floorY, 0f);
-            floorGO.transform.localScale = new Vector3(floorWidth, 1f, 1f);
-        }
-        else
-        {
-            _floorY = floorGO.transform.position.y;
-        }
-
-        if (!floorGO.TryGetComponent<SpriteRenderer>(out var sr))
-            sr = floorGO.AddComponent<SpriteRenderer>();
-        if (sr.sprite == null)
-        {
-            sr.sprite = _visualizer?.CreateBlockSprite();
-            sr.color = new Color(0.2f, 0.2f, 0.2f, 1f);
-        }
-
-    }
-    void CreateBoundaries()
-    {
-        SyncPlacementZoneFromObject();
-        float lineHeight = 50f;
-        float lineHalfH = lineHeight * 0.5f;
-        float lineWidth = 0.15f;
-        float offsetX = columns * 0.5f + 2f;
-        float centerY = _floorY + lineHalfH;
-        var lineColor = new Color(1f, 0.25f, 0.25f, 0.7f);
-
-        if (_leftBoundary == null)
-        {
-            var existing = FindSceneObjectByName("BoundaryLeft");
-            if (existing != null) _leftBoundary = existing.gameObject;
-        }
-
-        if (_rightBoundary == null)
-        {
-            var existing = FindSceneObjectByName("BoundaryRight");
-            if (existing != null) _rightBoundary = existing.gameObject;
-        }
-
-        _leftBoundary ??= SpawnBoundary("BoundaryLeft", new Vector3(-offsetX, centerY, 0f), lineWidth, lineHeight,
-            lineColor);
-        _rightBoundary ??= SpawnBoundary("BoundaryRight", new Vector3(offsetX, centerY, 0f), lineWidth, lineHeight,
-            lineColor);
-        ConfigureBoundary(_leftBoundary, lineColor);
-        ConfigureBoundary(_rightBoundary, lineColor);
-        UpdateTowerStackDivider();
-    }
-
-    void ConfigureBoundary(GameObject boundary, Color fallbackColor)
-    {
-        if (boundary == null) return;
-        bool authored = !IsGeneratedObject(boundary);
-
-        if (!boundary.TryGetComponent<SpriteRenderer>(out var sr))
-            sr = boundary.AddComponent<SpriteRenderer>();
-        if (sr.sprite == null)
-        {
-            sr.sprite = CreateBlockSprite();
-            sr.color = fallbackColor;
-        }
-
-        if (!authored)
-            sr.sortingOrder = 1;
-
-        if (!Application.isPlaying) return;
-
-        if (!boundary.TryGetComponent<Rigidbody>(out var rb))
-            rb = boundary.AddComponent<Rigidbody>();
-        rb.isKinematic = true;
-
-        if (!boundary.TryGetComponent<BoxCollider>(out var col))
-        {
-            col = boundary.AddComponent<BoxCollider>();
-            col.size = Vector3.one;
-        }
-        else if (!authored)
-        {
-            col.size = Vector3.one;
-        }
-
-        col.isTrigger = true;
-
-        if (!boundary.TryGetComponent<BoundaryLine>(out var bl))
-            bl = boundary.AddComponent<BoundaryLine>();
-        bl.OnBlockTouched = TriggerGameOver;
-    }
-
-    void UpdateTowerStackDivider()
-    {
-        if (_towerRoot == null) return;
-
-        SyncPlacementZoneFromObject(updateVisuals: false);
-
-        if (_towerStackDivider == null)
-        {
-            var existing = FindBlockTowerChild("TowerStackDivider");
-            if (existing != null)
-                _towerStackDivider = existing.gameObject;
-        }
-
-        bool created = false;
-        if (_towerStackDivider == null)
-        {
-            _towerStackDivider = new GameObject("TowerStackDivider");
-            if (Application.isPlaying)
-                MarkGeneratedObject(_towerStackDivider);
-            _towerStackDivider.transform.SetParent(transform, worldPositionStays: true);
-            created = true;
-        }
-        else
-        {
-            ParentToBlockTowerPreserveWorld(_towerStackDivider.transform);
-        }
-
-        float minX = placementMin.x;
-        float maxX = placementMax.x + 1f;
-        float width = Mathf.Max(0.1f, maxX - minX);
-        float y = _extractionMaxRow + 1f;
-
-        bool authoredDivider = !created && !IsGeneratedObject(_towerStackDivider);
-        var dividerLocalPosition = new Vector3((minX + maxX) * 0.5f, y, 0.02f);
-        if (authoredDivider)
-        {
-            var authoredLocal = _towerRoot.InverseTransformPoint(_towerStackDivider.transform.position);
-            authoredLocal.y = y;
-            _towerStackDivider.transform.position = _towerRoot.TransformPoint(authoredLocal);
-        }
-        else
-        {
-            ParentToBlockTowerPreserveWorld(_towerStackDivider.transform);
-            _towerStackDivider.transform.position = _towerRoot.TransformPoint(dividerLocalPosition);
-        }
-
-        if (!authoredDivider)
-            _towerStackDivider.transform.localScale = new Vector3(width, 0.12f, 1f);
-
-        var renderer = _towerStackDivider.GetComponent<SpriteRenderer>();
-        if (renderer == null)
-            renderer = _towerStackDivider.AddComponent<SpriteRenderer>();
-
-        if (renderer != null)
-        {
-            if (renderer.sprite == null)
-            {
-                renderer.sprite = CreateBlockSprite();
-                renderer.color = new Color(1f, 0f, 0f, 0.85f);
-            }
-            else if (created)
-            {
-                renderer.color = new Color(1f, 0f, 0f, 0.85f);
-            }
-
-            if (created)
-                renderer.sortingOrder = 2;
-        }
-
-        EnsurePlacementController().SetTowerStackDivider(_towerStackDivider.transform);
-        EnsurePlacementController().AlignPlacementZoneToDivider(y);
-    }
-
-    # region Placement - Align
-    void AlignPlacementZoneWidthToDivider()
-    {
-        if (_towerStackDivider != null)
-            EnsurePlacementController().SetTowerStackDivider(_towerStackDivider.transform);
-    }
-    void AlignPlacementZoneBottomToDivider(float dividerLocalY)
-    {
-        EnsurePlacementController().AlignPlacementZoneBottomToDivider(dividerLocalY);
-    }
-    #endregion
+    void UpdateTowerStackDivider() => _sceneBuilder?.UpdateTowerStackDivider();
     
     bool TryGetTowerLocalBounds(Transform source, out float minX, out float maxX, out float minY, out float maxY)
     {
@@ -3003,55 +2313,10 @@ public class BlockTower : MonoBehaviour
         return maxX > minX && maxY > minY;
     }
 
-    GameObject SpawnBoundary(string name, Vector3 worldPos, float width, float height, Color color)
-    {
-        var go = new GameObject(name);
-        if (Application.isPlaying)
-            MarkGeneratedObject(go);
-        go.transform.SetParent(transform);
-        go.transform.position = worldPos;
-        go.transform.localScale = new Vector3(width, height, 1f);
+    void CreateGameOverScreen() => _sceneBuilder?.CreateGameOverScreen();
 
-        var sr = go.AddComponent<SpriteRenderer>();
-        sr.sprite = CreateBlockSprite();
-        sr.color = color;
-        sr.sortingOrder = 1;
-
-        if (Application.isPlaying)
-        {
-            var rb = go.AddComponent<Rigidbody>();
-            rb.isKinematic = true;
-
-            var col = go.AddComponent<BoxCollider>();
-            col.size = Vector3.one;
-            col.isTrigger = true;
-
-            var bl = go.AddComponent<BoundaryLine>();
-            bl.OnBlockTouched = TriggerGameOver;
-        }
-
-        return go;
-    }
+    void CreateScoreLabel() => _sceneBuilder?.CreateScoreLabel();
     
-    void CreateGameOverScreen()
-    {
-        HideResultScreens();
-    }
-    
-    void CreateScoreLabel()
-    {
-        _scoreController?.UpdateScoreDisplay();
-    }
-    
-    PhysicsMaterial CreateFrictionMaterial()
-    {
-        var mat = new PhysicsMaterial("BlockFriction");
-        mat.dynamicFriction = blockFriction;
-        mat.staticFriction = blockFriction;
-        mat.bounciness = 0f;
-        return mat;
-    }
-
     Vector3 MouseWorldPos() => Util.MouseWorldPos();
     
     void SetFocusCell(Vector2Int cell)
@@ -3117,7 +2382,7 @@ public class BlockTower : MonoBehaviour
         _scoreController?.AddScore(-2, transform.position);
     }
     
-    void UpdateExtractionTowerRowsFromCells()
+    public void UpdateExtractionTowerRowsFromCells()
     {
         bool hasOriginal = false;
         foreach (var pair in _grid.AllCells)
@@ -3166,52 +2431,6 @@ public class BlockTower : MonoBehaviour
     }
     
     void CheckTowerBoundaryGameOver() { }
-    
-    public bool TrySpawnDetachedLandingEffect(
-        Collision collision,
-        Collider landingSurface,
-        BlockCell landedBlock,
-        float detachedAt)
-    {
-        if (detachedLandingEffectPrefab == null || collision == null || landedBlock == null ||
-            Time.time - detachedAt < 0.1f || collision.relativeVelocity.sqrMagnitude < 0.0225f)
-            return false;
-
-        bool hitBlock = landingSurface != null &&
-                        landingSurface.GetComponentInParent<BlockCell>() != null;
-        bool hitFloor = landingSurface != null &&
-                        ((_generatedFloor != null &&
-                          landingSurface.transform.IsChildOf(_generatedFloor.transform)) ||
-                         (floorTransform != null &&
-                          landingSurface.transform.IsChildOf(floorTransform)) ||
-                         landingSurface.name.Contains("Floor"));
-        if (!hitBlock && !hitFloor)
-            return false;
-
-        Vector3 impactPosition = landedBlock.transform.position + new Vector3(0f, 0.5f, 0f);
-        impactPosition.z = -0.2f;
-
-        var effect = Instantiate(detachedLandingEffectPrefab, impactPosition, Quaternion.identity);
-        effect.transform.localScale *= detachedLandingEffectScale;
-        foreach (var renderer in effect.GetComponentsInChildren<SpriteRenderer>())
-            renderer.sortingOrder = 50;
-        Destroy(effect, LandingEffectLifetime(effect));
-        return true;
-    }
-
-    static float LandingEffectLifetime(GameObject effect)
-    {
-        var animator = effect != null ? effect.GetComponentInChildren<Animator>() : null;
-        var clips = animator != null && animator.runtimeAnimatorController != null
-            ? animator.runtimeAnimatorController.animationClips
-            : null;
-        float lifetime = 0f;
-        if (clips != null)
-            foreach (var clip in clips)
-                if (clip != null)
-                    lifetime = Mathf.Max(lifetime, clip.length);
-        return Mathf.Max(0.05f, lifetime);
-    }
 
     void OnDrawGizmos() { }
 }
