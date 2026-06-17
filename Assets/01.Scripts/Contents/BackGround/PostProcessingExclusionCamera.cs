@@ -1,5 +1,7 @@
 using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Rendering.Universal;
 
 [ExecuteAlways]
 public sealed class PostProcessingExclusionCamera : MonoBehaviour
@@ -233,64 +235,25 @@ public sealed class PostProcessingExclusionCamera : MonoBehaviour
         _hasLastMainMask = false;
     }
 
+    bool _loggedOnce;
+
     void ConfigureUrpCameraStack()
     {
-        var sourceData = EnsureAdditionalCameraData(sourceCamera.gameObject);
-        var overlayData = EnsureAdditionalCameraData(_overlayCamera.gameObject);
+        var sourceData  = sourceCamera.GetUniversalAdditionalCameraData();
+        var overlayData = _overlayCamera.GetUniversalAdditionalCameraData();
 
-        if (sourceData == null || overlayData == null)
-        {
-            DisablePostProcessing(_overlayCamera);
-            return;
-        }
+        sourceData.renderType            = CameraRenderType.Base;
+        overlayData.renderType           = CameraRenderType.Overlay;
+        overlayData.renderPostProcessing = false;
 
-        WriteEnumProperty(sourceData, "renderType", "Base");
-        WriteEnumProperty(overlayData, "renderType", "Overlay");
-        WriteBoolProperty(overlayData, "renderPostProcessing", false);
-
-        var stackProperty = sourceData.GetType().GetProperty("cameraStack");
-        if (stackProperty?.GetValue(sourceData) is IList stack && !stack.Contains(_overlayCamera))
+        var stack = sourceData.cameraStack;
+        if (!stack.Contains(_overlayCamera))
             stack.Add(_overlayCamera);
-    }
 
-    static Component EnsureAdditionalCameraData(GameObject owner)
-    {
-        const string typeName = "UnityEngine.Rendering.Universal.UniversalAdditionalCameraData";
-
-        foreach (var component in owner.GetComponents<Component>())
+        if (!_loggedOnce)
         {
-            if (component != null && component.GetType().FullName == typeName)
-                return component;
-        }
-
-        var type = FindTypeByName(typeName);
-        return type != null ? owner.AddComponent(type) : null;
-    }
-
-    static System.Type FindTypeByName(string typeName)
-    {
-        foreach (var assembly in System.AppDomain.CurrentDomain.GetAssemblies())
-        {
-            var type = assembly.GetType(typeName);
-            if (type != null)
-                return type;
-        }
-
-        return null;
-    }
-
-    static void DisablePostProcessing(Camera camera)
-    {
-        if (camera == null)
-            return;
-
-        foreach (var component in camera.GetComponents<Component>())
-        {
-            if (component == null)
-                continue;
-
-            if (component.GetType().FullName == "UnityEngine.Rendering.Universal.UniversalAdditionalCameraData")
-                WriteBoolProperty(component, "renderPostProcessing", false);
+            _loggedOnce = true;
+            Debug.Log($"[PostCam] layer={_layer}, overlayCamera={_overlayCamera?.name}, stackCount={stack.Count}, overlayInStack={stack.Contains(_overlayCamera)}, overlayType={overlayData.renderType}");
         }
     }
 
@@ -299,55 +262,19 @@ public sealed class PostProcessingExclusionCamera : MonoBehaviour
         if (source == null || destination == null)
             return;
 
-        destination.allowHDR = source.allowHDR;
+        destination.allowHDR  = source.allowHDR;
         destination.allowMSAA = source.allowMSAA;
 
-        var sourceData = EnsureAdditionalCameraData(source.gameObject);
-        var destinationData = EnsureAdditionalCameraData(destination.gameObject);
-        if (sourceData == null || destinationData == null)
-            return;
+        var sourceData      = source.GetUniversalAdditionalCameraData();
+        var destinationData = destination.GetUniversalAdditionalCameraData();
 
-        CopyProperty(sourceData, destinationData, "antialiasing");
-        CopyProperty(sourceData, destinationData, "antialiasingQuality");
-        CopyProperty(sourceData, destinationData, "stopNaN");
-        CopyProperty(sourceData, destinationData, "dithering");
-        CopyProperty(sourceData, destinationData, "volumeLayerMask");
-        CopyProperty(sourceData, destinationData, "volumeTrigger");
-        CopyProperty(sourceData, destinationData, "requiresColorOption");
-        CopyProperty(sourceData, destinationData, "requiresDepthOption");
-        WriteBoolProperty(destinationData, "renderPostProcessing", true);
-    }
-
-    static void WriteBoolProperty(Component component, string propertyName, bool value)
-    {
-        var property = component.GetType().GetProperty(propertyName);
-        if (property != null && property.PropertyType == typeof(bool) && property.CanWrite)
-            property.SetValue(component, value);
-    }
-
-    static void WriteEnumProperty(Component component, string propertyName, string valueName)
-    {
-        var property = component.GetType().GetProperty(propertyName);
-        if (property == null || !property.PropertyType.IsEnum || !property.CanWrite)
-            return;
-
-        var value = System.Enum.Parse(property.PropertyType, valueName);
-        property.SetValue(component, value);
-    }
-
-    static void CopyProperty(Component source, Component destination, string propertyName)
-    {
-        if (source == null || destination == null)
-            return;
-
-        var sourceProperty = source.GetType().GetProperty(propertyName);
-        var destinationProperty = destination.GetType().GetProperty(propertyName);
-        if (sourceProperty == null || destinationProperty == null ||
-            !sourceProperty.CanRead || !destinationProperty.CanWrite ||
-            destinationProperty.PropertyType != sourceProperty.PropertyType)
-            return;
-
-        destinationProperty.SetValue(destination, sourceProperty.GetValue(source));
+        destinationData.antialiasing        = sourceData.antialiasing;
+        destinationData.antialiasingQuality = sourceData.antialiasingQuality;
+        destinationData.stopNaN             = sourceData.stopNaN;
+        destinationData.dithering           = sourceData.dithering;
+        destinationData.volumeLayerMask     = sourceData.volumeLayerMask;
+        destinationData.volumeTrigger       = sourceData.volumeTrigger;
+        destinationData.renderPostProcessing = true;
     }
 
     static void DestroyLocal(Object obj)

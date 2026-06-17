@@ -16,6 +16,7 @@ public class InputHandler : MonoBehaviour
 
     Vector2Int _moveRepeatDir;
     float      _nextMoveRepeatTime;
+    bool       _holdStartedByMouse;
 
     # region Life Cycle
 
@@ -44,14 +45,35 @@ public class InputHandler : MonoBehaviour
         {
             HandleHeldKeyboardInput(keyboard);
             if (!_tower.IsHolding) { _camera?.UpdateCameraTarget(); return; }
-            _tower.UpdateHeldPosition();
-            if (mouse != null && mouse.leftButton.wasPressedThisFrame)  _tower.CancelHold();
-            if (mouse != null && mouse.rightButton.wasPressedThisFrame) _tower.CancelHold();
+
+            if (_holdStartedByMouse && !_tower.IsUsingKeyboardPlacement)
+            {
+                _tower.UpdateHeldBaseFromMousePosition();
+                _tower.UpdateHeldPosition();
+                if (mouse != null && mouse.leftButton.wasPressedThisFrame)  _tower.TryPlaceHeldBlocks();
+                if (mouse != null && mouse.rightButton.wasPressedThisFrame) _tower.CancelHold();
+            }
+            else
+            {
+                _tower.UpdateHeldPosition();
+                if (mouse != null && mouse.leftButton.wasPressedThisFrame)  _tower.CancelHold();
+                if (mouse != null && mouse.rightButton.wasPressedThisFrame) _tower.CancelHold();
+            }
         }
         else
         {
+            _holdStartedByMouse = false;
             HandleSelectionKeyboardInput(keyboard);
-            if (mouse != null && mouse.leftButton.wasPressedThisFrame)  _tower.HandleClick();
+            bool wasHolding = _tower.IsHolding;
+            if (mouse != null && mouse.leftButton.wasPressedThisFrame)
+            {
+                _tower.HandleClick();
+                if (!wasHolding && _tower.IsHolding)
+                {
+                    _holdStartedByMouse = true;
+                    _tower.SetMousePlacementMode();
+                }
+            }
             if (mouse != null && mouse.rightButton.wasPressedThisFrame) _tower.ClearSelection();
         }
 

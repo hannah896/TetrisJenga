@@ -49,6 +49,7 @@ public class GameUIController : MonoBehaviour
     VisualElement _secondaryViewPanel;
     VisualElement _secondaryViewImage;
     VisualElement _blockWeightGuide;
+    VisualElement _slashBackground;
     readonly VisualElement[] _weightGuideImages = new VisualElement[6];
     readonly List<VisualElement> _bonusCellElements      = new();
     readonly List<VisualElement> _bonusNextCellElements  = new();

@@ -27,7 +27,7 @@ public class StageUIController : MonoBehaviour
     [SerializeField] private SplineContainer mapSpline;
 
     [Header("이동할 씬 이름")]
-    [SerializeField] private string gameSceneName = "SampleScene";
+    [SerializeField] private string gameSceneName = "Endless";
     [SerializeField] private string lobbySceneName = "LobbyScene";
 
 
