@@ -26,8 +26,10 @@ public class TowerCellVisualizer : MonoBehaviour
     [SerializeField, Range(0f, 1f)]   float previewBlurAlpha  = 0.10f;
     [SerializeField, Range(1, 8)]     int   previewBlurCopies  = 8;
 
-    Sprite _blockSprite;
-    Sprite _outlineSprite;
+    Sprite    _blockSprite;
+    Texture2D _blockTex;
+    Sprite    _outlineSprite;
+    Texture2D _outlineTex;
     readonly Color _focusedCellColor = new(0f, 1f, 1f, 1f);
 
     TowerGridModel                   Grid         => _tower.Grid;
@@ -123,10 +125,17 @@ public class TowerCellVisualizer : MonoBehaviour
     void ApplyCellOutline(CellView view, bool isFocused, bool isSelected)
     {
         if (view.outline == null) return;
-        view.outline.enabled = isFocused || isSelected;
-        view.outline.color   = isFocused ? focusedOutlineColor : selectedOutlineColor;
+
+        bool show = isFocused || isSelected;
+        view.outline.enabled = show;
+        if (!show) return;
+
+        if (view.outline.sprite == null)
+            view.outline.sprite = CreateOutlineSprite();
+
+        view.outline.color                = isFocused ? focusedOutlineColor : selectedOutlineColor;
         view.outline.transform.localScale = Vector3.one * (isFocused ? focusedOutlineScale : selectedOutlineScale);
-        view.outline.sortingOrder = isFocused ? 4 : 3;
+        view.outline.sortingOrder         = isFocused ? 4 : 3;
     }
 
     public void UpdateCellDataVisuals(CellState state, CellView view)
@@ -406,7 +415,6 @@ public class TowerCellVisualizer : MonoBehaviour
 
         const int size = 32;
         var tex = new Texture2D(size, size, TextureFormat.RGBA32, false);
-        tex.hideFlags   = HideFlags.DontSave;
         tex.filterMode  = FilterMode.Point;
 
         var pixels = new Color[size * size];
@@ -420,8 +428,8 @@ public class TowerCellVisualizer : MonoBehaviour
         tex.SetPixels(pixels);
         tex.Apply();
 
-        _blockSprite           = Sprite.Create(tex, new Rect(0, 0, size, size), new Vector2(0.5f, 0.5f), size);
-        _blockSprite.hideFlags = HideFlags.DontSave;
+        _blockTex    = tex;
+        _blockSprite = Sprite.Create(tex, new Rect(0, 0, size, size), new Vector2(0.5f, 0.5f), size);
         return _blockSprite;
     }
 
@@ -432,7 +440,6 @@ public class TowerCellVisualizer : MonoBehaviour
         const int size      = 32;
         const int thickness = 4;
         var tex = new Texture2D(size, size, TextureFormat.RGBA32, false);
-        tex.hideFlags  = HideFlags.DontSave;
         tex.filterMode = FilterMode.Point;
 
         var pixels = new Color[size * size];
@@ -446,8 +453,8 @@ public class TowerCellVisualizer : MonoBehaviour
         tex.SetPixels(pixels);
         tex.Apply();
 
-        _outlineSprite           = Sprite.Create(tex, new Rect(0, 0, size, size), new Vector2(0.5f, 0.5f), size);
-        _outlineSprite.hideFlags = HideFlags.DontSave;
+        _outlineTex    = tex;
+        _outlineSprite = Sprite.Create(tex, new Rect(0, 0, size, size), new Vector2(0.5f, 0.5f), size);
         return _outlineSprite;
     }
 
@@ -458,6 +465,8 @@ public class TowerCellVisualizer : MonoBehaviour
         var go = new GameObject("FocusOutline");
         _tower.TrackGeneratedObject(go);
         go.transform.SetParent(parent, false);
+        int noPostLayer = LayerMask.NameToLayer("BlockTowerNoPost");
+        go.layer = noPostLayer >= 0 ? noPostLayer : parent.gameObject.layer;
         go.transform.localPosition = new Vector3(0f, 0f, 0.02f);
         go.transform.localScale    = Vector3.one * selectedOutlineScale;
 
