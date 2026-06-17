@@ -90,6 +90,69 @@ public static class Util
         };
     }
 
+    #region Grid
+    public static IEnumerable<Vector2Int> Neighbors(Vector2Int c)
+    {
+        yield return new Vector2Int(c.x + 1, c.y);
+        yield return new Vector2Int(c.x - 1, c.y);
+        yield return new Vector2Int(c.x, c.y + 1);
+        yield return new Vector2Int(c.x, c.y - 1);
+    }
+    #endregion
+
+    #region Layer
+    public static void SetNoPostLayer(GameObject go)
+    {
+        if (go == null) return;
+        int layer = LayerMask.NameToLayer("BlockTowerNoPost");
+        if (layer < 0) return;
+        foreach (var t in go.GetComponentsInChildren<Transform>(true))
+            t.gameObject.layer = layer;
+    }
+    #endregion
+
+    #region Scene Object Search
+    public static bool IsUsableTransform(Transform target)
+    {
+        if (target == null) return false;
+        try { return target.gameObject is { } go && go != null && go.scene.IsValid(); }
+        catch (MissingReferenceException) { return false; }
+    }
+
+    public static Transform FindChildByNameRecursive(Transform root, string objectName)
+    {
+        if (root == null) return null;
+        if (root.name == objectName) return root;
+        foreach (Transform child in root)
+        {
+            var found = FindChildByNameRecursive(child, objectName);
+            if (found != null) return found;
+        }
+        return null;
+    }
+
+    public static Transform FindSceneObjectByName(Transform searchRoot, UnityEngine.SceneManagement.Scene scene, string objectName)
+    {
+        var local = FindChildByNameRecursive(searchRoot, objectName);
+        if (IsUsableTransform(local)) return local;
+        foreach (var candidate in UnityEngine.Object.FindObjectsByType<Transform>(UnityEngine.FindObjectsSortMode.None))
+        {
+            if (!IsUsableTransform(candidate)) continue;
+            if (candidate.name != objectName) continue;
+            if (candidate.gameObject.scene != scene) continue;
+            return candidate;
+        }
+        return null;
+    }
+
+    public static Transform FindChildObject(Transform root, string objectName)
+    {
+        var direct = root.Find(objectName);
+        if (IsUsableTransform(direct)) return direct;
+        return FindSceneObjectByName(root, root.gameObject.scene, objectName);
+    }
+    #endregion
+
     #region BonusPreview
     public static float ResolvedOrDefault(float value, float fallback)
         => float.IsNaN(value) || value <= 0.01f

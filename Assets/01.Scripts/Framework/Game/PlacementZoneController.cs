@@ -61,7 +61,7 @@ public class PlacementZoneController : MonoBehaviour
 
         if (placementZoneTransform == null)
         {
-            var existing = FindBlockTowerChild("PlacementZone");
+            var existing = Util.FindChildObject(transform, "PlacementZone");
             if (existing != null)
                 placementZoneTransform = existing;
         }
@@ -86,7 +86,7 @@ public class PlacementZoneController : MonoBehaviour
 
         if (placementZoneTransform == null)
         {
-            var existing = FindBlockTowerChild("PlacementZone");
+            var existing = Util.FindChildObject(transform, "PlacementZone");
             if (existing != null)
                 placementZoneTransform = existing;
         }
@@ -472,64 +472,13 @@ public class PlacementZoneController : MonoBehaviour
         return maxX > minX && maxY > minY;
     }
 
-    Transform FindBlockTowerChild(string objectName)
-    {
-        var direct = transform.Find(objectName);
-        if (IsUsableTransform(direct))
-            return direct;
-        return FindSceneObjectByName(objectName);
-    }
-
-    Transform FindSceneObjectByName(string objectName)
-    {
-        var local = FindChildByNameRecursive(transform, objectName);
-        if (IsUsableTransform(local)) return local;
-
-        foreach (var candidate in Resources.FindObjectsOfTypeAll<Transform>())
-        {
-            if (!IsUsableTransform(candidate)) continue;
-            if (candidate.name != objectName) continue;
-            if (candidate.gameObject.scene != gameObject.scene) continue;
-            return candidate;
-        }
-
-        return null;
-    }
-
-    Transform FindChildByNameRecursive(Transform root, string objectName)
-    {
-        if (root == null) return null;
-        if (root.name == objectName) return root;
-
-        foreach (Transform child in root)
-        {
-            var found = FindChildByNameRecursive(child, objectName);
-            if (found != null)
-                return found;
-        }
-
-        return null;
-    }
+    Transform FindBlockTowerChild(string objectName) =>
+        Util.FindChildObject(transform, objectName);
 
     void ParentToBlockTowerPreserveWorld(Transform child)
     {
         if (child != null && child.parent != transform)
             child.SetParent(transform, worldPositionStays: true);
-    }
-
-    bool IsUsableTransform(Transform target)
-    {
-        if (target == null)
-            return false;
-        try
-        {
-            var go = target.gameObject;
-            return go != null && go.scene.IsValid();
-        }
-        catch (MissingReferenceException)
-        {
-            return false;
-        }
     }
 
     void EnsureOwner()

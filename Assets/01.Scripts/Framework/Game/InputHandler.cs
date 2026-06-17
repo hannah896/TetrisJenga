@@ -10,6 +10,7 @@ public class InputHandler : MonoBehaviour
     [SerializeField] BlockTower _tower;
     [SerializeField] CameraController _camera;
     [SerializeField] bool keyboardControlsEnabled = true;
+    TowerPhysicsController _physicsController;
     [SerializeField, Range(0.05f, 0.5f)]  float moveHoldInitialDelay  = 0.22f;
     [SerializeField, Range(0.02f, 0.25f)] float moveHoldRepeatInterval = 0.08f;
 
@@ -26,8 +27,9 @@ public class InputHandler : MonoBehaviour
 
     void Awake()
     {
-        if (_tower == null)  _tower  = GetComponent<BlockTower>();
-        if (_camera == null) _camera = GetComponent<CameraController>();
+        if (_tower == null)            _tower            = GetComponent<BlockTower>();
+        if (_camera == null)           _camera           = GetComponent<CameraController>();
+        if (_physicsController == null) _physicsController = GetComponent<TowerPhysicsController>();
     }
 
     void Update()
@@ -70,7 +72,7 @@ public class InputHandler : MonoBehaviour
     void HandleSelectionKeyboardInput(Keyboard kb)
     {
         if (!keyboardControlsEnabled || kb == null) return;
-        _tower.RefreshDetachedComponents();
+        _physicsController?.RefreshDetachedComponents();
 
         bool hasMove           = ReadMoveHeld(kb, allowWasd: false, out var dir);
         bool hasConfirm        = ConfirmPressed(kb);

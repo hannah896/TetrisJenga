@@ -72,7 +72,7 @@ public TetrominoPreset Preset { get; set; }
         {
             tower.SelectionTryDeselect(FocusedCell);
         }
-        else if (selected.Count < 4 && (selected.Count == 0 || tower.SelectionIsAdjacentToSelected(FocusedCell)))
+        else if (selected.Count < 4 && (selected.Count == 0 || IsAdjacentToSelected(FocusedCell)))
         {
             tower.SelectionSelectCell(FocusedCell);
         }
@@ -209,5 +209,13 @@ public TetrominoPreset Preset { get; set; }
     public void CancelPresetSelection()
     {
         IsPresetSelectionActive = false;
+    }
+
+    public bool IsAdjacentToSelected(Vector2Int cell)
+    {
+        foreach (var s in selected)
+            if (Mathf.Abs(cell.x - s.x) + Mathf.Abs(cell.y - s.y) == 1)
+                return true;
+        return false;
     }
 }

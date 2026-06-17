@@ -47,6 +47,13 @@ public class CameraController : MonoBehaviour
     {
         if (_tower == null)
             _tower = GetComponent<BlockTower>();
+        if (_tower != null)
+        {
+            _tower.OnTowerReady    += HandleTowerReady;
+            _tower.OnBlocksLifted  += FocusHeldCenter;
+            _tower.OnBlocksPlaced  += ShowAfterPlace;
+            _tower.OnHoldCancelled += HandleHoldCancelled;
+        }
     }
 
     void OnEnable()
@@ -56,6 +63,13 @@ public class CameraController : MonoBehaviour
 
     void OnDisable()
     {
+        if (_tower != null)
+        {
+            _tower.OnTowerReady    -= HandleTowerReady;
+            _tower.OnBlocksLifted  -= FocusHeldCenter;
+            _tower.OnBlocksPlaced  -= ShowAfterPlace;
+            _tower.OnHoldCancelled -= HandleHoldCancelled;
+        }
         if (secondaryViewCamera != null && secondaryViewCamera.targetTexture == _secondaryViewTexture)
             secondaryViewCamera.targetTexture = null;
         if (secondaryViewImage != null && secondaryViewImage.texture == _secondaryViewTexture)
@@ -68,6 +82,15 @@ public class CameraController : MonoBehaviour
             _secondaryViewTexture = null;
         }
     }
+
+    void HandleTowerReady()
+    {
+        EnsureSecondaryViewObjects();
+        UpdateSecondaryViewCamera();
+        FitCamera();
+    }
+
+    void HandleHoldCancelled() => ShowExtractionView(immediate: true);
 
     // ── InputHandler가 호출하는 퍼블릭 API ────────────────────────────────
     public void ScrollCamera(float delta)

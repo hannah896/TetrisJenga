@@ -17,17 +17,17 @@ public class GoldFishProjectile : MonoBehaviour
 
     void OnEnable()
     {
-        SetNoPostLayer(gameObject);
+        Util.SetNoPostLayer(gameObject);
     }
 
     void OnValidate()
     {
-        SetNoPostLayer(gameObject);
+        Util.SetNoPostLayer(gameObject);
     }
 
     void Awake()
     {
-        SetNoPostLayer(gameObject);
+        Util.SetNoPostLayer(gameObject);
 
         _rb = GetComponent<Rigidbody>();
         if (_rb == null)
@@ -162,13 +162,4 @@ public class GoldFishProjectile : MonoBehaviour
                Vector3.Dot(a, b) <= -0.65f;
     }
 
-    static void SetNoPostLayer(GameObject root)
-    {
-        int layer = LayerMask.NameToLayer("BlockTowerNoPost");
-        if (layer < 0)
-            return;
-
-        foreach (var transform in root.GetComponentsInChildren<Transform>(true))
-            transform.gameObject.layer = layer;
-    }
 }

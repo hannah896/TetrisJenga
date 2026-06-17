@@ -50,7 +50,7 @@ public class TowerGridModel
             {
                 var c = queue.Dequeue();
                 component.Add(c);
-                foreach (var n in Neighbors(c))
+                foreach (var n in Util.Neighbors(c))
                     if (unvisited.Remove(n))
                         queue.Enqueue(n);
             }
@@ -84,7 +84,7 @@ public class TowerGridModel
             {
                 var c = queue.Dequeue();
                 component.Add(c);
-                foreach (var n in Neighbors(c))
+                foreach (var n in Util.Neighbors(c))
                 {
                     if (!unvisited.Contains(n)) continue;
                     if (!_cells.TryGetValue(n, out var data) || !data.isOriginalTower) continue;
@@ -108,7 +108,7 @@ public class TowerGridModel
         while (queue.Count > 0)
         {
             var c = queue.Dequeue();
-            foreach (var n in Neighbors(c))
+            foreach (var n in Util.Neighbors(c))
                 if (set.Contains(n) && visited.Add(n))
                     queue.Enqueue(n);
         }
@@ -119,7 +119,7 @@ public class TowerGridModel
     {
         foreach (var cell in component)
         {
-            foreach (var neighbor in Neighbors(cell))
+            foreach (var neighbor in Util.Neighbors(cell))
             {
                 if (!_cells.TryGetValue(neighbor, out var state)) continue;
                 if (!state.isOriginalTower)
@@ -184,12 +184,5 @@ public class TowerGridModel
         return maxY;
     }
 
-    static IEnumerable<Vector2Int> Neighbors(Vector2Int c)
-    {
-        yield return new Vector2Int(c.x + 1, c.y);
-        yield return new Vector2Int(c.x - 1, c.y);
-        yield return new Vector2Int(c.x, c.y + 1);
-        yield return new Vector2Int(c.x, c.y - 1);
-    }
 }
 

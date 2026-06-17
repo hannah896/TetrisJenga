@@ -3,11 +3,11 @@ using UnityEngine;
 
 sealed class DetachedLandingEffect : MonoBehaviour
 {
-    BlockTower _owner;
+    TowerPhysicsController _owner;
     float _detachedAt;
     readonly HashSet<int> _spawnedColliders = new();
 
-    public void Initialize(BlockTower owner, float detachedAt)
+    public void Initialize(TowerPhysicsController owner, float detachedAt)
     {
         _owner = owner;
         _detachedAt = detachedAt;

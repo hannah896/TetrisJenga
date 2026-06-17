@@ -53,6 +53,14 @@ public class ScoreController : MonoBehaviour
     void Awake()
     {
         if (_tower == null) _tower = GetComponent<BlockTower>();
+        if (_tower != null)
+            _tower.OnTowerReset += ResetForRebuild;
+    }
+
+    void OnDisable()
+    {
+        if (_tower != null)
+            _tower.OnTowerReset -= ResetForRebuild;
     }
 
     // ── 리셋 ─────────────────────────────────────────────────────────────
