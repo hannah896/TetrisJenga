@@ -149,20 +149,10 @@ public class BlockTower : MonoBehaviour
     public Dictionary<Vector2Int, CellView> CellViews          => _cellViews;
     public Dictionary<Vector2Int, CellView> IceCellViews       => _iceCellViews;
     public BlockNumberSpriteSetAsset        NumberSpriteSetAsset => _visualizer?.NumberSpriteSetAsset;
-    public BombIceEffectController          BombIceController  => _bombIceController;
     public Vector2Int                       FocusedCell        => Selection.FocusedCell;
     public bool IsSelectedCell(Vector2Int cell)                  => Selection.Selected.Contains(cell);
     public void  TrackGeneratedObject(GameObject go)             => MarkGeneratedObject(go);
     public Vector3 LocalToWorld(Vector3 local)                   => _towerRoot != null ? _towerRoot.TransformPoint(local) : new Vector3(-columns * 0.5f, -rows * 0.5f, 0f) + local;
-    // TowerCellVisualizer로 위임
-    public void  EnsureNumberSpriteSetReady()                    => _visualizer?.EnsureNumberSpriteSetReady();
-    public Sprite GetNumberSprite(int number)                    => _visualizer?.GetNumberSprite(number);
-    public SpriteRenderer EnsureStandaloneNumberSpriteRenderer(Transform parent) => _visualizer?.EnsureStandaloneNumberSpriteRenderer(parent);
-    public void FitNumberSpriteToCell(SpriteRenderer sr)         => _visualizer?.FitNumberSpriteToCell(sr);
-    public void FitRendererObjectToCell(SpriteRenderer sr)       => _visualizer?.FitRendererObjectToCell(sr);
-    public Sprite CreateBlockSprite()                            => _visualizer?.CreateBlockSprite();
-    public void ApplyCellVisual(Vector2Int cell)                 => _visualizer?.ApplyCellVisual(cell);
-    public void UpdateCellDataVisuals(CellState state, CellView view) => _visualizer?.UpdateCellDataVisuals(state, view);
 
     public float      FloorY                => _floorY;
     public Transform  TowerRoot             => _towerRoot;
@@ -181,8 +171,6 @@ public class BlockTower : MonoBehaviour
     public GameObject TowerStackDividerGO             => _towerStackDivider;
     public void SetTowerStackDividerGO(GameObject go) => _towerStackDivider = go;
     public bool IsTrackedObject(GameObject go)        => IsGeneratedObject(go);
-    public Vector2Int HeldBaseCell          => Held.BaseCell;
-    public Vector2    HeldCenter            => Held.Center;
     public bool       HasLastPlacementCenter => _hasLastPlacementCenter;
     public Vector2    LastPlacementCenter   => _lastPlacementCenter;
     public int        ExtractionMinRow      => _extractionMinRow;
@@ -250,7 +238,7 @@ public class BlockTower : MonoBehaviour
         RandomizeInitialTowerNumbersIfNeeded();
         foreach (var pair in _grid.AllCells)
             if (_cellViews.TryGetValue(pair.Key, out var view))
-                UpdateCellDataVisuals(pair.Value, view);
+                _visualizer?.UpdateCellDataVisuals(pair.Value, view);
         RenameTowerCellsSequentially();
         UpdateExtractionTowerRowsFromCells();
         _physicsController?.UpdateTowerPhysicsState();
@@ -437,11 +425,11 @@ public class BlockTower : MonoBehaviour
 
         foreach (var pair in _grid.AllCells)
             if (_cellViews.TryGetValue(pair.Key, out var view))
-                UpdateCellDataVisuals(pair.Value, view);
+                _visualizer?.UpdateCellDataVisuals(pair.Value, view);
 
         foreach (var pair in _grid.AllIceCells)
             if (_iceCellViews.TryGetValue(pair.Key, out var view))
-                UpdateCellDataVisuals(pair.Value, view);
+                _visualizer?.UpdateCellDataVisuals(pair.Value, view);
 
         RenameTowerCellsSequentially();
 
@@ -873,28 +861,11 @@ public class BlockTower : MonoBehaviour
 
     void SyncPlacementZoneFromObject(bool updateVisuals = true)
     {
-        placementController.Configure(this, _towerRoot, _towerStackDivider != null ? _towerStackDivider.transform : null, CreateBlockSprite());
+        placementController.Configure(this, _towerRoot, _towerStackDivider != null ? _towerStackDivider.transform : null, _visualizer?.CreateBlockSprite());
         placementController.SyncPlacementZoneFromObject(updateVisuals);
     }
 
 
-    void ParentPlacementExclusionsToBlockTower()
-    {
-        if (placementZoneTransform == null)
-            return;
-
-        var exclusions = new List<Transform>();
-        foreach (Transform child in placementZoneTransform)
-        {
-            if (child == null) continue;
-            if (!child.name.Contains("Exclude")) continue;
-            exclusions.Add(child);
-        }
-
-        foreach (var exclusion in exclusions)
-            if (exclusion != null && exclusion.parent != transform)
-                exclusion.SetParent(transform, worldPositionStays: true);
-    }
 
     public void HideResultScreens() => OnHudRebind?.Invoke();
     
@@ -1066,24 +1037,6 @@ public class BlockTower : MonoBehaviour
             PlayPlacementFailFeedback();
     }
 
-    void TryLiftTetrominoPreset(TetrominoPreset preset)
-    {
-        var cells = TetrominoShapeUtil.GetCells(Selection.FocusedCell, preset);
-        foreach (var cell in cells)
-        {
-            if (!IsExtractableCell(cell))
-            {
-                PlayPlacementFailFeedback();
-                return;
-            }
-        }
-
-        ClearSelection();
-        foreach (var cell in cells)
-            SelectCell(cell);
-
-        LiftBlocks();
-    }
 
     public void HandleClick()
     {
@@ -1137,7 +1090,7 @@ public class BlockTower : MonoBehaviour
         if (state.kind == CellKind.Ice) return;
         if (Selection.Selected.Contains(cell)) return;
         Selection.Selected.Add(cell);
-        ApplyCellVisual(cell);
+        _visualizer?.ApplyCellVisual(cell);
     }
 
     bool IsExtractableCell(Vector2Int cell) => _grid.IsExtractableCell(cell);
@@ -1161,7 +1114,7 @@ public class BlockTower : MonoBehaviour
     void DeselectCell(Vector2Int cell)
     {
         Selection.Selected.Remove(cell);
-        ApplyCellVisual(cell);
+        _visualizer?.ApplyCellVisual(cell);
     }
 
     public void ClearSelection()
@@ -1237,14 +1190,14 @@ public class BlockTower : MonoBehaviour
                     bc.IsOriginalTower = state.isOriginalTower;
                     bc.Kind = state.kind;
                 }
-                UpdateCellDataVisuals(state, view);
+                _visualizer?.UpdateCellDataVisuals(state, view);
             }
         }
 
         Selection.Selected.Clear();
         Selection.HasFocusedCell = false;
         foreach (var cell in changedCells)
-            ApplyCellVisual(cell);
+            _visualizer?.ApplyCellVisual(cell);
         foreach (var bombCell in bombCells)
             _bombIceController?.TriggerBombAt(bombCell);
 
@@ -1269,7 +1222,7 @@ public class BlockTower : MonoBehaviour
             go.transform.localScale = Vector3.one * blockBodyScale;
 
             var sr = go.AddComponent<SpriteRenderer>();
-            sr.sprite = CreateBlockSprite();
+            sr.sprite = _visualizer?.CreateBlockSprite();
             sr.color = heldColor;
             sr.sortingOrder = 20;
             var blurRenderers = _visualizer?.CreatePreviewBlur(go.transform) ?? new List<SpriteRenderer>();
@@ -1587,8 +1540,8 @@ public class BlockTower : MonoBehaviour
             {
                 existing.number = Mathf.Min(6, existing.number + 1);
                 if (_cellViews.TryGetValue(target, out var existingView))
-                    UpdateCellDataVisuals(existing, existingView);
-                ApplyCellVisual(target);
+                    _visualizer?.UpdateCellDataVisuals(existing, existingView);
+                _visualizer?.ApplyCellVisual(target);
                 _lastPlacedCells.Add(target);
                 if (heldView.go != null)
                     Destroy(heldView.go);
@@ -1617,7 +1570,7 @@ public class BlockTower : MonoBehaviour
                 bc.IsOriginalTower = heldState.isOriginalTower;
             }
 
-            UpdateCellDataVisuals(heldState, heldView);
+            _visualizer?.UpdateCellDataVisuals(heldState, heldView);
             _grid.AddCell(target, heldState);
             _cellViews[target] = heldView;
             _lastPlacedCells.Add(target);
@@ -1663,16 +1616,6 @@ public class BlockTower : MonoBehaviour
         _hasLastPlacementCenter = true;
     }
 
-    Vector3 AverageCellWorldPosition(List<Vector2Int> cells)
-    {
-        if (cells == null || cells.Count == 0)
-            return transform.position;
-
-        var sum = Vector3.zero;
-        foreach (var cell in cells)
-            sum += _towerRoot.TransformPoint(new Vector3(cell.x + 0.5f, cell.y + 0.5f, 0f));
-        return sum / cells.Count;
-    }
 
     public void FocusDefaultExtractionCell()
     {
@@ -1736,10 +1679,10 @@ public class BlockTower : MonoBehaviour
             var (state, view) = SpawnCell(source.cell, source.number, source.isOriginalTower);
             state.kind = source.kind;
             state.concealedByBomb = _bombIceController?.IsConcealedByBomb(source.cell) ?? false;
-            UpdateCellDataVisuals(state, view);
+            _visualizer?.UpdateCellDataVisuals(state, view);
             _grid.AddCell(source.cell, state);
             _cellViews[source.cell] = view;
-            ApplyCellVisual(source.cell);
+            _visualizer?.ApplyCellVisual(source.cell);
         }
 
         _scoreController?.SetScoreTo(Held.StartScore);
@@ -1768,10 +1711,7 @@ public class BlockTower : MonoBehaviour
 
     public bool ApplyIceDamage(BlockCell iceBlockCell, Vector3 iceWorldPosition)
         => _bombIceController?.ApplyIceDamage(iceBlockCell, iceWorldPosition) ?? false;
-
-
-
-
+    
     static IEnumerable<Vector2Int> Neighbors(Vector2Int c)
     {
         yield return new Vector2Int(c.x + 1, c.y);
@@ -1840,7 +1780,7 @@ public class BlockTower : MonoBehaviour
         RandomizeInitialTowerNumbersIfNeeded();
         foreach (var pair in _grid.AllCells)
             if (_cellViews.TryGetValue(pair.Key, out var view))
-                UpdateCellDataVisuals(pair.Value, view);
+                _visualizer?.UpdateCellDataVisuals(pair.Value, view);
         RenameTowerCellsSequentially();
 
         if (Application.isPlaying)
@@ -1898,7 +1838,7 @@ public class BlockTower : MonoBehaviour
             label = label
         };
 
-        UpdateCellDataVisuals(state, view);
+        _visualizer?.UpdateCellDataVisuals(state, view);
         return (state, view);
     }
 
@@ -2008,7 +1948,7 @@ public class BlockTower : MonoBehaviour
 
     public bool SelectionHasCell(Vector2Int cell) => _grid.HasCell(cell);
     public bool SelectionIsExtractableCell(Vector2Int cell) => IsExtractableCell(cell);
-    public void SelectionApplyCellVisual(Vector2Int cell) => ApplyCellVisual(cell);
+    public void SelectionApplyCellVisual(Vector2Int cell) => _visualizer?.ApplyCellVisual(cell);
     public void SelectionFocusDefaultExtractionCell() => FocusDefaultExtractionCell();
     public void SelectionSelectCell(Vector2Int cell) => SelectCell(cell);
     public void SelectionTryDeselect(Vector2Int cell) => TryDeselect(cell);

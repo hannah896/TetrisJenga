@@ -5,11 +5,13 @@ public class TowerSceneBuilder : MonoBehaviour
 {
     [SerializeField] BlockTower _tower;
     PlacementZoneController _placement;
+    TowerCellVisualizer     _visualizer;
 
     void Awake()
     {
         if (_tower == null) _tower = GetComponent<BlockTower>();
-        _placement = GetComponent<PlacementZoneController>();
+        _placement  = GetComponent<PlacementZoneController>();
+        _visualizer = GetComponent<TowerCellVisualizer>();
     }
 
 #if UNITY_EDITOR
@@ -65,14 +67,14 @@ public class TowerSceneBuilder : MonoBehaviour
             sr = floorGO.AddComponent<SpriteRenderer>();
         if (sr.sprite == null)
         {
-            sr.sprite = _tower.CreateBlockSprite();
+            sr.sprite = _visualizer?.CreateBlockSprite();
             sr.color = new Color(0.2f, 0.2f, 0.2f, 1f);
         }
     }
 
     public void CreateBoundaries()
     {
-        _placement?.Configure(_tower, _tower.TowerRoot, _tower.TowerStackDividerGO?.transform, _tower.CreateBlockSprite());
+        _placement?.Configure(_tower, _tower.TowerRoot, _tower.TowerStackDividerGO?.transform, _visualizer?.CreateBlockSprite());
         _placement?.SyncPlacementZoneFromObject();
         float lineHeight = 50f;
         float lineHalfH = lineHeight * 0.5f;
@@ -107,7 +109,7 @@ public class TowerSceneBuilder : MonoBehaviour
     {
         if (_tower.TowerRoot == null) return;
 
-        _placement?.Configure(_tower, _tower.TowerRoot, _tower.TowerStackDividerGO?.transform, _tower.CreateBlockSprite());
+        _placement?.Configure(_tower, _tower.TowerRoot, _tower.TowerStackDividerGO?.transform, _visualizer?.CreateBlockSprite());
         _placement?.SyncPlacementZoneFromObject();
 
         var towerStackDivider = _tower.TowerStackDividerGO;
@@ -166,7 +168,7 @@ public class TowerSceneBuilder : MonoBehaviour
         {
             if (dividerRenderer.sprite == null)
             {
-                dividerRenderer.sprite = _tower.CreateBlockSprite();
+                dividerRenderer.sprite = _visualizer?.CreateBlockSprite();
                 dividerRenderer.color = new Color(1f, 0f, 0f, 0.85f);
             }
             else if (created)
@@ -201,7 +203,7 @@ public class TowerSceneBuilder : MonoBehaviour
             sr = boundary.AddComponent<SpriteRenderer>();
         if (sr.sprite == null)
         {
-            sr.sprite = _tower.CreateBlockSprite();
+            sr.sprite = _visualizer?.CreateBlockSprite();
             sr.color = fallbackColor;
         }
 
@@ -241,7 +243,7 @@ public class TowerSceneBuilder : MonoBehaviour
         go.transform.localScale = new Vector3(width, height, 1f);
 
         var sr = go.AddComponent<SpriteRenderer>();
-        sr.sprite = _tower.CreateBlockSprite();
+        sr.sprite = _visualizer?.CreateBlockSprite();
         sr.color = color;
         sr.sortingOrder = 1;
 

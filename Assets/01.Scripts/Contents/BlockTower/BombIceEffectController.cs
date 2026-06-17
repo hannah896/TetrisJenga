@@ -15,11 +15,10 @@ public class BombIceEffectController : MonoBehaviour
     readonly Dictionary<Vector2Int, GameObject>       _bombObscureBlocks  = new();
     readonly Dictionary<Vector2Int, BombObscureKind>  _bombObscureKinds   = new();
 
-    TowerGridModel                    Grid         => _tower.Grid;
-    Dictionary<Vector2Int, CellView>  CellViews    => _tower.CellViews;
-    Dictionary<Vector2Int, CellView>  IceCellViews => _tower.IceCellViews;
-    Transform                         TowerRoot    => _tower.TowerRoot;
-    BlockNumberSpriteSetAsset         SpriteSetAsset => _tower.NumberSpriteSetAsset;
+    TowerGridModel                   _grid;
+    Dictionary<Vector2Int, CellView> _cellViews;
+    Dictionary<Vector2Int, CellView> _iceCellViews;
+    TowerCellVisualizer              _visualizer;
 
     public Color BombObscureColor => _bombObscureColor;
 
@@ -31,6 +30,10 @@ public class BombIceEffectController : MonoBehaviour
     void Awake()
     {
         if (_tower == null) _tower = GetComponent<BlockTower>();
+        _grid         = _tower.Grid;
+        _cellViews    = _tower.CellViews;
+        _iceCellViews = _tower.IceCellViews;
+        _visualizer   = GetComponent<TowerCellVisualizer>();
     }
 
     // ── 상태 초기화 ──────────────────────────────────────────────────────
@@ -54,12 +57,12 @@ public class BombIceEffectController : MonoBehaviour
             _bombConcealedCells.Add(cell);
             _bombObscureKinds[cell] = GetBombObscureKind(offset);
             EnsureBombObscureBlock(cell);
-            if (Grid.TryGetCell(cell, out var state))
+            if (_grid.TryGetCell(cell, out var state))
             {
                 state.concealedByBomb = true;
-                if (CellViews.TryGetValue(cell, out var view))
-                    _tower.UpdateCellDataVisuals(state, view);
-                _tower.ApplyCellVisual(cell);
+                if (_cellViews.TryGetValue(cell, out var view))
+                    _visualizer.UpdateCellDataVisuals(state, view);
+                _visualizer.ApplyCellVisual(cell);
             }
         }
     }
@@ -78,39 +81,39 @@ public class BombIceEffectController : MonoBehaviour
         var go = new GameObject($"BombObscure_{cell.x}_{cell.y}");
         _tower.TrackGeneratedObject(go);
         go.transform.SetParent(_tower.transform, worldPositionStays: true);
-        go.transform.position = _tower.LocalToWorld(new Vector3(cell.x + 0.5f, cell.y + 0.5f, -0.08f));
+        go.transform.position = _tower.TowerRoot != null ? _tower.TowerRoot.TransformPoint(new Vector3(cell.x + 0.5f, cell.y + 0.5f, -0.08f)) : new Vector3(cell.x + 0.5f, cell.y + 0.5f, -0.08f);
         go.transform.localScale = Vector3.one;
 
         var sr = go.AddComponent<SpriteRenderer>();
         var sprite = GetBombObscureSpriteFor(cell);
         sr.sprite = sprite;
         sr.color = HasBombObscureSprite(cell) ? Color.white : _bombObscureColor;
-        _tower.FitRendererObjectToCell(sr);
+        _visualizer.FitRendererObjectToCell(sr);
         sr.sortingOrder = 30;
         _bombObscureBlocks[cell] = go;
     }
 
     public bool HasBombObscureSprite(Vector2Int cell)
     {
-        _tower.EnsureNumberSpriteSetReady();
-        return SpriteSetAsset != null &&
+        _visualizer.EnsureNumberSpriteSetReady();
+        return _visualizer.NumberSpriteSetAsset != null &&
                _bombObscureKinds.TryGetValue(cell, out var kind) &&
-               SpriteSetAsset.GetBombObscureSprite(kind) != null;
+               _visualizer.NumberSpriteSetAsset.GetBombObscureSprite(kind) != null;
     }
 
     public Sprite GetBombObscureSpriteFor(Vector2Int cell)
     {
-        _tower.EnsureNumberSpriteSetReady();
-        if (SpriteSetAsset != null && _bombObscureKinds.TryGetValue(cell, out var kind))
+        _visualizer.EnsureNumberSpriteSetReady();
+        if (_visualizer.NumberSpriteSetAsset != null && _bombObscureKinds.TryGetValue(cell, out var kind))
         {
-            var sprite = SpriteSetAsset.GetBombObscureSprite(kind);
+            var sprite = _visualizer.NumberSpriteSetAsset.GetBombObscureSprite(kind);
             if (sprite != null) return sprite;
         }
         return GetFallbackObscureSprite();
     }
 
     public Sprite GetFallbackObscureSprite() =>
-        _bombObscureSprite != null ? _bombObscureSprite : _tower.CreateBlockSprite();
+        _bombObscureSprite != null ? _bombObscureSprite : _visualizer.CreateBlockSprite();
 
     BombObscureKind GetBombObscureKind(Vector2Int offset)
     {
@@ -135,9 +138,9 @@ public class BombIceEffectController : MonoBehaviour
         {
             if (child == null) continue;
             if (!_tower.TryWorldToGridCell(child.position, out var cell)) continue;
-            if (!Grid.TryFindIceBelowInColumn(cell, out var iceCell)) continue;
+            if (!_grid.TryFindIceBelowInColumn(cell, out var iceCell)) continue;
             if (!damagedIce.Add(iceCell)) continue;
-            if (!IceCellViews.TryGetValue(iceCell, out var iceView)) continue;
+            if (!_iceCellViews.TryGetValue(iceCell, out var iceView)) continue;
             if (ApplyIceDamageInternal(iceCell, iceView.go,
                     iceView.go != null ? iceView.go.GetComponent<BlockCell>() : null))
                 changed = true;
@@ -152,8 +155,8 @@ public class BombIceEffectController : MonoBehaviour
     {
         if (landedState == null || landedState.kind == CellKind.Ice) return;
 
-        if (Grid.TryFindIceBelowInColumn(landedCell, out var iceCell) &&
-            IceCellViews.TryGetValue(iceCell, out var iceView))
+        if (_grid.TryFindIceBelowInColumn(landedCell, out var iceCell) &&
+            _iceCellViews.TryGetValue(iceCell, out var iceView))
             ApplyIceDamageInternal(iceCell, iceView.go,
                 iceView.go != null ? iceView.go.GetComponent<BlockCell>() : null);
     }
@@ -163,27 +166,27 @@ public class BombIceEffectController : MonoBehaviour
         if (blockCell == null || blockCell.Kind == CellKind.Ice) return false;
 
         Vector2Int? runtimeCell = null;
-        foreach (var pair in CellViews)
+        foreach (var pair in _cellViews)
         {
             if (pair.Value.go == null || pair.Value.go != blockCell.gameObject) continue;
             runtimeCell = pair.Key;
             break;
         }
 
-        if (runtimeCell.HasValue && Grid.TryGetCell(runtimeCell.Value, out var runtimeState))
+        if (runtimeCell.HasValue && _grid.TryGetCell(runtimeCell.Value, out var runtimeState))
         {
             runtimeState.number--;
             if (runtimeState.number <= 0)
             {
-                Grid.RemoveCell(runtimeCell.Value);
-                CellViews.Remove(runtimeCell.Value);
+                _grid.RemoveCell(runtimeCell.Value);
+                _cellViews.Remove(runtimeCell.Value);
                 Destroy(blockCell.gameObject);
             }
             else
             {
-                if (CellViews.TryGetValue(runtimeCell.Value, out var view))
-                    _tower.UpdateCellDataVisuals(runtimeState, view);
-                _tower.ApplyCellVisual(runtimeCell.Value);
+                if (_cellViews.TryGetValue(runtimeCell.Value, out var view))
+                    _visualizer.UpdateCellDataVisuals(runtimeState, view);
+                _visualizer.ApplyCellVisual(runtimeCell.Value);
             }
 
             return true;
@@ -202,15 +205,15 @@ public class BombIceEffectController : MonoBehaviour
 
     public bool ApplyIceColumnContactDamage(Vector3 iceWorldPosition)
     {
-        if (TowerRoot == null) return false;
+        if (_tower.TowerRoot == null) return false;
 
-        var local = TowerRoot.InverseTransformPoint(iceWorldPosition);
+        var local = _tower.TowerRoot.InverseTransformPoint(iceWorldPosition);
         int iceX = Mathf.RoundToInt(local.x - 0.5f);
         int iceY = Mathf.RoundToInt(local.y - 0.5f);
 
         Vector2Int? targetCell = null;
         int bestY = int.MaxValue;
-        foreach (var pair in Grid.AllCells)
+        foreach (var pair in _grid.AllCells)
         {
             if (pair.Key.x != iceX || pair.Key.y <= iceY) continue;
             if (pair.Key.y < bestY)
@@ -220,24 +223,24 @@ public class BombIceEffectController : MonoBehaviour
             }
         }
 
-        if (!targetCell.HasValue || !Grid.TryGetCell(targetCell.Value, out var state))
+        if (!targetCell.HasValue || !_grid.TryGetCell(targetCell.Value, out var state))
             return false;
 
         state.number--;
         if (state.number <= 0)
         {
-            Grid.RemoveCell(targetCell.Value);
-            if (CellViews.TryGetValue(targetCell.Value, out var view))
+            _grid.RemoveCell(targetCell.Value);
+            if (_cellViews.TryGetValue(targetCell.Value, out var view))
             {
-                CellViews.Remove(targetCell.Value);
+                _cellViews.Remove(targetCell.Value);
                 if (view.go != null) Destroy(view.go);
             }
         }
         else
         {
-            if (CellViews.TryGetValue(targetCell.Value, out var view))
-                _tower.UpdateCellDataVisuals(state, view);
-            _tower.ApplyCellVisual(targetCell.Value);
+            if (_cellViews.TryGetValue(targetCell.Value, out var view))
+                _visualizer.UpdateCellDataVisuals(state, view);
+            _visualizer.ApplyCellVisual(targetCell.Value);
         }
 
         return true;
@@ -249,7 +252,7 @@ public class BombIceEffectController : MonoBehaviour
             return ApplyIceDamageAtWorldPosition(iceWorldPosition);
 
         Vector2Int? iceCell = null;
-        foreach (var pair in IceCellViews)
+        foreach (var pair in _iceCellViews)
         {
             if (pair.Value.go == iceBlockCell.gameObject)
             {
@@ -263,14 +266,14 @@ public class BombIceEffectController : MonoBehaviour
 
     bool ApplyIceDamageAtWorldPosition(Vector3 iceWorldPosition)
     {
-        if (TowerRoot == null) return false;
+        if (_tower.TowerRoot == null) return false;
 
-        var local = TowerRoot.InverseTransformPoint(iceWorldPosition);
+        var local = _tower.TowerRoot.InverseTransformPoint(iceWorldPosition);
         var cell = new Vector2Int(
             Mathf.RoundToInt(local.x - 0.5f),
             Mathf.RoundToInt(local.y - 0.5f));
 
-        if (IceCellViews.TryGetValue(cell, out var view))
+        if (_iceCellViews.TryGetValue(cell, out var view))
             return ApplyIceDamageInternal(cell, view.go,
                 view.go != null ? view.go.GetComponent<BlockCell>() : null);
 
@@ -286,8 +289,8 @@ public class BombIceEffectController : MonoBehaviour
         {
             if (iceCell.HasValue)
             {
-                Grid.RemoveIceCell(iceCell.Value);
-                IceCellViews.Remove(iceCell.Value);
+                _grid.RemoveIceCell(iceCell.Value);
+                _iceCellViews.Remove(iceCell.Value);
             }
 
             Destroy(iceObject);
@@ -303,11 +306,11 @@ public class BombIceEffectController : MonoBehaviour
             label.gameObject.SetActive(true);
         }
 
-        if (iceCell.HasValue && Grid.TryGetIceCell(iceCell.Value, out var state))
+        if (iceCell.HasValue && _grid.TryGetIceCell(iceCell.Value, out var state))
         {
             state.number = number;
-            if (IceCellViews.TryGetValue(iceCell.Value, out var view))
-                _tower.UpdateCellDataVisuals(state, view);
+            if (_iceCellViews.TryGetValue(iceCell.Value, out var view))
+                _visualizer.UpdateCellDataVisuals(state, view);
         }
 
         return true;
@@ -330,9 +333,9 @@ public class BombIceEffectController : MonoBehaviour
         var sr = blockCell.GetComponent<SpriteRenderer>();
         if (sr == null) return;
 
-        _tower.EnsureNumberSpriteSetReady();
-        var numberSprite = _tower.GetNumberSprite(number);
-        var numberRenderer = _tower.EnsureStandaloneNumberSpriteRenderer(blockCell.transform);
+        _visualizer.EnsureNumberSpriteSetReady();
+        var numberSprite = _visualizer.GetNumberSprite(number);
+        var numberRenderer = _visualizer.EnsureStandaloneNumberSpriteRenderer(blockCell.transform);
 
         if (numberSprite != null)
         {
@@ -341,7 +344,7 @@ public class BombIceEffectController : MonoBehaviour
             numberRenderer.enabled = true;
             numberRenderer.color = Color.white;
             numberRenderer.sortingOrder = sr.sortingOrder + 1;
-            _tower.FitNumberSpriteToCell(numberRenderer);
+            _visualizer.FitNumberSpriteToCell(numberRenderer);
         }
         else
         {

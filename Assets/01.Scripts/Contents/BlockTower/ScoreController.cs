@@ -22,8 +22,6 @@ public class ScoreController : MonoBehaviour
     int  _score;
     bool _isGameOver;
 
-    Coroutine                   _canvasFloatingScoreRoutine;
-    TMPro.TextMeshProUGUI       _canvasFloatingScoreText;
 
     TetrominoPreset _bonusTargetPreset;
     TetrominoPreset _nextBonusTargetPreset;
@@ -198,38 +196,6 @@ public class ScoreController : MonoBehaviour
         if (go != null) Destroy(go);
     }
 
-    IEnumerator AnimateCanvasFloatingScoreText(int delta)
-    {
-        float duration = 0.85f;
-        float elapsed  = 0f;
-
-        _canvasFloatingScoreText.gameObject.name = "Floating Score";
-        _canvasFloatingScoreText.text            = delta > 0 ? $"+{delta}" : delta.ToString();
-        _canvasFloatingScoreText.color           = delta > 0 ? Color.white : Color.red;
-        _canvasFloatingScoreText.alpha           = 1f;
-        _canvasFloatingScoreText.gameObject.SetActive(true);
-
-        var rect     = _canvasFloatingScoreText.rectTransform;
-        var startPos = rect.anchoredPosition;
-        while (elapsed < duration && _canvasFloatingScoreText != null)
-        {
-            elapsed += Time.deltaTime;
-            float t = Mathf.Clamp01(elapsed / duration);
-            rect.anchoredPosition         = startPos + new Vector2(0f, t * 30f);
-            _canvasFloatingScoreText.alpha = 1f - t;
-            yield return null;
-        }
-
-        if (_canvasFloatingScoreText != null)
-        {
-            rect.anchoredPosition         = startPos;
-            _canvasFloatingScoreText.text  = string.Empty;
-            _canvasFloatingScoreText.alpha = 1f;
-            _canvasFloatingScoreText.gameObject.SetActive(false);
-        }
-
-        _canvasFloatingScoreRoutine = null;
-    }
 
     // ── 보너스 프리셋 큐 ──────────────────────────────────────────────────
     public void RollBonusTarget()

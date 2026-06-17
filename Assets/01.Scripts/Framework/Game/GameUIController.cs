@@ -472,7 +472,7 @@ public class GameUIController : MonoBehaviour
         }
 
         if (_tower == null) return;
-        var cells = _tower.GetPresetCells(Vector2Int.zero, preset, 0);
+        var cells = TetrominoShapeUtil.GetCells(Vector2Int.zero, preset, 0);
         int minX = int.MaxValue, minY = int.MaxValue, maxX = int.MinValue, maxY = int.MinValue;
         foreach (var c in cells)
         {

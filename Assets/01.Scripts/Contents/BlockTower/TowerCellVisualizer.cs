@@ -32,10 +32,11 @@ public class TowerCellVisualizer : MonoBehaviour
     Texture2D _outlineTex;
     readonly Color _focusedCellColor = new(0f, 1f, 1f, 1f);
 
-    TowerGridModel                   Grid         => _tower.Grid;
-    Dictionary<Vector2Int, CellView> CellViews    => _tower.CellViews;
-    Dictionary<Vector2Int, CellView> IceCellViews => _tower.IceCellViews;
-    BombIceEffectController          BombIce      => _tower.BombIceController;
+    TowerGridModel                   _grid;
+    Dictionary<Vector2Int, CellView> _cellViews;
+    Dictionary<Vector2Int, CellView> _iceCellViews;
+    BombIceEffectController          _bombIce;
+    TetrominoSelectionController     _selection;
 
     public Color PlacedBlockColor     => placedBlockColor;
     public Color SelectedOutlineColor => selectedOutlineColor;
@@ -51,25 +52,30 @@ public class TowerCellVisualizer : MonoBehaviour
     void Awake()
     {
         if (_tower == null) _tower = GetComponent<BlockTower>();
+        _grid         = _tower.Grid;
+        _cellViews    = _tower.CellViews;
+        _iceCellViews = _tower.IceCellViews;
+        _bombIce      = GetComponent<BombIceEffectController>();
+        _selection    = GetComponent<TetrominoSelectionController>();
     }
 
     // ── 셀 비주얼 ─────────────────────────────────────────────────────────
 
     public void ApplyCellVisual(Vector2Int cell)
     {
-        if (!Grid.TryGetCell(cell, out var state)) return;
-        if (!CellViews.TryGetValue(cell, out var view)) return;
+        if (!_grid.TryGetCell(cell, out var state)) return;
+        if (!_cellViews.TryGetValue(cell, out var view)) return;
 
-        bool isSelected           = _tower.IsSelectedCell(cell);
-        bool isFocused            = !_tower.IsPresetSelectionActive && _tower.HasFocusedCell && _tower.FocusedCell == cell;
-        bool showSelectedOutline  = isSelected && !_tower.IsPresetSelectionActive;
+        bool isSelected           = _selection.Selected.Contains(cell);
+        bool isFocused            = !_selection.IsPresetSelectionActive && _selection.HasFocusedCell && _selection.FocusedCell == cell;
+        bool showSelectedOutline  = isSelected && !_selection.IsPresetSelectionActive;
 
         if (state.concealedByBomb)
         {
             if (view.sr != null)
             {
-                bool hasCustom = BombIce != null && BombIce.HasBombObscureSprite(cell);
-                var sprite = BombIce?.GetBombObscureSpriteFor(cell);
+                bool hasCustom = _bombIce != null && _bombIce.HasBombObscureSprite(cell);
+                var sprite = _bombIce?.GetBombObscureSpriteFor(cell);
                 if (hasCustom && sprite != null)
                 {
                     ApplyFittedOverlaySprite(view, sprite, view.sr.sortingOrder + 1);
@@ -79,7 +85,7 @@ public class TowerCellVisualizer : MonoBehaviour
                 {
                     DisableNumberSpriteRenderer(view);
                     view.sr.sprite = sprite ?? CreateBlockSprite();
-                    view.sr.color  = BombIce?.BombObscureColor ?? new Color(0.45f, 0.45f, 0.45f, 0.92f);
+                    view.sr.color  = _bombIce?.BombObscureColor ?? new Color(0.45f, 0.45f, 0.45f, 0.92f);
                 }
             }
 
@@ -167,8 +173,8 @@ public class TowerCellVisualizer : MonoBehaviour
         {
             DisableNumberSpriteRenderer(view);
             var cell          = FindCellForView(view);
-            bool hasCustom    = cell.HasValue && (BombIce?.HasBombObscureSprite(cell.Value) ?? false);
-            var sprite        = cell.HasValue ? BombIce?.GetBombObscureSpriteFor(cell.Value) : BombIce?.GetFallbackObscureSprite();
+            bool hasCustom    = cell.HasValue && (_bombIce?.HasBombObscureSprite(cell.Value) ?? false);
+            var sprite        = cell.HasValue ? _bombIce?.GetBombObscureSpriteFor(cell.Value) : _bombIce?.GetFallbackObscureSprite();
             if (hasCustom && sprite != null)
             {
                 ApplyFittedOverlaySprite(view, sprite, view.sr.sortingOrder + 1);
@@ -178,7 +184,7 @@ public class TowerCellVisualizer : MonoBehaviour
             {
                 DisableNumberSpriteRenderer(view);
                 view.sr.sprite = sprite ?? CreateBlockSprite();
-                view.sr.color  = BombIce?.BombObscureColor ?? new Color(0.45f, 0.45f, 0.45f, 0.92f);
+                view.sr.color  = _bombIce?.BombObscureColor ?? new Color(0.45f, 0.45f, 0.45f, 0.92f);
             }
 
             view.sr.drawMode = SpriteDrawMode.Simple;
@@ -326,7 +332,6 @@ public class TowerCellVisualizer : MonoBehaviour
         if (numberSpriteSet == null)
             numberSpriteSet = GetComponent<BlockNumberSpriteSet>();
 
-        SyncBlockWeightGuideImages();
     }
 
     public void EnsureNumberSpriteSetReady() => EnsureNumberSpriteSet();
@@ -376,16 +381,15 @@ public class TowerCellVisualizer : MonoBehaviour
     {
         if (view == null) return null;
 
-        foreach (var pair in CellViews)
+        foreach (var pair in _cellViews)
             if (ReferenceEquals(pair.Value, view)) return pair.Key;
 
-        foreach (var pair in IceCellViews)
+        foreach (var pair in _iceCellViews)
             if (ReferenceEquals(pair.Value, view)) return pair.Key;
 
         return null;
     }
 
-    void SyncBlockWeightGuideImages() { }
 
 #if UNITY_EDITOR
     BlockNumberSpriteSetAsset FindDefaultNumberSpriteSetAsset()

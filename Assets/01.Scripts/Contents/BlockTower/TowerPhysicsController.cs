@@ -34,15 +34,23 @@ public class TowerPhysicsController : MonoBehaviour
     CameraController _camera;
     readonly List<DetachedComponent> _detachedComponents = new();
 
-    TowerGridModel                   Grid         => _tower.Grid;
-    Dictionary<Vector2Int, CellView> CellViews    => _tower.CellViews;
+    TowerGridModel                   _grid;
+    Dictionary<Vector2Int, CellView> _cellViews;
+    ScoreController                  _score;
+    BombIceEffectController          _bombIce;
+    TowerCellVisualizer              _visualizer;
 
     public float BlockBodyScale => blockBodyScale;
 
     void Awake()
     {
         if (_tower == null) _tower = GetComponent<BlockTower>();
-        _camera = GetComponent<CameraController>();
+        _camera     = GetComponent<CameraController>();
+        _grid       = _tower.Grid;
+        _cellViews  = _tower.CellViews;
+        _score      = GetComponent<ScoreController>();
+        _bombIce    = GetComponent<BombIceEffectController>();
+        _visualizer = GetComponent<TowerCellVisualizer>();
     }
 
 #if UNITY_EDITOR
@@ -99,7 +107,7 @@ public class TowerPhysicsController : MonoBehaviour
 
     public void UpdateTowerPhysicsState()
     {
-        if (!Application.isPlaying || _rb == null || Grid.Count == 0) return;
+        if (!Application.isPlaying || _rb == null || _grid.Count == 0) return;
 
         var com = CalculateCenterOfMass();
         _rb.centerOfMass = com;
@@ -111,7 +119,7 @@ public class TowerPhysicsController : MonoBehaviour
     {
         float totalWeight = 0f;
         Vector2 weightedSum = Vector2.zero;
-        foreach (var (cell, state) in Grid.AllCells)
+        foreach (var (cell, state) in _grid.AllCells)
         {
             if (state.kind == CellKind.Ice) continue;
             var localPos = new Vector2(cell.x + 0.5f, cell.y + 0.5f);
@@ -144,7 +152,7 @@ public class TowerPhysicsController : MonoBehaviour
         maxX = float.MinValue;
         int minY = int.MaxValue;
 
-        foreach (var pair in Grid.AllCells)
+        foreach (var pair in _grid.AllCells)
         {
             if (pair.Value.kind == CellKind.Ice) continue;
             minY = Mathf.Min(minY, pair.Key.y);
@@ -152,7 +160,7 @@ public class TowerPhysicsController : MonoBehaviour
 
         if (minY == int.MaxValue) return false;
 
-        foreach (var pair in Grid.AllCells)
+        foreach (var pair in _grid.AllCells)
         {
             if (pair.Value.kind == CellKind.Ice) continue;
             if (pair.Key.y != minY) continue;
@@ -167,11 +175,11 @@ public class TowerPhysicsController : MonoBehaviour
 
     public void CheckForDetachment()
     {
-        if (Grid.Count == 0) return;
+        if (_grid.Count == 0) return;
 
         DetachOriginalTowerBlocksSupportedOnlyByTop();
 
-        var components = Grid.FindConnectedComponents();
+        var components = _grid.FindConnectedComponents();
         if (components.Count <= 1) return;
 
         int mainIdx = FindMainTowerComponentIndex(components);
@@ -184,14 +192,14 @@ public class TowerPhysicsController : MonoBehaviour
 
     void DetachOriginalTowerBlocksSupportedOnlyByTop()
     {
-        var components = Grid.FindOriginalTowerComponents();
+        var components = _grid.FindOriginalTowerComponents();
         if (components.Count <= 1) return;
 
         int mainIdx = FindMainTowerComponentIndex(components);
         for (int i = 0; i < components.Count; i++)
         {
             if (i == mainIdx) continue;
-            if (Grid.TouchesPlacedTopBlock(components[i]))
+            if (_grid.TouchesPlacedTopBlock(components[i]))
                 DetachComponent(components[i]);
         }
     }
@@ -207,12 +215,12 @@ public class TowerPhysicsController : MonoBehaviour
 
     bool IsBetterMainTowerComponent(List<Vector2Int> candidate, List<Vector2Int> current)
     {
-        bool cGrounded = Grid.TouchesGround(candidate);
-        bool curGrounded = Grid.TouchesGround(current);
+        bool cGrounded = _grid.TouchesGround(candidate);
+        bool curGrounded = _grid.TouchesGround(current);
         if (cGrounded != curGrounded) return cGrounded;
 
-        int cMinY = Grid.MinComponentY(candidate);
-        int curMinY = Grid.MinComponentY(current);
+        int cMinY = _grid.MinComponentY(candidate);
+        int curMinY = _grid.MinComponentY(current);
         if (cMinY != curMinY) return cMinY < curMinY;
 
         return candidate.Count > current.Count;
@@ -224,7 +232,7 @@ public class TowerPhysicsController : MonoBehaviour
         int valid = 0;
         foreach (var cell in component)
         {
-            if (CellViews.TryGetValue(cell, out var v))
+            if (_cellViews.TryGetValue(cell, out var v))
             {
                 centroid += v.go.transform.position;
                 valid++;
@@ -256,8 +264,8 @@ public class TowerPhysicsController : MonoBehaviour
 
         foreach (var cell in component)
         {
-            if (!Grid.TryGetCell(cell, out var state)) continue;
-            if (!CellViews.TryGetValue(cell, out var view)) continue;
+            if (!_grid.TryGetCell(cell, out var state)) continue;
+            if (!_cellViews.TryGetValue(cell, out var view)) continue;
 
             view.go.transform.SetParent(orphanGO.transform, worldPositionStays: true);
 
@@ -265,8 +273,8 @@ public class TowerPhysicsController : MonoBehaviour
             weightedSum += localPos * state.number;
             totalWeight += state.number;
 
-            Grid.RemoveCell(cell);
-            CellViews.Remove(cell);
+            _grid.RemoveCell(cell);
+            _cellViews.Remove(cell);
         }
 
         if (totalWeight > 0f)
@@ -301,7 +309,7 @@ public class TowerPhysicsController : MonoBehaviour
                 detached.resolved = true;
                 _detachedComponents.Remove(detached);
                 if (detached.root != null) Destroy(detached.root);
-                _tower.Score?.TriggerGameOver();
+                _score?.TriggerGameOver();
                 yield break;
             }
 
@@ -310,7 +318,7 @@ public class TowerPhysicsController : MonoBehaviour
             bool canTry = Time.time - detached.detachedAt >= detachedMinAirTime &&
                           stable >= detachedReattachStableTime;
 
-            if (canTry && (_tower.BombIceController?.ApplyIceColumnDamageToDetached(detached) ?? false))
+            if (canTry && (_bombIce?.ApplyIceColumnDamageToDetached(detached) ?? false))
             {
                 detached.resolved = true;
                 _detachedComponents.Remove(detached);
@@ -365,12 +373,12 @@ public class TowerPhysicsController : MonoBehaviour
                 detached.resolved = true;
                 _detachedComponents.RemoveAt(i);
                 if (detached.root != null) Destroy(detached.root);
-                _tower.Score?.TriggerGameOver();
+                _score?.TriggerGameOver();
                 continue;
             }
 
             bool canTry = CanTryReattach(detached);
-            if (canTry && (_tower.BombIceController?.ApplyIceColumnDamageToDetached(detached) ?? false))
+            if (canTry && (_bombIce?.ApplyIceColumnDamageToDetached(detached) ?? false))
             {
                 detached.resolved = true;
                 _detachedComponents.RemoveAt(i);
@@ -404,7 +412,7 @@ public class TowerPhysicsController : MonoBehaviour
         _detachedComponents.Remove(detached);
         if (detached.root != null)
             Destroy(detached.root);
-        _tower.Score?.AddScore(-Mathf.Max(0, detached.scorePenalty), scorePos);
+        _score?.AddScore(-Mathf.Max(0, detached.scorePenalty), scorePos);
     }
 
     bool IsBelowDeadline(DetachedComponent detached) =>
@@ -423,7 +431,7 @@ public class TowerPhysicsController : MonoBehaviour
             if (blockCell == null || blockCell.Kind != CellKind.Bomb) continue;
             if (_tower.TryWorldToGridCell(child.position, out var cell))
             {
-                _tower.BombIceController?.TriggerBombAt(cell);
+                _bombIce?.TriggerBombAt(cell);
                 triggered = true;
             }
         }
@@ -473,10 +481,10 @@ public class TowerPhysicsController : MonoBehaviour
         foreach (var child in children)
         {
             if (!_tower.TryWorldToGridCell(child.position, out var cell)) return false;
-            if (Grid.TryGetCell(cell, out var existing) && existing.kind == CellKind.Ice)
+            if (_grid.TryGetCell(cell, out var existing) && existing.kind == CellKind.Ice)
                 return false;
 
-            if (Grid.HasCell(cell) || !used.Add(cell))
+            if (_grid.HasCell(cell) || !used.Add(cell))
             {
                 duplicates.Add(child);
                 continue;
@@ -508,7 +516,7 @@ public class TowerPhysicsController : MonoBehaviour
                 number          = Mathf.Max(1, blockCell?.Weight is float w ? Mathf.RoundToInt(w) : 1),
                 isOriginalTower = blockCell != null && blockCell.IsOriginalTower,
                 kind            = blockCell != null ? blockCell.Kind : CellKind.Normal,
-                concealedByBomb = _tower.BombIceController?.IsConcealedByBomb(cell) ?? false
+                concealedByBomb = _bombIce?.IsConcealedByBomb(cell) ?? false
             };
             var view = new CellView
             {
@@ -518,11 +526,11 @@ public class TowerPhysicsController : MonoBehaviour
                 label   = label
             };
 
-            Grid.AddCell(cell, state);
-            CellViews[cell] = view;
-            _tower.BombIceController?.ApplyIceColumnLandingDamage(cell, state);
+            _grid.AddCell(cell, state);
+            _cellViews[cell] = view;
+            _bombIce?.ApplyIceColumnLandingDamage(cell, state);
             if (view.go == null) continue;
-            _tower.ApplyCellVisual(cell);
+            _visualizer?.ApplyCellVisual(cell);
         }
 
         Destroy(detachedRoot);
@@ -544,7 +552,7 @@ public class TowerPhysicsController : MonoBehaviour
             foreach (var neighbor in Util.Neighbors(cell))
             {
                 if (detachedCells.Contains(neighbor)) continue;
-                if (Grid.IsMergeableCell(neighbor)) return true;
+                if (_grid.IsMergeableCell(neighbor)) return true;
             }
         return false;
     }

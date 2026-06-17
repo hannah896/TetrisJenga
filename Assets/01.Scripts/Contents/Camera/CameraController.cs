@@ -28,6 +28,7 @@ public class CameraController : MonoBehaviour
     [SerializeField] int   secondaryViewTextureSize         = 768;
     [SerializeField, HideInInspector] bool secondaryViewDefaultsMigrated;
 
+    HeldBlockController _held;
     bool          _hasCameraTarget;
     float         _cameraTargetY;
     float         _cameraTargetSize;
@@ -47,6 +48,7 @@ public class CameraController : MonoBehaviour
     {
         if (_tower == null)
             _tower = GetComponent<BlockTower>();
+        _held = GetComponent<HeldBlockController>();
         if (_tower != null)
         {
             _tower.OnTowerReady    += HandleTowerReady;
@@ -124,12 +126,12 @@ public class CameraController : MonoBehaviour
         EnsureSecondaryViewObjects();
         if (secondaryViewCamera == null) return;
         float aspect  = SecondaryViewAspect();
-        bool  hasView = _tower.IsHolding
+        bool  hasView = (_held != null && _held.IsHolding)
             ? TryCalculateOccupiedRowsCameraView(extractionViewPadding, aspect, out var tY, out var tS)
             : TryCalculatePlacementCameraView(aspect, out tY, out tS);
         if (!hasView) return;
         var main = Camera.main;
-        if (!_tower.IsHolding && secondaryViewOrthographicSize > 0.01f) tS = secondaryViewOrthographicSize;
+        if (!(_held != null && _held.IsHolding) && secondaryViewOrthographicSize > 0.01f) tS = secondaryViewOrthographicSize;
         secondaryViewCamera.orthographic = false;
         if (main != null) secondaryViewCamera.fieldOfView = main.fieldOfView;
         secondaryViewCamera.transform.position = new Vector3(0f, tY, CameraZForHalfHeight(secondaryViewCamera, tS));
@@ -180,7 +182,7 @@ public class CameraController : MonoBehaviour
         var cam = Camera.main;
         if (cam == null || _tower.TowerRoot == null) return;
         float halfH       = CurrentCameraHalfHeight(cam);
-        _cameraTargetY    = Mathf.Max(_tower.FloorY + halfH, _tower.TowerRoot.position.y + _tower.HeldBaseCell.y + _tower.HeldCenter.y);
+        _cameraTargetY    = Mathf.Max(_tower.FloorY + halfH, _tower.TowerRoot.position.y + (_held != null ? _held.BaseCell.y + _held.Center.y : 0f));
         _cameraTargetSize = halfH;
         _hasCameraTarget  = true;
     }
