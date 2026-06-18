@@ -22,6 +22,7 @@ using UnityEditor;
 [RequireComponent(typeof(TowerPhysicsController))]
 [RequireComponent(typeof(TowerSceneBuilder))]
 [RequireComponent(typeof(HeldPlacementController))]
+[RequireComponent(typeof(BlockExtractionController))]
 [RequireComponent(typeof(GameUIController))]
 [RequireComponent(typeof(ScoreController))]
 [ExecuteAlways]
@@ -45,7 +46,8 @@ public class BlockTower : MonoBehaviour
     [SerializeField] BombIceEffectController _bombIceController;
     [SerializeField] TowerCellVisualizer _visualizer;
     [SerializeField] TowerSceneBuilder _sceneBuilder;
-    [SerializeField] HeldPlacementController _heldPlacementController;
+    [SerializeField] HeldPlacementController     _heldPlacementController;
+    [SerializeField] BlockExtractionController   _extractionController;
 
     [Header("Initial Tower Numbers")]
     [SerializeField] int initialTowerNumberTotal = 160;
@@ -64,7 +66,6 @@ public class BlockTower : MonoBehaviour
     GameObject _generatedFloor;
     GameObject _generatedScoreLabel;
     GameObject _bonusPreviewRoot;
-    GameObject _presetOutlineRoot;
     readonly HashSet<GameObject> _generatedObjects = new();
     bool _initialTowerNumbersRandomizedThisPlay;
 
@@ -72,15 +73,7 @@ public class BlockTower : MonoBehaviour
     readonly Dictionary<Vector2Int, CellView> _cellViews    = new();
     readonly Dictionary<Vector2Int, CellView> _iceCellViews = new();
 
-    Vector2 _lastExtractionCenter;
-
-    readonly Color _failFlashColor = new(1f, 0.08f, 0.08f, 0.85f);
-
     float _floorY;
-    int _extractionMinRow;
-    int _extractionMaxRow;
-    int _extractionMinCol;
-    int _extractionMaxCol;
 
     #endregion
     // ─────────────────────────────────────────────────────────────
@@ -92,7 +85,7 @@ public class BlockTower : MonoBehaviour
     public event UnityAction OnTowerReset;
     public UnityAction OnBlocksLifted;
     public UnityAction OnBlocksPlaced;
-    public event UnityAction OnHoldCancelled;
+    public UnityAction OnHoldCancelled;
 
     #endregion
     // ─────────────────────────────────────────────────────────────
@@ -104,8 +97,8 @@ public class BlockTower : MonoBehaviour
     public bool IsPresetSelectionActive  => Selection.IsPresetSelectionActive;
     public bool HasLastPlacementCenter   => _heldPlacementController != null && _heldPlacementController.HasLastPlacementCenter;
     public Vector2 LastPlacementCenter   => _heldPlacementController?.LastPlacementCenter ?? Vector2.zero;
-    public int  ExtractionMinRow         => _extractionMinRow;
-    public int  ExtractionMaxRow         => _extractionMaxRow;
+    public int  ExtractionMinRow         => _extractionController?.ExtractionMinRow ?? 0;
+    public int  ExtractionMaxRow         => _extractionController?.ExtractionMaxRow ?? (rows - 1);
     public float     FloorY              => _floorY;
     public Transform TowerRoot           => _towerRoot;
     public Transform FloorTransformRef   => floorTransform;
@@ -113,6 +106,8 @@ public class BlockTower : MonoBehaviour
     public ScoreController  Score        => _scoreController;
     public GameObject GeneratedFloor     => _generatedFloor;
     public BonusTetrominoSpriteSet BonusTetrominoSpriteSet => bonusTetrominoSpriteSet;
+    public bool ApplyIceDamage(BlockCell iceBlockCell, Vector3 iceWorldPosition)
+        => _bombIceController?.ApplyIceDamage(iceBlockCell, iceWorldPosition) ?? false;
 
     #endregion
     
@@ -171,6 +166,8 @@ public class BlockTower : MonoBehaviour
             _scoreController = GetComponent<ScoreController>();
         if (_heldPlacementController == null)
             _heldPlacementController = GetComponent<HeldPlacementController>();
+        if (_extractionController == null)
+            _extractionController = GetComponent<BlockExtractionController>();
 
         if (Application.isPlaying)
             return;
@@ -216,7 +213,6 @@ public class BlockTower : MonoBehaviour
 
         if (IsGameOver) return;
         SyncPlacementZoneFromObject();
-        UpdatePresetOutlineFeedback();
     }
 
     #endregion
@@ -277,10 +273,6 @@ public class BlockTower : MonoBehaviour
         Selection.Anchor = Vector2Int.zero;
         Selection.Rotation = 0;
         Held.UsingKeyboardPlacement = false;
-        _extractionMinCol = 0;
-        _extractionMaxCol = columns - 1;
-        _extractionMinRow = 0;
-        _extractionMaxRow = rows - 1;
         Held.StartScore = 0;
         Held.MatchesBonus = false;
         OnTowerReset?.Invoke();
@@ -836,17 +828,7 @@ public class BlockTower : MonoBehaviour
 
         HideResultScreens();
 
-        if (_presetOutlineRoot == null)
-        {
-            var f = transform.Find("PresetOutlinePreview");
-            if (f) _presetOutlineRoot = f.gameObject;
-        }
-
-        if (_presetOutlineRoot != null)
-        {
-            DestroyLocal(_presetOutlineRoot);
-            _presetOutlineRoot = null;
-        }
+        _extractionController?.ClearPresetOutlinePreview();
 
         if (_bonusPreviewRoot == null)
         {
@@ -937,420 +919,10 @@ public class BlockTower : MonoBehaviour
 
     #endregion
 
-    #region Extraction & Selection
+    #region Extraction & Focus — Passthroughs
 
-    public void HandleClick()
-    {
-        _physicsController?.RefreshDetachedComponents();
-
-        var worldPos = Util.MouseWorldPos();
-        var local = _towerRoot.InverseTransformPoint(worldPos);
-        var cell = new Vector2Int(
-            Mathf.FloorToInt(local.x),
-            Mathf.FloorToInt(local.y));
-
-        if (!IsExtractableCell(cell))
-            return;
-
-        if (Selection.IsPresetSelectionActive)
-        {
-            ClearSelectedCellsOnly();
-            ClearPresetOutlinePreview();
-            Selection.CancelPresetSelection();
-        }
-
-        SetFocusCell(cell);
-
-        if (Selection.Selected.Contains(cell))
-        {
-            Debug.Log($"[CLICK SAME CELL] {cell}");
-            TryDeselect(cell);
-            return;
-        }
-
-        if (Selection.Selected.Count > 0 && !Selection.IsAdjacentToSelected(cell))
-            ClearSelectedCellsOnly();
-
-        if (Selection.Selected.Count < 4)
-        {
-            SelectCell(cell);
-
-            if (Selection.Selected.Count == 4)
-                LiftBlocks();
-        }
-    }
-
-    void SelectCell(Vector2Int cell)
-    {
-        if (!_grid.TryGetCell(cell, out var state)) return;
-        if (!state.isOriginalTower) return;
-        if (state.kind == CellKind.Ice) return;
-        if (Selection.Selected.Contains(cell)) return;
-        Selection.Selected.Add(cell);
-        _visualizer?.ApplyCellVisual(cell);
-    }
-
-    void DeselectCell(Vector2Int cell)
-    {
-        Selection.Selected.Remove(cell);
-        _visualizer?.ApplyCellVisual(cell);
-    }
-
-    bool IsExtractableCell(Vector2Int cell) => _grid.IsExtractableCell(cell);
-
-    void TryDeselect(Vector2Int cell)
-    {
-        Debug.Log($"[TRY DESELECT] {cell}");
-        Debug.Log($"[BEFORE] Count={Selection.Selected.Count}");
-
-        var remaining = new List<Vector2Int>(Selection.Selected);
-        remaining.Remove(cell);
-
-        Debug.Log($"[AFTER REMOVE] Remaining={remaining.Count}");
-
-        if (remaining.Count <= 1 || _grid.IsConnected(remaining))
-        {
-            Debug.Log("[DESELECT EXECUTED]");
-            DeselectCell(cell);
-        }
-    }
-
-    public void ClearSelection()
-    {
-        Selection.IsPresetSelectionActive = false;
-        ClearPresetOutlinePreview();
-        foreach (var c in new List<Vector2Int>(Selection.Selected))
-            DeselectCell(c);
-    }
-
-    void ClearSelectedCellsOnly()
-    {
-        foreach (var c in new List<Vector2Int>(Selection.Selected))
-            DeselectCell(c);
-    }
-
-    void LiftBlocks()
-    {
-        Selection.IsPresetSelectionActive = false;
-        ClearPresetOutlinePreview();
-        int minX = int.MaxValue, minY = int.MaxValue;
-        int maxX = int.MinValue, maxY = int.MinValue;
-        foreach (var c in Selection.Selected)
-        {
-            minX = Mathf.Min(minX, c.x);
-            minY = Mathf.Min(minY, c.y);
-            maxX = Mathf.Max(maxX, c.x);
-            maxY = Mathf.Max(maxY, c.y);
-        }
-
-        var extractionScorePos = _towerRoot.TransformPoint(new Vector3(
-            (minX + maxX + 1f) * 0.5f,
-            (minY + maxY + 1f) * 0.5f,
-            0f));
-        Held.Center = new Vector2((maxX - minX + 1) * 0.5f, (maxY - minY + 1) * 0.5f);
-
-        Held.RelPos.Clear();
-        Held.Data.Clear();
-        Held.SourceCells.Clear();
-        Held.StartScore = _scoreController?.Score ?? 0;
-        _lastExtractionCenter = new Vector2((minX + maxX + 1f) * 0.5f, (minY + maxY + 1f) * 0.5f);
-        foreach (var c in Selection.Selected)
-            Held.RelPos.Add(new Vector2Int(c.x - minX, c.y - minY));
-        Held.MatchesBonus = TetrominoShapeUtil.ShapeMatchesPreset(Held.RelPos, _scoreController?.BonusTargetPreset ?? TetrominoPreset.I);
-
-        foreach (var pair in _grid.AllCells)
-        {
-            Held.SourceCells.Add(new HeldSourceCell
-            {
-                cell            = pair.Key,
-                number          = pair.Value.number,
-                isOriginalTower = pair.Value.isOriginalTower,
-                kind            = pair.Value.kind
-            });
-        }
-
-        var changedCells = new List<Vector2Int>();
-        var bombCells    = new List<Vector2Int>();
-        foreach (var cell in Selection.Selected)
-        {
-            if (!_grid.TryGetCell(cell, out var state)) continue;
-            if (!_cellViews.TryGetValue(cell, out var view)) continue;
-            changedCells.Add(cell);
-            if (state.kind == CellKind.Bomb)
-                bombCells.Add(cell);
-            state.number--;
-            if (state.number <= 0)
-            {
-                Destroy(view.go);
-                _grid.RemoveCell(cell);
-                _cellViews.Remove(cell);
-            }
-            else
-            {
-                var bc = view.go.GetComponent<BlockCell>();
-                if (bc != null)
-                {
-                    bc.Weight = state.number;
-                    bc.IsOriginalTower = state.isOriginalTower;
-                    bc.Kind = state.kind;
-                }
-                _visualizer?.UpdateCellDataVisuals(state, view);
-            }
-        }
-
-        Selection.Selected.Clear();
-        Selection.HasFocusedCell = false;
-        foreach (var cell in changedCells)
-            _visualizer?.ApplyCellVisual(cell);
-        foreach (var bombCell in bombCells)
-            _bombIceController?.TriggerBombAt(bombCell);
-
-        Held.Root = new GameObject("HeldBlocks");
-        MarkGeneratedObject(Held.Root);
-        Held.Root.transform.SetParent(transform);
-
-        var pc        = _visualizer?.PlacedBlockColor ?? new Color(0.55f, 0.58f, 0.60f, 1f);
-        var heldColor = new Color(pc.r, pc.g, pc.b, 0.6f);
-
-        for (int i = 0; i < Held.RelPos.Count; i++)
-        {
-            var rel = Held.RelPos[i];
-
-            var go = new GameObject($"Held_{i}");
-            MarkGeneratedObject(go);
-            go.transform.SetParent(Held.Root.transform, false);
-            go.transform.localPosition = new Vector3(
-                rel.x + 0.5f - Held.Center.x,
-                rel.y + 0.5f - Held.Center.y,
-                0f);
-            go.transform.localScale = Vector3.one * blockBodyScale;
-
-            var sr = go.AddComponent<SpriteRenderer>();
-            sr.sprite = _visualizer?.CreateBlockSprite();
-            sr.color = heldColor;
-            sr.sortingOrder = 20;
-            var blurRenderers = _visualizer?.CreatePreviewBlur(go.transform) ?? new List<SpriteRenderer>();
-
-            var box = go.AddComponent<BoxCollider>();
-            box.size = Vector3.one * (_physicsController?.LocalColliderSize() ?? 0.92f);
-            box.sharedMaterial = _physicsController?.CreateFrictionMaterial();
-            box.enabled = false;
-
-            var bc = go.AddComponent<BlockCell>();
-            bc.Weight = 1;
-            bc.IsOriginalTower = false;
-
-            var heldState = new CellState { number = 1, isOriginalTower = false };
-            var heldView  = new CellView
-            {
-                go = go,
-                sr = sr,
-                outline = null,
-                label   = null,
-                previewBlurRenderers = blurRenderers
-            };
-            Held.Data.Add((heldState, heldView));
-        }
-
-        _physicsController?.CheckForDetachment();
-        _physicsController?.UpdateTowerPhysicsState();
-
-        AudioManager.PlaySound(_AudioLibrarySounds.Hold);
-        Held.IsHolding = true;
-        if (_heldPlacementController != null)
-            Held.BaseCell = _heldPlacementController.GetDefaultHeldBaseCell();
-        Held.UsingKeyboardPlacement = true;
-        OnBlocksLifted?.Invoke();
-        _scoreController?.AddScore(Held.MatchesBonus ? 2 : 1, extractionScorePos);
-        _scoreController?.RollBonusTarget();
-    }
-
-    void RestoreHeldSourceCells()
-    {
-        foreach (var pair in _cellViews)
-            if (pair.Value.go != null)
-                DestroyLocal(pair.Value.go);
-
-        _grid.Clear();
-        _cellViews.Clear();
-        _iceCellViews.Clear();
-
-        _physicsController?.ClearDetachedBlocks();
-
-        foreach (var source in Held.SourceCells)
-        {
-            var (state, view) = SpawnCell(source.cell, source.number, source.isOriginalTower);
-            state.kind = source.kind;
-            state.concealedByBomb = _bombIceController?.IsConcealedByBomb(source.cell) ?? false;
-            _visualizer?.UpdateCellDataVisuals(state, view);
-            _grid.AddCell(source.cell, state);
-            _cellViews[source.cell] = view;
-            _visualizer?.ApplyCellVisual(source.cell);
-        }
-
-        _scoreController?.SetScoreTo(Held.StartScore);
-        _heldPlacementController?.ResetPlacementMemory();
-        Selection.ClearFocus();
-        UpdateExtractionTowerRowsFromCells();
-    }
-
-    public void CancelHold()
-    {
-        if (!Held.IsHolding) return;
-        if (Held.Root != null) { Destroy(Held.Root); Held.Root = null; }
-        RestoreHeldSourceCells();
-        Held.RelPos.Clear();
-        Held.Data.Clear();
-        Held.SourceCells.Clear();
-        Held.StartScore = 0;
-        Held.MatchesBonus = false;
-        Held.IsHolding = false;
-        Held.UsingKeyboardPlacement = false;
-        _physicsController?.UpdateTowerPhysicsState();
-        OnHoldCancelled?.Invoke();
-        FocusDefaultExtractionCell();
-        _scoreController?.AddScore(-2, transform.position);
-    }
-
-    void CreatePresetOutlinePreview(List<Vector2Int> cells)
-    {
-        ClearPresetOutlinePreview();
-
-        _presetOutlineRoot = new GameObject("PresetOutlinePreview");
-        MarkGeneratedObject(_presetOutlineRoot);
-        _presetOutlineRoot.transform.SetParent(_towerRoot, false);
-        Util.SetNoPostLayer(_presetOutlineRoot);
-
-        foreach (var cell in cells)
-        {
-            var go = new GameObject($"PresetOutline_{cell.x}_{cell.y}");
-            MarkGeneratedObject(go);
-            go.transform.SetParent(_presetOutlineRoot.transform, false);
-            Util.SetNoPostLayer(go);
-            go.transform.localPosition = new Vector3(cell.x + 0.5f, cell.y + 0.5f, 0.04f);
-            go.transform.localScale    = Vector3.one * (_visualizer?.SelectedOutlineScale ?? 1.10f);
-
-            var sr = go.AddComponent<SpriteRenderer>();
-            sr.sprite = _visualizer?.CreateOutlineSprite();
-            sr.color  = _visualizer?.SelectedOutlineColor ?? new Color(1f, 1f, 1f, 0.95f);
-            sr.sortingOrder = 5;
-        }
-    }
-
-    void UpdatePresetOutlineFeedback()
-    {
-        if (_presetOutlineRoot == null) return;
-
-        bool isFailing = Time.time < Held.FailEndTime;
-        _presetOutlineRoot.transform.localPosition = Held.FailShakeOffset(isFailing);
-
-        var color = isFailing ? _failFlashColor : (_visualizer?.SelectedOutlineColor ?? new Color(1f, 1f, 1f, 0.95f));
-        foreach (var sr in _presetOutlineRoot.GetComponentsInChildren<SpriteRenderer>())
-            sr.color = color;
-    }
-
-    public void ClearPresetOutlinePreview()
-    {
-        if (_presetOutlineRoot != null) { DestroyLocal(_presetOutlineRoot); _presetOutlineRoot = null; }
-    }
-
-    public void UpdateExtractionTowerRowsFromCells()
-    {
-        bool hasOriginal = false;
-        foreach (var pair in _grid.AllCells)
-            if (pair.Value.isOriginalTower) { hasOriginal = true; break; }
-
-        if (!hasOriginal)
-        {
-            _extractionMinCol = 0; _extractionMaxCol = columns - 1;
-            _extractionMinRow = 0; _extractionMaxRow = rows - 1;
-            UpdateTowerStackDivider();
-            return;
-        }
-
-        int minX = int.MaxValue, maxX = int.MinValue, minY = int.MaxValue, maxY = int.MinValue;
-        foreach (var pair in _grid.AllCells)
-        {
-            var cell = pair.Key;
-            if (!_grid.IsExtractableCell(cell)) continue;
-            minX = Mathf.Min(minX, cell.x); maxX = Mathf.Max(maxX, cell.x);
-            minY = Mathf.Min(minY, cell.y); maxY = Mathf.Max(maxY, cell.y);
-        }
-        _extractionMinCol = minX == int.MaxValue ? 0           : minX;
-        _extractionMaxCol = maxX == int.MinValue ? columns - 1 : maxX;
-        _extractionMinRow = minY == int.MaxValue ? 0           : minY;
-        _extractionMaxRow = maxY == int.MinValue ? -1          : maxY;
-        UpdateTowerStackDivider();
-    }
-
-    bool IsInExtractionTowerRows(Vector2Int cell) =>
-        cell.x >= _extractionMinCol && cell.x <= _extractionMaxCol &&
-        cell.y >= _extractionMinRow && cell.y <= _extractionMaxRow;
-
-    #endregion
-
-
-    #region Focus
-
-    void SetFocusCell(Vector2Int cell) => Selection.SetFocus(this, cell);
-
-    public void FocusDefaultExtractionCell()
-    {
-        Selection.ClearFocus();
-        if (TryFindFocusNearLastExtraction(ignoreLastPlaced: true, out var lastCell) ||
-            TryFindFocusNearLastExtraction(ignoreLastPlaced: false, out lastCell))
-        {
-            SetFocusCell(lastCell);
-            return;
-        }
-
-        if (TryFindDefaultFocusCell(ignoreLastPlaced: true, out var cell) ||
-            TryFindDefaultFocusCell(ignoreLastPlaced: false, out cell))
-        {
-            SetFocusCell(cell);
-        }
-    }
-
-    bool TryFindFocusNearLastExtraction(bool ignoreLastPlaced, out Vector2Int best)
-    {
-        best = default;
-        bool found = false;
-        float bestDistance = float.MaxValue;
-
-        foreach (var pair in _grid.AllCells)
-        {
-            var cell = pair.Key;
-            if (ignoreLastPlaced && _heldPlacementController.IsLastPlaced(cell)) continue;
-            if (!_grid.IsExtractableCell(cell)) continue;
-            if (!IsInExtractionTowerRows(cell)) continue;
-
-            float distance = Vector2.SqrMagnitude(new Vector2(cell.x + 0.5f, cell.y + 0.5f) - _lastExtractionCenter);
-            if (!found || distance < bestDistance ||
-                Mathf.Approximately(distance, bestDistance) && cell.y > best.y)
-            {
-                best = cell;
-                bestDistance = distance;
-                found = true;
-            }
-        }
-
-        return found;
-    }
-
-    bool TryFindDefaultFocusCell(bool ignoreLastPlaced, out Vector2Int cell)
-    {
-        cell = default;
-        foreach (var pair in _grid.AllCells)
-        {
-            var c = pair.Key;
-            if (ignoreLastPlaced && _heldPlacementController.IsLastPlaced(c)) continue;
-            if (!_grid.IsExtractableCell(c)) continue;
-            if (!IsInExtractionTowerRows(c)) continue;
-            cell = c;
-            return true;
-        }
-        return false;
-    }
+    public void UpdateExtractionTowerRowsFromCells() => _extractionController?.UpdateExtractionTowerRowsFromCells();
+    public void FocusDefaultExtractionCell()         => _extractionController?.FocusDefaultExtractionCell();
 
     #endregion
 
@@ -1371,8 +943,8 @@ public class BlockTower : MonoBehaviour
             Mathf.RoundToInt(local.x - 0.5f),
             Mathf.RoundToInt(local.y - 0.5f));
 
-        int minGridX = Mathf.Min(placementMin.x, _extractionMinCol);
-        int maxGridX = Mathf.Max(placementMax.x, _extractionMaxCol);
+        int minGridX = Mathf.Min(placementMin.x, _extractionController?.ExtractionMinCol ?? 0);
+        int maxGridX = Mathf.Max(placementMax.x, _extractionController?.ExtractionMaxCol ?? (columns - 1));
         return cell.x >= minGridX && cell.x <= maxGridX && cell.y >= 0;
     }
 
@@ -1398,41 +970,6 @@ public class BlockTower : MonoBehaviour
 
     #endregion
 
-    #region Ice & Bomb Effects
-
-    public bool ApplyIceDamage(BlockCell iceBlockCell, Vector3 iceWorldPosition)
-        => _bombIceController?.ApplyIceDamage(iceBlockCell, iceWorldPosition) ?? false;
-
-    #endregion
-
-    #region Selection Controller Bridge
-
-    public bool SelectionHasCell(Vector2Int cell)                               => _grid.HasCell(cell);
-    public bool SelectionIsExtractableCell(Vector2Int cell)                     => IsExtractableCell(cell);
-    public void SelectionApplyCellVisual(Vector2Int cell)                       => _visualizer?.ApplyCellVisual(cell);
-    public void SelectionFocusDefaultExtractionCell()                           => FocusDefaultExtractionCell();
-    public void SelectionSelectCell(Vector2Int cell)                            => SelectCell(cell);
-    public void SelectionTryDeselect(Vector2Int cell)                           => TryDeselect(cell);
-    public void SelectionClearSelectedCellsOnly()                               => ClearSelectedCellsOnly();
-    public void SelectionLiftBlocks()                                           => LiftBlocks();
-    public void SelectionCreatePresetOutlinePreview(List<Vector2Int> cells)     => CreatePresetOutlinePreview(cells);
-    public void SelectionPlayPlacementFailFeedback()                            => Held.PlayPlacementFailFeedback();
-
-    #endregion
-}
-
-class CellData
-{
-    public int            number;
-    public bool           isOriginalTower;
-    public GameObject     go;
-    public SpriteRenderer sr;
-    public SpriteRenderer numberSpriteRenderer;
-    public SpriteRenderer outline;
-    public TextMeshPro    label;
-    public List<SpriteRenderer> previewBlurRenderers;
-    public CellKind kind;
-    public bool concealedByBomb;
 }
 
 public class DetachedComponent

@@ -5,91 +5,81 @@ public class TetrominoSelectionController : MonoBehaviour
 {
     readonly List<Vector2Int> selected = new();
 
-    public List<Vector2Int> Selected => selected;
-    public bool HasFocusedCell { get; set; }
-    public Vector2Int FocusedCell { get; set; }
-
-    public bool IsPresetSelectionActive { get; set; }
-
-public TetrominoPreset Preset { get; set; }
-    public Vector2Int Anchor { get; set; }
-    public int Rotation { get; set; }
+    public List<Vector2Int> Selected       => selected;
+    public bool HasFocusedCell             { get; set; }
+    public Vector2Int FocusedCell          { get; set; }
+    public bool IsPresetSelectionActive    { get; set; }
+    public TetrominoPreset Preset          { get; set; }
+    public Vector2Int Anchor               { get; set; }
+    public int Rotation                    { get; set; }
 
     public void ResetState()
     {
         selected.Clear();
-        HasFocusedCell = false;
-        FocusedCell = Vector2Int.zero;
+        HasFocusedCell          = false;
+        FocusedCell             = Vector2Int.zero;
         IsPresetSelectionActive = false;
-        Preset = default;
-        Anchor = Vector2Int.zero;
-        Rotation = 0;
+        Preset                  = default;
+        Anchor                  = Vector2Int.zero;
+        Rotation                = 0;
     }
 
-    public void SetFocus(BlockTower tower, Vector2Int cell)
+    public void SetFocus(BlockExtractionController extraction, Vector2Int cell)
     {
-        var prev = FocusedCell;
+        var prev     = FocusedCell;
         bool hadFocus = HasFocusedCell;
-        FocusedCell = cell;
+        FocusedCell   = cell;
         HasFocusedCell = true;
         if (hadFocus && prev != cell)
-            tower.SelectionApplyCellVisual(prev);
-        tower.SelectionApplyCellVisual(cell);
+            extraction.ApplyCellVisual(prev);
+        extraction.ApplyCellVisual(cell);
     }
 
-    public void ClearFocus()
-    {
-        HasFocusedCell = false;
-    }
+    public void ClearFocus() => HasFocusedCell = false;
 
-    public void EnsureFocusedCell(BlockTower tower)
+    public void EnsureFocusedCell(BlockExtractionController extraction)
     {
-        if (HasFocusedCell && tower.SelectionHasCell(FocusedCell))
+        if (HasFocusedCell && extraction.HasCell(FocusedCell))
             return;
 
-        tower.SelectionFocusDefaultExtractionCell();
+        extraction.FocusDefaultExtractionCell();
     }
 
-    public void MoveFocus(BlockTower tower, Vector2Int dir)
+    public void MoveFocus(BlockExtractionController extraction, Vector2Int dir)
     {
         if (!HasFocusedCell)
         {
-            tower.SelectionFocusDefaultExtractionCell();
+            extraction.FocusDefaultExtractionCell();
             return;
         }
 
         var next = FocusedCell + dir;
-        if (tower.SelectionHasCell(next) && tower.SelectionIsExtractableCell(next))
-            SetFocus(tower, next);
+        if (extraction.HasCell(next) && extraction.IsExtractableCell(next))
+            SetFocus(extraction, next);
     }
 
-    public void ToggleFocusedSelection(BlockTower tower)
+    public void ToggleFocusedSelection(BlockExtractionController extraction)
     {
-        if (!HasFocusedCell)
-            return;
+        if (!HasFocusedCell) return;
 
         if (selected.Contains(FocusedCell))
-        {
-            tower.SelectionTryDeselect(FocusedCell);
-        }
+            extraction.TryDeselect(FocusedCell);
         else if (selected.Count < 4 && (selected.Count == 0 || IsAdjacentToSelected(FocusedCell)))
-        {
-            tower.SelectionSelectCell(FocusedCell);
-        }
+            extraction.SelectCell(FocusedCell);
     }
 
-    public void BeginPresetSelection(BlockTower tower, TetrominoPreset preset)
+    public void BeginPresetSelection(BlockExtractionController extraction, TetrominoPreset preset)
     {
-        tower.SelectionClearSelectedCellsOnly();
+        extraction.ClearSelectedCellsOnly();
         IsPresetSelectionActive = true;
-        Preset = preset;
-        Anchor = FocusedCell;
+        Preset  = preset;
+        Anchor  = FocusedCell;
         Rotation = 0;
-        ApplyPresetSelection(tower);
+        ApplyPresetSelection(extraction);
     }
 
     public void HandlePresetSelectionInput(
-        BlockTower tower,
+        BlockExtractionController extraction,
         bool hasMove,
         Vector2Int dir,
         bool hasConfirm,
@@ -99,117 +89,91 @@ public TetrominoPreset Preset { get; set; }
         bool hasPresetRotate,
         bool hasPresetHalfTurn)
     {
-        if (hasTab)
-        {
-            ExitPresetSelectionToFocus(tower);
-            return;
-        }
-
+        if (hasTab)                { ExitPresetSelectionToFocus(extraction); return; }
         if (hasPreset)
         {
-            if (Preset == preset)
-                TrySetPresetSelection(tower, Anchor, Preset, (Rotation + 1) % 4);
-            else
-                TrySetPresetSelection(tower, Anchor, preset, 0);
+            if (Preset == preset) TrySetPresetSelection(extraction, Anchor, Preset, (Rotation + 1) % 4);
+            else                  TrySetPresetSelection(extraction, Anchor, preset, 0);
             return;
         }
-
-        if (hasPresetHalfTurn)
-        {
-            TrySetPresetSelection(tower, Anchor, Preset, (Rotation + 2) % 4);
-            return;
-        }
-
-        if (hasPresetRotate)
-        {
-            TrySetPresetSelection(tower, Anchor, Preset, (Rotation + 1) % 4);
-            return;
-        }
-
-        if (hasMove)
-            TrySetPresetSelection(tower, Anchor + dir, Preset, Rotation);
-
-        if (hasConfirm)
-            ConfirmPresetSelection(tower);
+        if (hasPresetHalfTurn)     { TrySetPresetSelection(extraction, Anchor, Preset, (Rotation + 2) % 4); return; }
+        if (hasPresetRotate)       { TrySetPresetSelection(extraction, Anchor, Preset, (Rotation + 1) % 4); return; }
+        if (hasMove)               TrySetPresetSelection(extraction, Anchor + dir, Preset, Rotation);
+        if (hasConfirm)            ConfirmPresetSelection(extraction);
     }
 
-    public bool TrySetPresetSelection(BlockTower tower, Vector2Int anchor, TetrominoPreset preset, int rotation)
+    public bool TrySetPresetSelection(BlockExtractionController extraction, Vector2Int anchor, TetrominoPreset preset, int rotation)
     {
-        if (!PresetOverlapsAnyExtractableCell(tower, anchor, preset, rotation))
+        if (!PresetOverlapsAnyExtractableCell(extraction, anchor, preset, rotation))
         {
-            tower.SelectionPlayPlacementFailFeedback();
-            ApplyPresetSelection(tower);
+            extraction.PlayPlacementFailFeedback();
+            ApplyPresetSelection(extraction);
             return false;
         }
 
-        Anchor = anchor;
-        Preset = preset;
+        Anchor   = anchor;
+        Preset   = preset;
         Rotation = ((rotation % 4) + 4) % 4;
-        ApplyPresetSelection(tower);
+        ApplyPresetSelection(extraction);
         return true;
     }
 
-    public void ExitPresetSelectionToFocus(BlockTower tower)
+    public void ExitPresetSelectionToFocus(BlockExtractionController extraction)
     {
         var anchor = Anchor;
-        tower.SelectionClearSelectedCellsOnly();
-        tower.ClearPresetOutlinePreview();
+        extraction.ClearSelectedCellsOnly();
+        extraction.ClearPresetOutlinePreview();
         IsPresetSelectionActive = false;
-        if (tower.SelectionIsExtractableCell(anchor))
-            SetFocus(tower, anchor);
+        if (extraction.IsExtractableCell(anchor))
+            SetFocus(extraction, anchor);
     }
 
-    public bool ApplyPresetSelection(BlockTower tower)
+    public bool ApplyPresetSelection(BlockExtractionController extraction)
     {
-        if (!IsPresetSelectionActive)
-            return false;
+        if (!IsPresetSelectionActive) return false;
 
-        tower.SelectionClearSelectedCellsOnly();
-        SetFocus(tower, Anchor);
-        var presetCells = tower.GetPresetCells(Anchor, Preset, Rotation);
-        tower.SelectionCreatePresetOutlinePreview(presetCells);
-        if (CanApplyPresetSelection(tower, Anchor, Preset, Rotation))
+        extraction.ClearSelectedCellsOnly();
+        SetFocus(extraction, Anchor);
+        var presetCells = extraction.GetPresetCells(Anchor, Preset, Rotation);
+        extraction.CreatePresetOutlinePreview(presetCells);
+        if (CanApplyPresetSelection(extraction, Anchor, Preset, Rotation))
         {
             foreach (var cell in presetCells)
-                tower.SelectionSelectCell(cell);
+                extraction.SelectCell(cell);
         }
-
         return true;
     }
 
-    public bool CanApplyPresetSelection(BlockTower tower, Vector2Int anchor, TetrominoPreset preset, int rotation)
+    public bool CanApplyPresetSelection(BlockExtractionController extraction, Vector2Int anchor, TetrominoPreset preset, int rotation)
     {
-        foreach (var cell in tower.GetPresetCells(anchor, preset, rotation))
-            if (!tower.SelectionIsExtractableCell(cell))
+        foreach (var cell in extraction.GetPresetCells(anchor, preset, rotation))
+            if (!extraction.IsExtractableCell(cell))
                 return false;
         return true;
     }
 
-    public bool PresetOverlapsAnyExtractableCell(BlockTower tower, Vector2Int anchor, TetrominoPreset preset, int rotation)
+    public bool PresetOverlapsAnyExtractableCell(BlockExtractionController extraction, Vector2Int anchor, TetrominoPreset preset, int rotation)
     {
-        foreach (var cell in tower.GetPresetCells(anchor, preset, rotation))
-            if (tower.SelectionIsExtractableCell(cell))
+        foreach (var cell in extraction.GetPresetCells(anchor, preset, rotation))
+            if (extraction.IsExtractableCell(cell))
                 return true;
         return false;
     }
 
-    public void ConfirmPresetSelection(BlockTower tower)
+    public void ConfirmPresetSelection(BlockExtractionController extraction)
     {
         if (selected.Count > 0)
         {
             IsPresetSelectionActive = false;
-            tower.SelectionLiftBlocks();
+            extraction.LiftBlocks();
         }
         else
         {
-            tower.SelectionPlayPlacementFailFeedback();
+            extraction.PlayPlacementFailFeedback();
         }
     }
 
-    public void CancelPresetSelection()
-    {
-        IsPresetSelectionActive = false;
-    }
+    public void CancelPresetSelection() => IsPresetSelectionActive = false;
 
     public bool IsAdjacentToSelected(Vector2Int cell)
     {

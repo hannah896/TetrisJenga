@@ -10,6 +10,7 @@ public class InputHandler : MonoBehaviour
     TowerPhysicsController       _physicsController;
     HeldBlockController          _held;
     TetrominoSelectionController _selection;
+    BlockExtractionController    _extraction;
     ScoreController              _scoreController;
     PlacementZoneController      _placement;
     HeldPlacementController      _heldPlacement;
@@ -36,6 +37,7 @@ public class InputHandler : MonoBehaviour
         _physicsController = GetComponent<TowerPhysicsController>();
         _held              = GetComponent<HeldBlockController>();
         _selection         = GetComponent<TetrominoSelectionController>();
+        _extraction        = GetComponent<BlockExtractionController>();
         _scoreController   = GetComponent<ScoreController>();
         _placement         = GetComponent<PlacementZoneController>();
         _heldPlacement     = GetComponent<HeldPlacementController>();
@@ -59,13 +61,13 @@ public class InputHandler : MonoBehaviour
                 _heldPlacement?.UpdateHeldBaseFromMousePosition();
                 _heldPlacement?.UpdateHeldPosition();
                 if (mouse != null && mouse.leftButton.wasPressedThisFrame)  _heldPlacement?.TryPlaceHeldBlocks();
-                if (mouse != null && mouse.rightButton.wasPressedThisFrame) _tower.CancelHold();
+                if (mouse != null && mouse.rightButton.wasPressedThisFrame) _extraction?.CancelHold();
             }
             else
             {
                 _heldPlacement?.UpdateHeldPosition();
-                if (mouse != null && mouse.leftButton.wasPressedThisFrame)  _tower.CancelHold();
-                if (mouse != null && mouse.rightButton.wasPressedThisFrame) _tower.CancelHold();
+                if (mouse != null && mouse.leftButton.wasPressedThisFrame)  _extraction?.CancelHold();
+                if (mouse != null && mouse.rightButton.wasPressedThisFrame) _extraction?.CancelHold();
             }
         }
         else
@@ -75,14 +77,14 @@ public class InputHandler : MonoBehaviour
             bool wasHolding = _held != null && _held.IsHolding;
             if (mouse != null && mouse.leftButton.wasPressedThisFrame)
             {
-                _tower.HandleClick();
+                _extraction?.HandleClick();
                 if (!wasHolding && _held != null && _held.IsHolding)
                 {
                     _holdStartedByMouse = true;
                     _held.UsingKeyboardPlacement = false;
                 }
             }
-            if (mouse != null && mouse.rightButton.wasPressedThisFrame) _tower.ClearSelection();
+            if (mouse != null && mouse.rightButton.wasPressedThisFrame) _extraction?.ClearSelection();
         }
 
         float scroll = mouse?.scroll.ReadValue().y ?? 0f;
@@ -114,34 +116,33 @@ public class InputHandler : MonoBehaviour
 
         if (hasCancel)
         {
-            _tower.ClearSelection();
-            _tower.ClearPresetOutlinePreview();
+            _extraction?.ClearSelection();
             _selection?.ClearFocus();
             return;
         }
 
-        _selection?.EnsureFocusedCell(_tower);
+        _selection?.EnsureFocusedCell(_extraction);
 
         if (_selection != null && _selection.IsPresetSelectionActive)
         {
-            _selection.HandlePresetSelectionInput(_tower, hasMove, dir, hasConfirm, hasPreset, preset, hasTab, hasPresetRotate, hasPresetHalfTurn);
+            _selection.HandlePresetSelectionInput(_extraction, hasMove, dir, hasConfirm, hasPreset, preset, hasTab, hasPresetRotate, hasPresetHalfTurn);
             return;
         }
 
         if (hasPreset)
         {
-            _tower.ClearSelection();
-            if (_selection != null && _selection.HasFocusedCell) _selection.BeginPresetSelection(_tower, preset);
+            _extraction?.ClearSelection();
+            if (_selection != null && _selection.HasFocusedCell) _selection.BeginPresetSelection(_extraction, preset);
             return;
         }
 
-        if (hasMove)    _selection?.MoveFocus(_tower, dir);
+        if (hasMove)    _selection?.MoveFocus(_extraction, dir);
         if (hasConfirm)
         {
             if (_selection != null && _selection.Selected.Count >= 4)
-                _tower.SelectionLiftBlocks();
+                _extraction?.LiftBlocks();
             else if (_selection != null && _selection.HasFocusedCell)
-                _selection.ToggleFocusedSelection(_tower);
+                _selection.ToggleFocusedSelection(_extraction);
         }
     }
 
@@ -170,7 +171,7 @@ public class InputHandler : MonoBehaviour
         }
 
         if (ConfirmPressed(kb)) _heldPlacement?.DropHeldToNearestSurfaceAndPlace();
-        if (CancelPressed(kb))  _tower.CancelHold();
+        if (CancelPressed(kb))  _extraction?.CancelHold();
     }
 
     #endregion
