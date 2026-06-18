@@ -813,4 +813,26 @@ public sealed class UnderwaterPostProcessingController : MonoBehaviour
         else
             DestroyImmediate(obj);
     }
+
+    public void ApplyLevelVisual(LevelVisualSO visual)
+    {
+        if (visual == null) return;
+
+        sunLightColor        = visual.sunLightColor;
+        sunLightIntensity    = visual.sunLightIntensity;
+        sunLightEulerAngles  = visual.sunLightEulerAngles;
+        sunLightPulseAmount  = visual.sunLightPulseAmount;
+        sunLightPulseSpeed   = visual.sunLightPulseSpeed;
+
+        nearContrast = visual.nearContrast;
+        farContrast  = visual.farContrast;
+
+        if (tintLights != null && tintLights.Length > 0)
+        {
+            tintLights[0].color      = visual.tintLightColor;
+            tintLights[0].intensity  = visual.tintLightIntensity;
+            tintLights[0].beamColor  = visual.beamColor;
+            tintLights[0].beamOpacity = visual.beamOpacity;
+        }
+    }
 }

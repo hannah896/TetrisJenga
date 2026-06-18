@@ -34,14 +34,15 @@ public class TowerPhysicsController : MonoBehaviour
     CameraController _camera;
     readonly List<DetachedComponent> _detachedComponents = new();
 
-    TowerGridModel                   _grid;
+    TowerGridModel                   _grid; 
     Dictionary<Vector2Int, CellView> _cellViews;
-    ScoreController                  _score;
-    BombIceEffectController          _bombIce;
-    TowerCellVisualizer              _visualizer;
+    
+    [SerializeField] ScoreController                  _score;
+    [SerializeField] BombIceEffectController          _bombIce;
+    [SerializeField] TowerCellVisualizer              _visualizer;
 
     public float BlockBodyScale => blockBodyScale;
-
+    
     void Awake()
     {
         if (_tower == null) _tower = GetComponent<BlockTower>();
@@ -56,7 +57,13 @@ public class TowerPhysicsController : MonoBehaviour
 #if UNITY_EDITOR
     void OnValidate()
     {
-        if (_tower == null) _tower = GetComponent<BlockTower>();
+        if (_tower      == null) _tower      = GetComponent<BlockTower>();
+        if (_camera     == null) _camera     = GetComponent<CameraController>();
+        if (_grid       == null)    _grid       = _tower.Grid;
+        if (_cellViews  == null)    _cellViews  = _tower.CellViews;
+        if (_score      == null) _score      = GetComponent<ScoreController>();
+        if (_bombIce    == null) _bombIce    = GetComponent<BombIceEffectController>();
+        if (_visualizer == null) _visualizer = GetComponent<TowerCellVisualizer>();
         ResolveDetachedLandingEffectPrefab();
     }
 

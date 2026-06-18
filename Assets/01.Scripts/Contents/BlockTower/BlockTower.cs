@@ -185,7 +185,7 @@ public class BlockTower : MonoBehaviour
     }
 #endif
     
-    void OnEnable()
+    void Start()
     {
         if (!Application.isPlaying)
         {

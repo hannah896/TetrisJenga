@@ -1,18 +1,19 @@
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 using JSAM;
 
 public class BlockExtractionController : MonoBehaviour
 {
-    BlockTower              _tower;
-    HeldBlockController     _held;
-    TetrominoSelectionController _selection;
-    HeldPlacementController _heldPlacement;
-    TowerPhysicsController  _physics;
-    TowerCellVisualizer     _visualizer;
-    BombIceEffectController _bombIce;
-    ScoreController         _score;
-    TowerSceneBuilder       _sceneBuilder;
+    [SerializeField] BlockTower              _tower;
+    [SerializeField] HeldBlockController     _held;
+    [SerializeField] TetrominoSelectionController _selection;
+    [SerializeField] HeldPlacementController _heldPlacement;
+    [SerializeField] TowerPhysicsController  _physics;
+    [SerializeField] TowerCellVisualizer     _visualizer;
+    [SerializeField] BombIceEffectController _bombIce;
+    [SerializeField] ScoreController         _score;
+    [SerializeField] TowerSceneBuilder       _sceneBuilder;
 
     readonly Color _failFlashColor = new(1f, 0.08f, 0.08f, 0.85f);
 
@@ -25,6 +26,19 @@ public class BlockExtractionController : MonoBehaviour
     public int ExtractionMaxRow => _extractionMaxRow;
     public int ExtractionMinCol => _extractionMinCol;
     public int ExtractionMaxCol => _extractionMaxCol;
+
+    private void OnValidate()
+    {
+        _tower         = GetComponent<BlockTower>();
+        _held          = GetComponent<HeldBlockController>();
+        _selection     = GetComponent<TetrominoSelectionController>();
+        _heldPlacement = GetComponent<HeldPlacementController>();
+        _physics       = GetComponent<TowerPhysicsController>();
+        _visualizer    = GetComponent<TowerCellVisualizer>();
+        _bombIce       = GetComponent<BombIceEffectController>();
+        _score         = GetComponent<ScoreController>();
+        _sceneBuilder  = GetComponent<TowerSceneBuilder>();
+    }
 
     void Awake()
     {
