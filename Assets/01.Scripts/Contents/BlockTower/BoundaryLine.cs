@@ -1,8 +1,9 @@
 using UnityEngine;
+using UnityEngine.Events;
 
 public class BoundaryLine : MonoBehaviour
 {
-    public System.Action OnBlockTouched;
+    public UnityAction OnBlockTouched;
 
     void OnTriggerEnter(Collider other)
     {

@@ -7,6 +7,8 @@ public class GoldFishProjectile : MonoBehaviour
     [SerializeField] Vector2 initialDirection = new(1f, 1f);
     [SerializeField] float stuckSeconds = 0.6f;
     [SerializeField] float stallRecoverySeconds = 0.15f;
+    
+    [SerializeField] ScoreController  scoreController; 
 
     Rigidbody _rb;
     float _stuckTimer;
@@ -14,7 +16,7 @@ public class GoldFishProjectile : MonoBehaviour
     bool _finished;
     Vector3 _lastTravelDirection = Vector3.right;
     readonly Dictionary<Collider, Vector3> _cellContactNormals = new();
-
+    
     void OnEnable()
     {
         Util.SetNoPostLayer(gameObject);
@@ -23,6 +25,7 @@ public class GoldFishProjectile : MonoBehaviour
     void OnValidate()
     {
         Util.SetNoPostLayer(gameObject);
+        scoreController = FindObjectOfType<ScoreController>();
     }
 
     void Awake()
@@ -119,9 +122,7 @@ public class GoldFishProjectile : MonoBehaviour
             return;
 
         _finished = true;
-        var tower = FindFirstObjectByType<BlockTower>();
-        if (tower != null)
-            tower.AwardGoldFishDeadlineScore(transform.position);
+        scoreController?.AwardGoldFishDeadlineScore(transform.position);
         Destroy(gameObject);
     }
 

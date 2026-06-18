@@ -21,6 +21,7 @@ public class PlacementZoneController : MonoBehaviour
     readonly HashSet<GameObject> generatedObjects = new();
 
     BlockTower owner;
+    HeldBlockController _held;
     Sprite fallbackSprite;
     string placementZoneVisualSignature;
     float placementZoneTopLimitLocal = float.NaN;
@@ -30,6 +31,12 @@ public class PlacementZoneController : MonoBehaviour
     public bool UsePlacementZoneObject => usePlacementZoneObject;
     public int PlacementFloorY => placementMin.y;
     public int PlacementCeilingY => placementMax.y;
+
+    public Vector2Int ClampHeldBase(Vector2Int baseCell)
+    {
+        if (_held == null) return baseCell;
+        return _held.ClampBase(baseCell, placementMin, placementMax, PlacementFloorY, PlacementCeilingY);
+    }
 
     public void Configure(BlockTower blockTower, Transform root, Transform divider, Sprite blockSprite)
     {
@@ -49,9 +56,16 @@ public class PlacementZoneController : MonoBehaviour
             SetPlacementZoneFillsActive(false);
     }
 
+    void Awake()
+    {
+        if (_held == null) _held = GetComponent<HeldBlockController>();
+    }
+
 #if UNITY_EDITOR
     void OnValidate()
     {
+        if (_held == null) _held = GetComponent<HeldBlockController>();
+
         if (!usePlacementZoneObject || !gameObject.scene.IsValid())
             return;
 

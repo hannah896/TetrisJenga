@@ -12,7 +12,6 @@ public class TowerCellVisualizer : MonoBehaviour
 
     [SerializeField] Color placedBlockColor = new(0.55f, 0.58f, 0.60f, 1f);
     [SerializeField] BlockNumberSpriteSetAsset numberSpriteSetAsset;
-    [SerializeField, HideInInspector] BlockNumberSpriteSet numberSpriteSet;
 
     [Header("Focus Feedback")]
     [SerializeField] Color focusedOutlineColor  = new(1f, 0.95f, 0.05f, 1f);
@@ -329,9 +328,6 @@ public class TowerCellVisualizer : MonoBehaviour
         if (numberSpriteSetAsset == null)
             numberSpriteSetAsset = FindDefaultNumberSpriteSetAsset();
 #endif
-        if (numberSpriteSet == null)
-            numberSpriteSet = GetComponent<BlockNumberSpriteSet>();
-
     }
 
     public void EnsureNumberSpriteSetReady() => EnsureNumberSpriteSet();
@@ -344,13 +340,7 @@ public class TowerCellVisualizer : MonoBehaviour
 
     Sprite GetNumberSpriteRaw(int number)
     {
-        if (numberSpriteSetAsset != null)
-        {
-            var sprite = numberSpriteSetAsset.GetSprite(number);
-            if (sprite != null) return sprite;
-        }
-
-        return numberSpriteSet != null ? numberSpriteSet.GetSprite(number) : null;
+        return numberSpriteSetAsset != null ? numberSpriteSetAsset.GetSprite(number) : null;
     }
 
     Sprite GetBombSprite()

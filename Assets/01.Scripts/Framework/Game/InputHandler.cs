@@ -1,61 +1,69 @@
-using System;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
-/// <summary>
-/// 입력 총관리. 키보드·마우스 이벤트를 읽어 BlockTower의 공개 API를 호출한다.
-/// </summary>
 public class InputHandler : MonoBehaviour
 {
     [SerializeField] BlockTower _tower;
     [SerializeField] CameraController _camera;
     [SerializeField] bool keyboardControlsEnabled = true;
-    TowerPhysicsController _physicsController;
-    [SerializeField, Range(0.05f, 0.5f)]  float moveHoldInitialDelay  = 0.22f;
+
+    TowerPhysicsController       _physicsController;
+    HeldBlockController          _held;
+    TetrominoSelectionController _selection;
+    ScoreController              _scoreController;
+    PlacementZoneController      _placement;
+    HeldPlacementController      _heldPlacement;
+
+    [SerializeField, Range(0.05f, 0.5f)]  float moveHoldInitialDelay   = 0.22f;
     [SerializeField, Range(0.02f, 0.25f)] float moveHoldRepeatInterval = 0.08f;
 
     Vector2Int _moveRepeatDir;
     float      _nextMoveRepeatTime;
     bool       _holdStartedByMouse;
 
-    # region Life Cycle
+    #region Lifecycle
 
-    private void OnValidate()
+    void OnValidate()
     {
-        if (_tower ==null) _tower = GetComponent<BlockTower>();
-        if (_camera ==null) _camera = GetComponent<CameraController>();
+        if (_tower  == null) _tower  = GetComponent<BlockTower>();
+        if (_camera == null) _camera = GetComponent<CameraController>();
     }
 
     void Awake()
     {
-        if (_tower == null)            _tower            = GetComponent<BlockTower>();
-        if (_camera == null)           _camera           = GetComponent<CameraController>();
-        if (_physicsController == null) _physicsController = GetComponent<TowerPhysicsController>();
+        if (_tower            == null) _tower            = GetComponent<BlockTower>();
+        if (_camera           == null) _camera           = GetComponent<CameraController>();
+        _physicsController = GetComponent<TowerPhysicsController>();
+        _held              = GetComponent<HeldBlockController>();
+        _selection         = GetComponent<TetrominoSelectionController>();
+        _scoreController   = GetComponent<ScoreController>();
+        _placement         = GetComponent<PlacementZoneController>();
+        _heldPlacement     = GetComponent<HeldPlacementController>();
     }
 
     void Update()
     {
-        if (_tower == null || _tower.IsGameOver) return;
+        if (_tower == null || (_scoreController != null && _scoreController.IsGameOver)) return;
 
         var mouse    = Mouse.current;
         var keyboard = Keyboard.current;
         if (mouse == null && keyboard == null) return;
 
-        if (_tower.IsHolding)
+        if (_held != null && _held.IsHolding)
         {
             HandleHeldKeyboardInput(keyboard);
-            if (!_tower.IsHolding) { _camera?.UpdateCameraTarget(); return; }
+            if (!_held.IsHolding) { _camera?.UpdateCameraTarget(); return; }
 
-            if (_holdStartedByMouse && !_tower.IsUsingKeyboardPlacement)
+            if (_holdStartedByMouse && !_held.UsingKeyboardPlacement)
             {
-                _tower.UpdateHeldBaseFromMousePosition();
-                _tower.UpdateHeldPosition();
-                if (mouse != null && mouse.leftButton.wasPressedThisFrame)  _tower.TryPlaceHeldBlocks();
+                _heldPlacement?.UpdateHeldBaseFromMousePosition();
+                _heldPlacement?.UpdateHeldPosition();
+                if (mouse != null && mouse.leftButton.wasPressedThisFrame)  _heldPlacement?.TryPlaceHeldBlocks();
                 if (mouse != null && mouse.rightButton.wasPressedThisFrame) _tower.CancelHold();
             }
             else
             {
-                _tower.UpdateHeldPosition();
+                _heldPlacement?.UpdateHeldPosition();
                 if (mouse != null && mouse.leftButton.wasPressedThisFrame)  _tower.CancelHold();
                 if (mouse != null && mouse.rightButton.wasPressedThisFrame) _tower.CancelHold();
             }
@@ -64,14 +72,14 @@ public class InputHandler : MonoBehaviour
         {
             _holdStartedByMouse = false;
             HandleSelectionKeyboardInput(keyboard);
-            bool wasHolding = _tower.IsHolding;
+            bool wasHolding = _held != null && _held.IsHolding;
             if (mouse != null && mouse.leftButton.wasPressedThisFrame)
             {
                 _tower.HandleClick();
-                if (!wasHolding && _tower.IsHolding)
+                if (!wasHolding && _held != null && _held.IsHolding)
                 {
                     _holdStartedByMouse = true;
-                    _tower.SetMousePlacementMode();
+                    _held.UsingKeyboardPlacement = false;
                 }
             }
             if (mouse != null && mouse.rightButton.wasPressedThisFrame) _tower.ClearSelection();
@@ -84,13 +92,11 @@ public class InputHandler : MonoBehaviour
         _camera?.UpdateCameraTarget();
         _camera?.UpdateSecondaryViewCamera();
     }
+
     #endregion
 
-    #region  KeyBoard Mode
-    /// <summary>
-    /// 키보드 선택 모드 입력 
-    /// </summary>
-    /// <param name="kb"></param>
+    #region Keyboard Mode
+
     void HandleSelectionKeyboardInput(Keyboard kb)
     {
         if (!keyboardControlsEnabled || kb == null) return;
@@ -110,62 +116,67 @@ public class InputHandler : MonoBehaviour
         {
             _tower.ClearSelection();
             _tower.ClearPresetOutlinePreview();
-            _tower.ClearKeyboardFocus();
+            _selection?.ClearFocus();
             return;
         }
 
-        _tower.EnsureFocusedCell();
+        _selection?.EnsureFocusedCell(_tower);
 
-        if (_tower.IsPresetSelectionActive)
+        if (_selection != null && _selection.IsPresetSelectionActive)
         {
-            _tower.HandlePresetSelectionInput(hasMove, dir, hasConfirm, hasPreset, preset, hasTab, hasPresetRotate, hasPresetHalfTurn);
+            _selection.HandlePresetSelectionInput(_tower, hasMove, dir, hasConfirm, hasPreset, preset, hasTab, hasPresetRotate, hasPresetHalfTurn);
             return;
         }
 
         if (hasPreset)
         {
             _tower.ClearSelection();
-            if (_tower.HasFocusedCell) _tower.BeginPresetSelection(preset);
+            if (_selection != null && _selection.HasFocusedCell) _selection.BeginPresetSelection(_tower, preset);
             return;
         }
-        if (hasMove)                              _tower.MoveFocus(dir);
+
+        if (hasMove)    _selection?.MoveFocus(_tower, dir);
         if (hasConfirm)
         {
-            if (_tower.SelectionCount >= 4)
+            if (_selection != null && _selection.Selected.Count >= 4)
                 _tower.SelectionLiftBlocks();
-            else if (_tower.HasFocusedCell)
-                _tower.ToggleFocusedSelection();
+            else if (_selection != null && _selection.HasFocusedCell)
+                _selection.ToggleFocusedSelection(_tower);
         }
     }
-    
-    /// <summary>
-    ///  키보드 들기 모드 입력
-    /// </summary>
-    /// <param name="kb"></param>
+
     void HandleHeldKeyboardInput(Keyboard kb)
     {
         if (!keyboardControlsEnabled || kb == null) return;
 
         if (ReadMoveHeld(kb, allowWasd: true, out var dir))
         {
-            if (!_tower.IsUsingKeyboardPlacement) _tower.InitKeyboardPlacement();
-            _tower.MoveHeldBase(dir);
+            if (_held != null && !_held.UsingKeyboardPlacement) _heldPlacement?.InitKeyboardPlacement();
+            _heldPlacement?.MoveHeldBase(dir);
         }
 
         if (ReadHalfTurnPressed(kb))
         {
-            _tower.RotateHeldBlocks(clockwise: true);
-            _tower.RotateHeldBlocks(clockwise: true);
+            _held?.RotateHeldBlocks(clockwise: true);
+            _held?.RotateHeldBlocks(clockwise: true);
+            if (_held != null && _held.UsingKeyboardPlacement)
+                _held.BaseCell = _placement?.ClampHeldBase(_held.BaseCell) ?? _held.BaseCell;
         }
         else if (ReadHeldRotationPressed(kb, out var clockwise))
-            _tower.RotateHeldBlocks(clockwise);
+        {
+            _held?.RotateHeldBlocks(clockwise);
+            if (_held != null && _held.UsingKeyboardPlacement)
+                _held.BaseCell = _placement?.ClampHeldBase(_held.BaseCell) ?? _held.BaseCell;
+        }
 
-        if (ConfirmPressed(kb)) _tower.DropHeldToNearestSurfaceAndPlace();
+        if (ConfirmPressed(kb)) _heldPlacement?.DropHeldToNearestSurfaceAndPlace();
         if (CancelPressed(kb))  _tower.CancelHold();
     }
+
     #endregion
 
-    #region  입력 읽기 헬퍼 
+    #region 입력 읽기 헬퍼
+
     bool ReadTetrominoPresetPressed(Keyboard kb, out TetrominoPreset preset)
     {
         if (kb.qKey.wasPressedThisFrame) { preset = TetrominoPreset.I; return true; }
@@ -178,14 +189,13 @@ public class InputHandler : MonoBehaviour
         preset = default;
         return false;
     }
-    
-    
+
     bool ReadMoveHeld(Keyboard kb, bool allowWasd, out Vector2Int dir)
     {
         dir = CurrentMoveDirection(kb, allowWasd);
         if (dir == Vector2Int.zero)
         {
-            _moveRepeatDir     = Vector2Int.zero;
+            _moveRepeatDir      = Vector2Int.zero;
             _nextMoveRepeatTime = 0f;
             return false;
         }
@@ -245,6 +255,6 @@ public class InputHandler : MonoBehaviour
 
     bool CancelPressed(Keyboard kb) =>
         kb.backspaceKey.wasPressedThisFrame;
-    
+
     #endregion
 }

@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Events;
 
 public class HeldBlockController : MonoBehaviour
 {
@@ -44,7 +45,7 @@ public class HeldBlockController : MonoBehaviour
         FailEndTime = -1f;
     }
 
-    public GameObject CreateRoot(Transform parent, System.Action<GameObject> markGenerated)
+    public GameObject CreateRoot(Transform parent, UnityAction<GameObject> markGenerated)
     {
         Root = new GameObject("HeldBlocks");
         markGenerated?.Invoke(Root);
@@ -52,7 +53,7 @@ public class HeldBlockController : MonoBehaviour
         return Root;
     }
 
-    public void DestroyRoot(System.Action<GameObject> destroy)
+    public void DestroyRoot(UnityAction<GameObject> destroy)
     {
         if (Root != null)
             destroy?.Invoke(Root);
@@ -179,6 +180,72 @@ public class HeldBlockController : MonoBehaviour
         if (Application.isPlaying)
             Handheld.Vibrate();
 #endif
+    }
+
+    public void MoveHeldBase(Vector2Int dir, UnityAction onVerticalMove = null)
+    {
+        BaseCell += dir;
+        if (dir.y != 0)
+            onVerticalMove?.Invoke();
+    }
+
+    public void RotateHeldBlocks(bool clockwise)
+    {
+        if (relPos.Count == 0) return;
+
+        if (TetrominoShapeUtil.TryGetMatchingPreset(relPos, out var preset, out var presetRotation))
+        {
+            if (preset == TetrominoPreset.O)
+                return;
+
+            var pivot = TetrominoShapeUtil.GetRotationPivot(preset, presetRotation);
+            var pivotWorld = BaseCell + pivot;
+            int minX = int.MaxValue, minY = int.MaxValue;
+            var rotated = new List<Vector2Int>(relPos.Count);
+
+            foreach (var rel in relPos)
+            {
+                var next = clockwise
+                    ? new Vector2(pivot.x + rel.y - pivot.y, pivot.y - rel.x + pivot.x)
+                    : new Vector2(pivot.x - rel.y + pivot.y, pivot.y + rel.x - pivot.x);
+                var nextCell = TetrominoShapeUtil.RoundToCell(next);
+                rotated.Add(nextCell);
+                minX = Mathf.Min(minX, nextCell.x);
+                minY = Mathf.Min(minY, nextCell.y);
+            }
+
+            var normalizeOffset = new Vector2Int(minX, minY);
+            for (int i = 0; i < rotated.Count; i++)
+                relPos[i] = rotated[i] - normalizeOffset;
+
+            if (UsingKeyboardPlacement)
+            {
+                var normalizedPivot = pivot - normalizeOffset;
+                BaseCell = TetrominoShapeUtil.RoundToCell(pivotWorld - normalizedPivot);
+            }
+
+            RecalculateCenter();
+            UpdateChildLocalPositions();
+            return;
+        }
+
+        int maxX = 0, maxY = 0;
+        foreach (var rel in relPos)
+        {
+            maxX = Mathf.Max(maxX, rel.x);
+            maxY = Mathf.Max(maxY, rel.y);
+        }
+
+        for (int i = 0; i < relPos.Count; i++)
+        {
+            var rel = relPos[i];
+            relPos[i] = clockwise
+                ? new Vector2Int(maxY - rel.y, rel.x)
+                : new Vector2Int(rel.y, maxX - rel.x);
+        }
+
+        RecalculateCenter();
+        UpdateChildLocalPositions();
     }
 
     public Vector3 FailShakeOffset(bool isFailing)

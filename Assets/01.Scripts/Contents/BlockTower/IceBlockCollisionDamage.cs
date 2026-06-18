@@ -3,6 +3,7 @@ using UnityEngine;
 
 public sealed class IceBlockCollisionDamage : MonoBehaviour
 {
+    [SerializeField, Range(0f, 1f)] float Ice = 1f;
     const float InitialContactGraceSeconds = 0.25f;
     const float InitialContactDamageSpeed = 0.15f;
 
@@ -10,10 +11,13 @@ public sealed class IceBlockCollisionDamage : MonoBehaviour
     readonly HashSet<int> _damagedBlocks = new();
     readonly HashSet<int> _initialContacts = new();
     float _ignoreInitialContactsUntil;
+    
+    BombIceEffectController _bombIceController;
 
     public void Initialize(BlockTower owner)
     {
         _owner = owner;
+        _bombIceController = owner.GetComponent<BombIceEffectController>();
         _ignoreInitialContactsUntil = Application.isPlaying
             ? Time.time + InitialContactGraceSeconds
             : 0f;
@@ -74,8 +78,11 @@ public sealed class IceBlockCollisionDamage : MonoBehaviour
         if (body != null && body.isKinematic)
             return;
 
+        if (_bombIceController == null)
+            return;
+
         var iceCell = GetComponent<BlockCell>();
-        if (_owner.ApplyIceDamage(iceCell != null ? iceCell : null, transform.position))
+        if (_bombIceController.ApplyIceDamage(iceCell, transform.position))
             _damagedBlocks.Add(id);
     }
 
