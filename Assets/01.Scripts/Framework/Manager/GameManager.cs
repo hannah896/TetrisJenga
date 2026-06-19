@@ -24,6 +24,7 @@ class SaveDataWrapper
 public class GameManager
 {
     private const int DefaultStageCount = 6;
+    public const int EndlessStageIndex = 6;
 
     private static GameManager _instance;
     public static GameManager Instance => _instance ??= new GameManager();
@@ -48,8 +49,8 @@ public class GameManager
 
     private void Init()
     {
-        stageSaveData = new StageSaveData[stageCount];
-        for (int i = 0; i < stageCount; i++)
+        stageSaveData = new StageSaveData[stageCount + 1]; // +1 for endless (index 6)
+        for (int i = 0; i < stageSaveData.Length; i++)
             stageSaveData[i].Scores = new List<float>();
     }
 

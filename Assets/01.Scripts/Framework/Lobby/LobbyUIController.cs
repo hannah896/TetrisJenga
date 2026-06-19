@@ -118,7 +118,7 @@ public class LobbyUIController : MonoBehaviour
         _endlessButton = root.Q<Button>("endless-button");
         if (_endlessButton != null)
         {
-            _endlessButton.clicked += () => { if (_endlessUnlocked) LoadScene(endlessSceneName); };
+            _endlessButton.clicked += () => { if (_endlessUnlocked) { GameManager.Instance.CurrentStageIndex = GameManager.EndlessStageIndex; LoadScene(endlessSceneName); } };
             _endlessButton.clicked += () => { if (_endlessUnlocked) AudioManager.PlaySound(_AudioLibrarySounds.BtnClick); };
             _endlessButton.RegisterCallback<PointerEnterEvent>(_ => SetPreview(EndlessTitle, EndlessDesc));
         }

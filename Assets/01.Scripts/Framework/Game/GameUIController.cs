@@ -226,10 +226,12 @@ public class GameUIController : MonoBehaviour
 
     // ── 이벤트 핸들러 ────────────────────────────────────────────────────
 
+    bool IsEndlessMode => _scoreController != null && _scoreController.TargetScore <= 0;
+
     void HandleScoreChanged(int score, int target)
     {
         if (_scoreValue != null) _scoreValue.text = score.ToString();
-        if (_targetScoreValue != null) _targetScoreValue.text = target.ToString();
+        if (!IsEndlessMode && _targetScoreValue != null) _targetScoreValue.text = target.ToString();
     }
 
     void HandleBonusRolled(TetrominoPreset current, TetrominoPreset next, TetrominoPreset third)
@@ -244,8 +246,15 @@ public class GameUIController : MonoBehaviour
 
     void HandleGameOver(int score, int target)
     {
-        ShowResultHud(gameOverVisualTree, "Assets/01.Scripts/UI/GameOverScreen.uxml",
-            "GAME OVER", score, target);
+        if (IsEndlessMode)
+        {
+            int best = GameManager.Instance != null ? (int)GameManager.Instance.GetBestScore(GameManager.EndlessStageIndex) : 0;
+            ShowResultHud(gameOverVisualTree, "Assets/01.Scripts/UI/GameOverScreen.uxml", "GAME OVER", score, best, "BEST");
+        }
+        else
+        {
+            ShowResultHud(gameOverVisualTree, "Assets/01.Scripts/UI/GameOverScreen.uxml", "GAME OVER", score, target);
+        }
     }
 
     void HandleClear(int score, int target)
@@ -430,7 +439,15 @@ public class GameUIController : MonoBehaviour
     {
         ForceLabel(_scoreTitle,       "SCORE");
         ForceLabel(_scoreValue,       _scoreController != null ? _scoreController.Score.ToString() : "0");
-        ForceLabel(_targetScoreValue, _scoreController != null ? _scoreController.TargetScore.ToString() : "0");
+        if (IsEndlessMode)
+        {
+            int best = GameManager.Instance != null ? (int)GameManager.Instance.GetBestScore(GameManager.EndlessStageIndex) : 0;
+            ForceLabel(_targetScoreValue, best.ToString());
+        }
+        else
+        {
+            ForceLabel(_targetScoreValue, _scoreController != null ? _scoreController.TargetScore.ToString() : "0");
+        }
         ForceLabel(_scorePopupText,   string.Empty);
         ForceLabel(_bonusPreviewTitle, "NEXT");
         if (_scoreController != null)
@@ -475,7 +492,7 @@ public class GameUIController : MonoBehaviour
 
     // ── 결과 화면 ─────────────────────────────────────────────────────────
 
-    void ShowResultHud(VisualTreeAsset assignedAsset, string assetPath, string title, int score, int target)
+    void ShowResultHud(VisualTreeAsset assignedAsset, string assetPath, string title, int score, int target, string targetPrefix = "TARGET")
     {
         EnsureHudDocument();
         if (hudDocument == null) return;
@@ -503,7 +520,7 @@ public class GameUIController : MonoBehaviour
 
         if (_resultTitleLabel != null)        _resultTitleLabel.text        = title;
         if (_resultCurrentScoreLabel != null) _resultCurrentScoreLabel.text = $"SCORE: {score}";
-        if (_resultTargetScoreLabel != null)  _resultTargetScoreLabel.text  = $"TARGET: {target}";
+        if (_resultTargetScoreLabel != null)  _resultTargetScoreLabel.text  = $"{targetPrefix}: {target}";
 
         var restartButton = root.Q<UnityEngine.UIElements.Button>("RestartButton");
         if (restartButton != null)

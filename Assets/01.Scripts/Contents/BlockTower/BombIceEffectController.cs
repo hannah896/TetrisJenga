@@ -56,16 +56,15 @@ public class BombIceEffectController : MonoBehaviour
         foreach (var offset in BombBoxOffsets())
         {
             var cell = center + offset;
+            if (!_grid.TryGetCell(cell, out var state)) continue;
+
             _bombConcealedCells.Add(cell);
             _bombObscureKinds[cell] = GetBombObscureKind(offset);
             EnsureBombObscureBlock(cell);
-            if (_grid.TryGetCell(cell, out var state))
-            {
-                state.concealedByBomb = true;
-                if (_cellViews.TryGetValue(cell, out var view))
-                    _visualizer.UpdateCellDataVisuals(state, view);
-                _visualizer.ApplyCellVisual(cell);
-            }
+            state.concealedByBomb = true;
+            if (_cellViews.TryGetValue(cell, out var view))
+                _visualizer.UpdateCellDataVisuals(state, view);
+            _visualizer.ApplyCellVisual(cell);
         }
     }
 
@@ -85,6 +84,8 @@ public class BombIceEffectController : MonoBehaviour
         go.transform.SetParent(_tower.transform, worldPositionStays: true);
         go.transform.position = _tower.TowerRoot != null ? _tower.TowerRoot.TransformPoint(new Vector3(cell.x + 0.5f, cell.y + 0.5f, -0.08f)) : new Vector3(cell.x + 0.5f, cell.y + 0.5f, -0.08f);
         go.transform.localScale = Vector3.one;
+
+        go.AddComponent<NoPostProcessingRenderer>();
 
         var sr = go.AddComponent<SpriteRenderer>();
         var sprite = GetBombObscureSpriteFor(cell);

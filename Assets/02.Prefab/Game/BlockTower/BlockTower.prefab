@@ -333,7 +333,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BombIceEffectController
   _tower: {fileID: 1446632597535237679}
   _bombObscureSprite: {fileID: 21300000, guid: e10a4288245ed0941b1313f38347f88d, type: 3}
-  _bombObscureColor: {r: 0.24528301, g: 0.24528301, b: 0.24528301, a: 0.92}
+  _bombObscureColor: {r: 1, g: 1, b: 1, a: 1}
 --- !u!114 &3549273714848015306
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -380,6 +380,7 @@ MonoBehaviour:
   hudPanelSettings: {fileID: 11400000, guid: 9e1f9a6d6e7e4f2dbb7c4d1c8f35a911, type: 2}
   hudImageLibrary: {fileID: 11400000, guid: 5358f87cc1fd5bc44bea6899aa0859c7, type: 2}
   settingImageLibrary: {fileID: 11400000, guid: e84876a0d46d3de4382a45385ca58ee8, type: 2}
+  _clearBgRenderer: {fileID: 0}
   _stageSelectSceneName: StageScene
 --- !u!114 &2329057359085479271
 MonoBehaviour:
