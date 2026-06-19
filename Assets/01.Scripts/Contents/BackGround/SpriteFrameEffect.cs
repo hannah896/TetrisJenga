@@ -52,6 +52,3 @@ sealed class SpriteFrameEffect : MonoBehaviour
     }
 }
 
-sealed class NoPostProcessingRenderer : MonoBehaviour
-{
-}

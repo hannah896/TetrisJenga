@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using JSAM;
 using Unity.Mathematics;
 using UnityEngine;
 using UnityEngine.Splines;
@@ -293,6 +294,7 @@ public class StageUIController : MonoBehaviour
             Debug.LogWarning("StageUIController: 이동할 씬 이름이 비어 있습니다.");
             return;
         }
+        AudioManager.StopAllMusic();
         SceneManager.LoadScene(sceneName);
     }
 

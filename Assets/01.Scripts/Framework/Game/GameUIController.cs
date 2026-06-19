@@ -2,6 +2,8 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using JSAM;
+using LitMotion;
+using LitMotion.Extensions;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.SceneManagement;
@@ -22,10 +24,14 @@ public class GameUIController : MonoBehaviour
     [SerializeField] VisualTreeAsset hudVisualTree;
     [SerializeField] VisualTreeAsset gameOverVisualTree;
     [SerializeField] VisualTreeAsset clearVisualTree;
+    [SerializeField] VisualTreeAsset startOverlayVisualTree;
     [SerializeField] PanelSettings hudPanelSettings;
     [SerializeField] RuntimeHudImageLibrarySO hudImageLibrary;
 
     [SerializeField] SettingUIImageLibrarySO settingImageLibrary;
+
+    [Header("클리어 연출")]
+    [SerializeField] SpriteRenderer _clearBgRenderer;
 
     [Header("결과 화면 씬 이름")]
     [SerializeField] string _stageSelectSceneName = "StageScene";
@@ -85,7 +91,7 @@ public class GameUIController : MonoBehaviour
     void Start()
     {
         BindHud();
-        PlayStageBGM();
+        ShowStartOverlay();
     }
 
     void PlayStageBGM()
@@ -138,6 +144,86 @@ public class GameUIController : MonoBehaviour
     }
     #endregion
     
+    // ── 시작 오버레이 ─────────────────────────────────────────────────────
+
+    void ShowStartOverlay()
+    {
+        if (startOverlayVisualTree == null || hudDocument == null) { PlayStageBGM(); return; }
+        var root = hudDocument.rootVisualElement;
+        if (root == null) return;
+
+        var overlay = startOverlayVisualTree.CloneTree();
+        overlay.style.position = Position.Absolute;
+        overlay.style.left     = 0;
+        overlay.style.top      = 0;
+        overlay.style.width    = new Length(100, LengthUnit.Percent);
+        overlay.style.height   = new Length(100, LengthUnit.Percent);
+        overlay.pickingMode    = PickingMode.Ignore;
+        root.Add(overlay);
+
+        StartCoroutine(RunStartOverlay(overlay));
+    }
+
+    IEnumerator RunStartOverlay(VisualElement overlay)
+    {
+        var shiny1Frames = new[]
+        {
+            overlay.Q<VisualElement>("Shiny1Frame1"),
+            overlay.Q<VisualElement>("Shiny1Frame2"),
+            overlay.Q<VisualElement>("Shiny1Frame3"),
+            overlay.Q<VisualElement>("Shiny1Frame4"),
+            overlay.Q<VisualElement>("Shiny1Frame5"),
+        };
+        var shiny2Frames = new[]
+        {
+            overlay.Q<VisualElement>("Shiny2Frame1"),
+            overlay.Q<VisualElement>("Shiny2Frame2"),
+            overlay.Q<VisualElement>("Shiny2Frame3"),
+        };
+
+        const float displayDuration = 1.0f;
+        const float fadeDuration    = 0.5f;
+        const float frameInterval   = 0.1f;
+
+        float elapsed    = 0f;
+        float frameTimer = 0f;
+        int   shiny1Idx  = 0;
+        int   shiny2Idx  = 0;
+
+        while (elapsed < displayDuration)
+        {
+            elapsed    += Time.deltaTime;
+            frameTimer += Time.deltaTime;
+
+            if (frameTimer >= frameInterval)
+            {
+                frameTimer = 0f;
+                for (int i = 0; i < shiny1Frames.Length; i++)
+                    if (shiny1Frames[i] != null)
+                        shiny1Frames[i].style.display = i == shiny1Idx ? DisplayStyle.Flex : DisplayStyle.None;
+                shiny1Idx = (shiny1Idx + 1) % shiny1Frames.Length;
+
+                for (int i = 0; i < shiny2Frames.Length; i++)
+                    if (shiny2Frames[i] != null)
+                        shiny2Frames[i].style.display = i == shiny2Idx ? DisplayStyle.Flex : DisplayStyle.None;
+                shiny2Idx = (shiny2Idx + 1) % shiny2Frames.Length;
+            }
+
+            yield return null;
+        }
+
+        elapsed = 0f;
+        while (elapsed < fadeDuration)
+        {
+            elapsed += Time.deltaTime;
+            overlay.style.opacity = 1f - Mathf.Clamp01(elapsed / fadeDuration);
+            yield return null;
+        }
+
+        overlay.RemoveFromHierarchy();
+        PlayStageBGM();
+    }
+
     // ── 이벤트 핸들러 ────────────────────────────────────────────────────
 
     void HandleScoreChanged(int score, int target)
@@ -164,8 +250,32 @@ public class GameUIController : MonoBehaviour
 
     void HandleClear(int score, int target)
     {
-        ShowResultHud(clearVisualTree, "Assets/01.Scripts/UI/ClearScreen.uxml",
-            "CLEAR", score, target);
+        if (_clearBgRenderer != null)
+        {
+            _clearBgRenderer.gameObject.SetActive(true);
+            var c = _clearBgRenderer.color;
+            c.a = 0f;
+            _clearBgRenderer.color = c;
+
+            LMotion.Create(0f, 1f, 1.2f)
+                .WithEase(Ease.OutCubic)
+                .WithOnComplete(() => ShowResultHud(clearVisualTree, "Assets/01.Scripts/UI/ClearScreen.uxml", "CLEAR", score, target))
+                .BindToColorA(_clearBgRenderer)
+                .AddTo(this);
+
+            var cam = Camera.main;
+            if (cam != null)
+            {
+                LMotion.Create(cam.transform.position.z, -15f, 1.2f)
+                    .WithEase(Ease.OutCubic)
+                    .BindToPositionZ(cam.transform)
+                    .AddTo(this);
+            }
+        }
+        else
+        {
+            ShowResultHud(clearVisualTree, "Assets/01.Scripts/UI/ClearScreen.uxml", "CLEAR", score, target);
+        }
     }
 
     void HandleFloatingScore(int delta)
