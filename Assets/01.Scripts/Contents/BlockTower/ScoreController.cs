@@ -149,51 +149,6 @@ public class ScoreController : MonoBehaviour
     {
         if (delta == 0 || !Application.isPlaying) return;
         OnFloatingScore?.Invoke(delta);
-
-        var go = new GameObject("FloatingScoreText");
-        if (scoreLabel != null)
-        {
-            go.transform.SetParent(scoreLabel.transform, false);
-            go.transform.localPosition = new Vector3(0f, 1.15f, 0f);
-        }
-        else
-        {
-            go.transform.SetParent(transform);
-            go.transform.position = transform.position + new Vector3(0f, 2f, 0f);
-        }
-
-        var tmp  = go.AddComponent<TextMeshPro>();
-        var rect = go.GetComponent<RectTransform>();
-        rect.sizeDelta        = new Vector2(3f, 1.2f);
-        tmp.text              = delta > 0 ? $"+{delta}" : delta.ToString();
-        tmp.fontSize          = 10f;
-        tmp.alignment         = TextAlignmentOptions.Center;
-        tmp.color             = delta > 0 ? Color.white : Color.red;
-        tmp.fontStyle         = FontStyles.Bold;
-        tmp.textWrappingMode  = TextWrappingModes.NoWrap;
-        tmp.overflowMode      = TextOverflowModes.Overflow;
-        var r = go.GetComponent<Renderer>();
-        if (r != null) r.sortingOrder = 30;
-        StartCoroutine(AnimateFloatingScoreText(go, tmp));
-    }
-
-    IEnumerator AnimateFloatingScoreText(GameObject go, TextMeshPro tmp)
-    {
-        float duration  = 0.85f;
-        float elapsed   = 0f;
-        var   startPos  = go.transform.localPosition;
-        var   startColor = tmp.color;
-
-        while (elapsed < duration && go != null && tmp != null)
-        {
-            elapsed += Time.deltaTime;
-            float t = Mathf.Clamp01(elapsed / duration);
-            go.transform.localPosition = startPos + new Vector3(0f, t * 0.9f, 0f);
-            tmp.color = new Color(startColor.r, startColor.g, startColor.b, 1f - t);
-            yield return null;
-        }
-
-        if (go != null) Destroy(go);
     }
 
 

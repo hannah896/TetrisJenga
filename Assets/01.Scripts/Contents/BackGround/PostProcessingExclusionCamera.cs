@@ -205,7 +205,10 @@ public sealed class PostProcessingExclusionCamera : MonoBehaviour
                 continue;
 
             camera.cullingMask |= layerMask;
-            CopyPostProcessingSettings(sourceCamera, camera);
+
+            var camData = camera.GetUniversalAdditionalCameraData();
+            if (camData != null)
+                camData.renderPostProcessing = false;
         }
     }
 
@@ -255,26 +258,6 @@ public sealed class PostProcessingExclusionCamera : MonoBehaviour
             _loggedOnce = true;
             Debug.Log($"[PostCam] layer={_layer}, overlayCamera={_overlayCamera?.name}, stackCount={stack.Count}, overlayInStack={stack.Contains(_overlayCamera)}, overlayType={overlayData.renderType}");
         }
-    }
-
-    static void CopyPostProcessingSettings(Camera source, Camera destination)
-    {
-        if (source == null || destination == null)
-            return;
-
-        destination.allowHDR  = source.allowHDR;
-        destination.allowMSAA = source.allowMSAA;
-
-        var sourceData      = source.GetUniversalAdditionalCameraData();
-        var destinationData = destination.GetUniversalAdditionalCameraData();
-
-        destinationData.antialiasing        = sourceData.antialiasing;
-        destinationData.antialiasingQuality = sourceData.antialiasingQuality;
-        destinationData.stopNaN             = sourceData.stopNaN;
-        destinationData.dithering           = sourceData.dithering;
-        destinationData.volumeLayerMask     = sourceData.volumeLayerMask;
-        destinationData.volumeTrigger       = sourceData.volumeTrigger;
-        destinationData.renderPostProcessing = true;
     }
 
     static void DestroyLocal(Object obj)

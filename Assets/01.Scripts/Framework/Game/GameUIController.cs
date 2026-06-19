@@ -73,6 +73,7 @@ public class GameUIController : MonoBehaviour
         if (_tower == null) _tower = GetComponent<BlockTower>();
         if (_scoreController == null) _scoreController = GetComponent<ScoreController>();
         if (_camera == null) _camera = GetComponent<CameraController>();
+        if (hudDocument == null) hudDocument = FindAnyObjectByType<UIDocument>();
     }
 
     void Awake()

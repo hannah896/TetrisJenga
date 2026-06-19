@@ -41,7 +41,7 @@ public class CameraController : MonoBehaviour
         if (_tower == null)
             _tower = GetComponent<BlockTower>();
         if (secondaryViewCamera == null)
-            secondaryViewCamera = transform.Find("SubViewCamera").GetComponent<Camera>();
+            secondaryViewCamera = transform.GetComponentInChildren<Camera>();
     }
 
     void Awake()

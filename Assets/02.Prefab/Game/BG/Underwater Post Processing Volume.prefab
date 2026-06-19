@@ -1,0 +1,133 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!1 &6526717474927590399
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 3198116380660227577}
+  - component: {fileID: 2683735546261567321}
+  - component: {fileID: 85331153973530226}
+  - component: {fileID: 5865975558212496507}
+  m_Layer: 0
+  m_Name: Underwater Post Processing Volume
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &3198116380660227577
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6526717474927590399}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &2683735546261567321
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6526717474927590399}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 172515602e62fb746b5d573b38a5fe58, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  m_IsGlobal: 1
+  priority: 0
+  blendDistance: 0
+  weight: 1
+  sharedProfile: {fileID: 11400000, guid: 771de82b6bf04dc5a4a37c989be55294, type: 2}
+--- !u!114 &85331153973530226
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6526717474927590399}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5f4c289eb35b4c8aacb7e06f6f46365c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::UnderwaterPostProcessingController
+  targetCamera: {fileID: 0}
+  underwaterVolume: {fileID: 2683735546261567321}
+  alwaysUnderwater: 1
+  waterSurfaceY: 100
+  blendDepth: 1.5
+  blendSpeed: 6
+  maxWeight: 1
+  enableCameraPostProcessing: 1
+  enableUnderwaterSunLight: 1
+  sunLightColor: {r: 0.62, g: 0.95, b: 1, a: 1}
+  sunLightIntensity: 2.2
+  sunLightEulerAngles: {x: 58, y: -22, z: 0}
+  sunLightPulseAmount: 0.18
+  sunLightPulseSpeed: 0.65
+  enableUnderwaterTintLight: 1
+  applyTintSettingsToLights: 1
+  enableTintBeamPostEffect: 1
+  beamTextureWidth: 96
+  beamTextureHeight: 256
+  tintLights:
+  - light: {fileID: 0}
+    name: Center Beam
+    enabled: 1
+    color: {r: 0.34, g: 0.86, b: 1, a: 1}
+    intensity: 3.2
+    localPosition: {x: 0, y: 6, z: 3.5}
+    eulerAngles: {x: 68, y: 0, z: 0}
+    range: 16
+    spotAngle: 28
+    innerSpotAngle: 8
+    beamColor: {r: 0.82, g: 0.96, b: 1, a: 1}
+    disableBeamEffect: 0
+    beamOpacity: 0.72
+    beamLength: 11
+    beamWidth: 2.8
+    beamCoreWidth: 0.18
+    beamFeather: 0.62
+    beamFalloff: 1.6
+    disableBottomFade: 0
+    beamBottomFadeStart: 0.45
+    beamLocalOffset: {x: 0, y: -0.2, z: -0.05}
+    beamEulerAngles: {x: 0, y: 0, z: 0}
+    beamSortingOrder: 80
+  enableDistanceContrast: 1
+  contrastNearDistance: 5
+  contrastFarDistance: 24
+  nearContrast: 30
+  farContrast: -100
+--- !u!114 &5865975558212496507
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6526717474927590399}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 36a4bdeebd7f8cf47b55bf7fbe13f3ee, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::LevelBackgroundController
+  _background: {fileID: 85331153973530226}
+  _level1Visual: {fileID: 11400000, guid: 9a230da15c50f6a4f9b424412e26ed5d, type: 2}
+  _level2Visual: {fileID: 11400000, guid: 5bd7433282fb33c48ac799f2e77437c7, type: 2}
+  _level3Visual: {fileID: 11400000, guid: 13125150bc6a1a641ad85b2fa9065545, type: 2}
+  _level4Visual: {fileID: 11400000, guid: c718181e80e0d164fbea41a971bb34e7, type: 2}
+  _level5Visual: {fileID: 11400000, guid: c928cd4a43b7b224980470d03bdbae60, type: 2}
+  _level6Visual: {fileID: 11400000, guid: 8342f44a3f482c548bd18de595c90aad, type: 2}
+  _endlessVisual: {fileID: 11400000, guid: d4ea5388e57c6e847b9378c2adb967e1, type: 2}

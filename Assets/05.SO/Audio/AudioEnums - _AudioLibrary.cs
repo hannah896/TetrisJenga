@@ -4,7 +4,9 @@
         Play,
         GameOver,
         Hold,
-        Success
+        Success,
+        Boom,
+        EscapeFish
     }
     public enum _AudioLibraryMusic {
         LobbyBGM,

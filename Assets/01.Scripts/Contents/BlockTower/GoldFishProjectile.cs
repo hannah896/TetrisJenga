@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using JSAM;
 using UnityEngine;
 
 public class GoldFishProjectile : MonoBehaviour
@@ -122,6 +123,7 @@ public class GoldFishProjectile : MonoBehaviour
             return;
 
         _finished = true;
+        AudioManager.PlaySound(_AudioLibrarySounds.EscapeFish);
         scoreController?.AwardGoldFishDeadlineScore(transform.position);
         Destroy(gameObject);
     }

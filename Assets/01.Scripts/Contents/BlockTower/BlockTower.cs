@@ -171,17 +171,6 @@ public class BlockTower : MonoBehaviour
 
         if (Application.isPlaying)
             return;
-
-        GetComponent<CameraController>()?.EnsureSecondaryViewObjects();
-        UnityEditor.EditorApplication.delayCall += () =>
-        {
-            if (!this || Application.isPlaying || !gameObject.scene.IsValid())
-                return;
-
-            EnsureEditorSceneObjectsVisible();
-            UnityEditor.EditorUtility.SetDirty(this);
-            UnityEditor.SceneManagement.EditorSceneManager.MarkSceneDirty(gameObject.scene);
-        };
     }
 #endif
     

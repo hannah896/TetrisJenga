@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using JSAM;
 using UnityEngine;
 using TMPro;
 
@@ -51,6 +52,7 @@ public class BombIceEffectController : MonoBehaviour
 
     public void TriggerBombAt(Vector2Int center)
     {
+        AudioManager.PlaySound(_AudioLibrarySounds.Boom);
         foreach (var offset in BombBoxOffsets())
         {
             var cell = center + offset;
