@@ -150,6 +150,11 @@ public class HeldPlacementController : MonoBehaviour
             if (heldView.label == null)
                 heldView.label = _visualizer?.SpawnLabel(heldState.number, heldView.go.transform);
 
+            // 분할선 위에 배치된 블록은 원본 타워로 취급하지 않는다.
+            // 그렇지 않으면 ExtractionMaxRow가 올라가 placement zone이 계속 줄어든다.
+            if (heldState.isOriginalTower && target.y >= _tower.ExtractionMaxRow + 1)
+                heldState.isOriginalTower = false;
+
             var bc = heldView.go.GetComponent<BlockCell>();
             if (bc != null) { bc.Weight = heldState.number; bc.IsOriginalTower = heldState.isOriginalTower; }
 
