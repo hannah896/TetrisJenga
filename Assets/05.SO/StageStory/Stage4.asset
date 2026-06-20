@@ -1,0 +1,42 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2150504852ee59e4496ad5828adc5b60, type: 3}
+  m_Name: Stage4
+  m_EditorClassIdentifier: Assembly-CSharp::Dialogue
+  Characters:
+  - Name: "나레이션"
+    Sprite: {fileID: 0}
+  - Name: "주인공"
+    Sprite: {fileID: 0}
+  - Name: "동료"
+    Sprite: {fileID: 0}
+  - Name: "효과음"
+    Sprite: {fileID: 0}
+  Lines:
+  - CharacterIndex: 0
+    Sentence: "4스테이지 -(유리병)"
+  - CharacterIndex: 0
+    Sentence: "배경: 손상된 잠수함 내부"
+  - CharacterIndex: 2
+    Sentence: "저기… 하얀 빛이 계속 반짝이는데요?"
+  - CharacterIndex: 0
+    Sentence: "강렬한 하얀 섬광이 잠수함을 덮친다. 수많은 유리병들이 빛을 반사해 눈이 부실 정도다."
+  - CharacterIndex: 1
+    Sentence: "너무 밝아! 앞이 안 보여!"
+  - CharacterIndex: 3
+    Sentence: "쨍그랑!"
+  - CharacterIndex: 0
+    Sentence: "유리병이 부딪히며 외벽에 구멍이 뚫리고 물이 쏟아져 들어온다."
+  - CharacterIndex: 2
+    Sentence: "어푸! 물 들어와요!!"
+  - CharacterIndex: 1
+    Sentence: "얼른 막아야 해! 내가 막고 있을 테니 너는 얼른 조종해!"
