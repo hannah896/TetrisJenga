@@ -12,8 +12,8 @@ public class GoldFishProjectile : MonoBehaviour
     [Header("Visual")]
     [SerializeField] Vector2 visualCellSize = Vector2.one;
     [SerializeField, Range(0.01f, 3f)] float visualScaleMultiplier = 1f / 3f;
-    
-    [SerializeField] ScoreController  scoreController; 
+
+    [SerializeField] ScoreController scoreController;
 
     Rigidbody _rb;
     float _stuckTimer;
@@ -21,7 +21,7 @@ public class GoldFishProjectile : MonoBehaviour
     bool _finished;
     Vector3 _lastTravelDirection = Vector3.right;
     readonly Dictionary<Collider, Vector3> _cellContactNormals = new();
-    
+
     void OnEnable()
     {
         Util.SetNoPostLayer(gameObject);
@@ -102,7 +102,10 @@ public class GoldFishProjectile : MonoBehaviour
             : 0f;
 
         if (_stuckTimer >= stuckSeconds)
-            Destroy(gameObject);
+        {
+            if (!TryEscapeStuck())
+                Destroy(gameObject);
+        }
     }
 
     void OnCollisionEnter(Collision collision)
@@ -110,19 +113,25 @@ public class GoldFishProjectile : MonoBehaviour
         if (_finished || _rb == null || collision.contactCount == 0)
             return;
 
-        var normal = collision.GetContact(0).normal;
-        normal.z = 0f;
-        if (normal.sqrMagnitude <= 0.001f)
+        var normal = GetAlignedNormal(collision.GetContact(0).normal);
+        if (normal == Vector3.zero)
             return;
 
         RecordCellContact(collision, normal);
 
-        var reflected = Vector3.Reflect(_rb.linearVelocity.normalized, normal.normalized);
+        var incoming = _rb.linearVelocity;
+        incoming.z = 0f;
+        if (incoming.sqrMagnitude < 0.001f)
+            incoming = _lastTravelDirection;
+
+        var reflected = Vector3.Reflect(incoming.normalized, normal);
         reflected.z = 0f;
         if (reflected.sqrMagnitude > 0.001f)
         {
             _lastTravelDirection = reflected.normalized;
             _rb.linearVelocity = reflected.normalized * speed;
+            // 겹침 해소: 노멀 방향으로 살짝 밀어냄
+            transform.position += normal * 0.05f;
         }
     }
 
@@ -131,8 +140,7 @@ public class GoldFishProjectile : MonoBehaviour
         if (_finished || collision.contactCount == 0)
             return;
 
-        var normal = collision.GetContact(0).normal;
-        normal.z = 0f;
+        var normal = GetAlignedNormal(collision.GetContact(0).normal);
         RecordCellContact(collision, normal);
     }
 
@@ -183,11 +191,40 @@ public class GoldFishProjectile : MonoBehaviour
         return false;
     }
 
+    bool TryEscapeStuck()
+    {
+        var escapeDir = Vector3.zero;
+        foreach (var n in _cellContactNormals.Values)
+            escapeDir += n;
+        escapeDir.z = 0f;
+
+        if (escapeDir.sqrMagnitude < 0.001f)
+            return false;
+
+        escapeDir = escapeDir.normalized;
+        transform.position += escapeDir * 0.2f;
+        _rb.linearVelocity = escapeDir * speed;
+        _lastTravelDirection = escapeDir;
+        _stuckTimer = 0f;
+        _cellContactNormals.Clear();
+        return true;
+    }
+
+    static Vector3 GetAlignedNormal(Vector3 raw)
+    {
+        raw.z = 0f;
+        if (raw.sqrMagnitude <= 0.001f)
+            return Vector3.zero;
+
+        return Mathf.Abs(raw.x) >= Mathf.Abs(raw.y)
+            ? new Vector3(Mathf.Sign(raw.x), 0f, 0f)
+            : new Vector3(0f, Mathf.Sign(raw.y), 0f);
+    }
+
     static bool IsVerticalCrushPair(Vector3 a, Vector3 b)
     {
         return Mathf.Abs(a.y) >= 0.65f &&
                Mathf.Abs(b.y) >= 0.65f &&
                Vector3.Dot(a, b) <= -0.65f;
     }
-
 }
