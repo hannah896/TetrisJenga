@@ -4,6 +4,9 @@
 
     <ui:VisualElement name="root" class="ui-root">
 
+        <!-- 전체 화면 배경 -->
+        <ui:VisualElement name="dialogue-bg" class="dialogue-bg" />
+
         <!-- 초상화 영역 (패널 위로 돌출) -->
         <ui:VisualElement name="portrait-area" class="portrait-area">
             <ui:VisualElement name="portrait-image" class="portrait-image" />

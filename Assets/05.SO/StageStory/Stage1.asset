@@ -12,39 +12,59 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2150504852ee59e4496ad5828adc5b60, type: 3}
   m_Name: Stage1
   m_EditorClassIdentifier: Assembly-CSharp::Dialogue
+  Background: {fileID: 0}
   Characters:
-  - Name: "나레이션"
+  - Name: "\uB098\uB808\uC774\uC158"
     Sprite: {fileID: 0}
-  - Name: "주인공"
-    Sprite: {fileID: 0}
-  - Name: "동료"
-    Sprite: {fileID: 0}
-  - Name: "효과음"
+  - Name: "\uC8FC\uC778\uACF5"
+    Sprite: {fileID: 21300000, guid: dbecff7415a22e14ba896a6d324e29aa, type: 3}
+  - Name: "\uB3D9\uB8CC"
+    Sprite: {fileID: 1286250853, guid: 85aabda3de9fdb844a36bdef33a6e485, type: 3}
+  - Name: "\uD6A8\uACFC\uC74C"
     Sprite: {fileID: 0}
   Lines:
   - CharacterIndex: 0
-    Sentence: "1스테이지 -(캔)"
+    Sentence: "1\uC2A4\uD14C\uC774\uC9C0 -(\uCE94)"
+    SoundEffect: {fileID: 0}
   - CharacterIndex: 0
-    Sentence: "배경: 손상된 잠수함 내부"
+    Sentence: "\uBC30\uACBD: \uC190\uC0C1\uB41C \uC7A0\uC218\uD568 \uB0B4\uBD80"
+    SoundEffect: {fileID: 0}
   - CharacterIndex: 1
-    Sentence: "산소 32%. 천천히 올라가자."
+    Sentence: "\uC0B0\uC18C 32%. \uCC9C\uCC9C\uD788 \uC62C\uB77C\uAC00\uC790."
+    SoundEffect: {fileID: 0}
   - CharacterIndex: 2
-    Sentence: "저기… 검은 그림자가 스치고 가네요. 물고기 떼인가 봐요."
+    Sentence: "\uC800\uAE30\u2026 \uAC80\uC740 \uADF8\uB9BC\uC790\uAC00 \uC2A4\uCE58\uACE0
+      \uAC00\uB124\uC694. \uBB3C\uACE0\uAE30 \uB5BC\uC778\uAC00 \uBD10\uC694."
+    SoundEffect: {fileID: 0}
   - CharacterIndex: 1
-    Sentence: "…. 물고기 떼?"
+    Sentence: "\u2026. \uBB3C\uACE0\uAE30 \uB5BC?"
+    SoundEffect: {fileID: 0}
   - CharacterIndex: 3
-    Sentence: "쾅! 쾅! 쾅!"
+    Sentence: "\uCF85! \uCF85! \uCF85!"
+    SoundEffect: {fileID: 0}
   - CharacterIndex: 1
-    Sentence: "뭐야! 외부 조명 켜봐!"
+    Sentence: "\uBB50\uC57C! \uC678\uBD80 \uC870\uBA85 \uCF1C\uBD10!"
+    SoundEffect: {fileID: 0}
   - CharacterIndex: 0
-    Sentence: "수천 개의 녹슨 캔들이 해류를 타고 총알처럼 날아와 잠수함을 강타한다."
+    Sentence: "\uC218\uCC9C \uAC1C\uC758 \uB179\uC2A8 \uCE94\uB4E4\uC774 \uD574\uB958\uB97C
+      \uD0C0\uACE0 \uCD1D\uC54C\uCC98\uB7FC \uB0A0\uC544\uC640 \uC7A0\uC218\uD568\uC744
+      \uAC15\uD0C0\uD55C\uB2E4."
+    SoundEffect: {fileID: 0}
   - CharacterIndex: 1
-    Sentence: "…물고기가 아니야. 캔들이 해류에 휩쓸려서 날아온 거였어."
+    Sentence: "\u2026\uBB3C\uACE0\uAE30\uAC00 \uC544\uB2C8\uC57C. \uCE94\uB4E4\uC774
+      \uD574\uB958\uC5D0 \uD729\uC4F8\uB824\uC11C \uB0A0\uC544\uC628 \uAC70\uC600\uC5B4."
+    SoundEffect: {fileID: 0}
   - CharacterIndex: 2
-    Sentence: "캔이라고요?"
+    Sentence: "\uCE94\uC774\uB77C\uACE0\uC694?"
+    SoundEffect: {fileID: 0}
   - CharacterIndex: 3
-    Sentence: "쿵"
+    Sentence: "\uCFF5"
+    SoundEffect: {fileID: 0}
   - CharacterIndex: 2
-    Sentence: "으악! 이러다가 부품들이 다시 떨어져 나가겠어요!"
+    Sentence: "\uC73C\uC545! \uC774\uB7EC\uB2E4\uAC00 \uBD80\uD488\uB4E4\uC774 \uB2E4\uC2DC
+      \uB5A8\uC5B4\uC838 \uB098\uAC00\uACA0\uC5B4\uC694!"
+    SoundEffect: {fileID: 0}
   - CharacterIndex: 1
-    Sentence: "그래. 추진기 출력 낮춰. 얼른 여길 벗어나야겠어."
+    Sentence: "\uADF8\uB798. \uCD94\uC9C4\uAE30 \uCD9C\uB825 \uB0AE\uCDB0. \uC5BC\uB978
+      \uC5EC\uAE38 \uBC97\uC5B4\uB098\uC57C\uACA0\uC5B4."
+    SoundEffect: {fileID: 0}

@@ -4,12 +4,15 @@ using UnityEngine.SceneManagement;
 using UnityEngine.UIElements;
 
 [RequireComponent(typeof(UIDocument))]
+[RequireComponent(typeof(AudioSource))]
 public class DialogueUIController : MonoBehaviour
 {
     [Tooltip("Stage1~6 순서대로 할당. GameManager.CurrentStageIndex로 자동 선택됨.")]
     [SerializeField] Dialogue[] stageDialogues;
 
     UIDocument _doc;
+    AudioSource _audioSource;
+    VisualElement _background;
     VisualElement _portraitArea;
     VisualElement _portraitImage;
     Label _nameLabel;
@@ -26,11 +29,13 @@ public class DialogueUIController : MonoBehaviour
     void Awake()
     {
         _doc = GetComponent<UIDocument>();
+        _audioSource = GetComponent<AudioSource>();
     }
 
     void OnEnable()
     {
         var root = _doc.rootVisualElement;
+        _background = root.Q("dialogue-bg");
         _portraitArea = root.Q("portrait-area");
         _portraitImage = root.Q("portrait-image");
         _nameLabel = root.Q<Label>("name-label");
@@ -64,6 +69,15 @@ public class DialogueUIController : MonoBehaviour
     {
         _dialogue = dlg;
         _currentLineIndex = 0;
+
+        if (_background != null)
+        {
+            if (dlg.Background != null)
+                _background.style.backgroundImage = new StyleBackground(dlg.Background);
+            else
+                _background.style.backgroundImage = new StyleBackground(StyleKeyword.None);
+        }
+
         ShowCurrentLine();
     }
 
@@ -99,6 +113,9 @@ public class DialogueUIController : MonoBehaviour
         _dialogueText.EnableInClassList("dialogue-text--narration", isNarration);
 
         _dialogueText.text = line.Sentence;
+
+        if (line.SoundEffect != null)
+            _audioSource.PlayOneShot(line.SoundEffect);
     }
 
     void OnNextClicked()

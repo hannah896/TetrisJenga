@@ -3,6 +3,17 @@
    기준 해상도: 1920 x 1080
    ========================================================= */
 
+/* ---- 전체 화면 배경 ---- */
+.dialogue-bg {
+    position: absolute;
+    left: 0;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    background-color: #1a1a2e;
+    -unity-background-scale-mode: scale-and-crop;
+}
+
 /* ---- 초상화 영역 (대화 패널 위로 돌출) ---- */
 .portrait-area {
     position: absolute;
