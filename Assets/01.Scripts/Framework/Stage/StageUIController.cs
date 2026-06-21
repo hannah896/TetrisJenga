@@ -283,7 +283,8 @@ public class StageUIController : MonoBehaviour
             scene = $"Level{selectedNodeIndex + 1}";
         // 인게임(BlockTower/GameManager)이 결과를 어느 스테이지에 기록할지 알 수 있도록 전달.
         GameManager.Instance.CurrentStageIndex = selectedNodeIndex;
-        LoadScene(scene);
+        GameManager.Instance.PendingLevelScene = scene;
+        LoadScene("DialogueScene");
     }
     private void GoToLobby() => LoadScene(lobbySceneName);
 

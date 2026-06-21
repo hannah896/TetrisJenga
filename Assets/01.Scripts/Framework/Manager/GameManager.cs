@@ -35,6 +35,9 @@ public class GameManager
     /// <summary>스테이지 선택 시 설정되어 인게임 씬에서 참조하는 현재 스테이지 인덱스(0-based).</summary>
     public int CurrentStageIndex { get; set; }
 
+    /// <summary>DialogueScene 종료 후 이동할 Level 씬 이름.</summary>
+    public string PendingLevelScene { get; set; }
+
     public int StageCount => stageCount;
 
     private string Path =>

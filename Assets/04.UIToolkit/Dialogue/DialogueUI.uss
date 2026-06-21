@@ -1,0 +1,125 @@
+/* =========================================================
+   DialogueScene UI
+   기준 해상도: 1920 x 1080
+   ========================================================= */
+
+/* ---- 초상화 영역 (대화 패널 위로 돌출) ---- */
+.portrait-area {
+    position: absolute;
+    left: 30px;
+    bottom: 0;
+    width: 370px;
+    height: 490px;
+}
+
+.portrait-image {
+    position: absolute;
+    left: 0;
+    top: 0;
+    right: 0;
+    bottom: 70px;
+    -unity-background-scale-mode: scale-to-fit;
+}
+
+.name-label {
+    position: absolute;
+    left: 0;
+    bottom: 0;
+    width: 250px;
+    height: 68px;
+    background-color: #13B5C8;
+    border-top-right-radius: 14px;
+    border-bottom-left-radius: 14px;
+    border-bottom-right-radius: 14px;
+    color: #FFFFFF;
+    font-size: 34px;
+    -unity-text-align: middle-center;
+}
+
+/* ---- 대화 패널 (화면 하단 고정) ---- */
+.dialogue-panel {
+    position: absolute;
+    left: 0;
+    bottom: 0;
+    right: 0;
+    height: 310px;
+}
+
+/* ---- 대화 박스 ---- */
+.dialogue-box {
+    position: absolute;
+    left: 410px;
+    top: 10px;
+    right: 230px;
+    bottom: 10px;
+    background-color: #7B5230;
+    border-radius: 16px;
+    border-width: 4px;
+    border-color: #5C3D1E;
+    flex-direction: column;
+    padding-top: 22px;
+    padding-left: 30px;
+    padding-right: 30px;
+    padding-bottom: 12px;
+}
+
+/* 초상화 없을 때 대화 박스가 왼쪽으로 확장 */
+.dialogue-box--no-portrait {
+    left: 20px;
+}
+
+.dialogue-text {
+    flex-grow: 1;
+    color: #F0E8D0;
+    font-size: 34px;
+    white-space: normal;
+    -unity-text-align: upper-left;
+    overflow: hidden;
+}
+
+/* 나레이션 스타일 */
+.dialogue-text--narration {
+    color: #C8C0A0;
+    font-size: 30px;
+    -unity-text-align: middle-center;
+}
+
+.dialogue-bottom-row {
+    flex-direction: row;
+    justify-content: center;
+    height: 54px;
+    align-items: center;
+}
+
+/* ---- 대화그만하기 버튼 ---- */
+.skip-button {
+    width: 230px;
+    height: 46px;
+    background-color: rgba(0, 0, 0, 0.35);
+    color: #C0B890;
+    font-size: 22px;
+    border-radius: 10px;
+    border-width: 0;
+}
+
+.skip-button:hover {
+    background-color: rgba(0, 0, 0, 0.52);
+}
+
+/* ---- 다음 버튼 ---- */
+.next-button {
+    position: absolute;
+    right: 20px;
+    bottom: 20px;
+    width: 200px;
+    height: 78px;
+    background-color: #3BAD2E;
+    color: #FFFFFF;
+    font-size: 38px;
+    border-radius: 14px;
+    border-width: 0;
+}
+
+.next-button:hover {
+    background-color: #4CC03F;
+}
