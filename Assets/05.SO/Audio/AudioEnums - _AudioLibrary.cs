@@ -6,7 +6,10 @@
         Hold,
         Success,
         Boom,
-        EscapeFish
+        EscapeFish,
+        Bang,
+        Err,
+        GlassHit
     }
     public enum _AudioLibraryMusic {
         LobbyBGM,

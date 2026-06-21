@@ -14,6 +14,24 @@
     -unity-background-scale-mode: scale-and-crop;
 }
 
+/* ---- 왼쪽 상단 스킵 버튼 ---- */
+.skip-button {
+    position: absolute;
+    left: 24px;
+    top: 24px;
+    width: 140px;
+    height: 58px;
+    background-color: rgba(0, 0, 0, 0.5);
+    color: #E0D8C0;
+    font-size: 28px;
+    border-radius: 10px;
+    border-width: 0;
+}
+
+.skip-button:hover {
+    background-color: rgba(0, 0, 0, 0.68);
+}
+
 /* ---- 초상화 영역 (대화 패널 위로 돌출) ---- */
 .portrait-area {
     position: absolute;
@@ -67,11 +85,10 @@
     border-radius: 16px;
     border-width: 4px;
     border-color: #5C3D1E;
-    flex-direction: column;
     padding-top: 22px;
     padding-left: 30px;
     padding-right: 30px;
-    padding-bottom: 12px;
+    padding-bottom: 22px;
 }
 
 /* 초상화 없을 때 대화 박스가 왼쪽으로 확장 */
@@ -93,28 +110,6 @@
     color: #C8C0A0;
     font-size: 30px;
     -unity-text-align: middle-center;
-}
-
-.dialogue-bottom-row {
-    flex-direction: row;
-    justify-content: center;
-    height: 54px;
-    align-items: center;
-}
-
-/* ---- 대화그만하기 버튼 ---- */
-.skip-button {
-    width: 230px;
-    height: 46px;
-    background-color: rgba(0, 0, 0, 0.35);
-    color: #C0B890;
-    font-size: 22px;
-    border-radius: 10px;
-    border-width: 0;
-}
-
-.skip-button:hover {
-    background-color: rgba(0, 0, 0, 0.52);
 }
 
 /* ---- 다음 버튼 ---- */

@@ -7,6 +7,9 @@
         <!-- 전체 화면 배경 -->
         <ui:VisualElement name="dialogue-bg" class="dialogue-bg" />
 
+        <!-- 왼쪽 상단 스킵 버튼 -->
+        <ui:Button name="skip-button" text="SKIP" class="skip-button btn" />
+
         <!-- 초상화 영역 (패널 위로 돌출) -->
         <ui:VisualElement name="portrait-area" class="portrait-area">
             <ui:VisualElement name="portrait-image" class="portrait-image" />
@@ -19,9 +22,6 @@
             <!-- 대화 박스 -->
             <ui:VisualElement name="dialogue-box" class="dialogue-box">
                 <ui:Label name="dialogue-text" text="" class="dialogue-text" />
-                <ui:VisualElement class="dialogue-bottom-row">
-                    <ui:Button name="skip-button" text="대화그만하기" class="skip-button btn" />
-                </ui:VisualElement>
             </ui:VisualElement>
 
             <!-- 다음 버튼 -->
