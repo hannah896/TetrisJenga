@@ -15,8 +15,8 @@ public class DialogueLine
 {
     public int CharacterIndex;
     public string Sentence;
-    [Tooltip("라인 표시 시 재생할 효과음. 비워두면 재생 안 함.")]
-    public AudioClip SoundEffect;
+    public bool HasSoundEffect;
+    public _AudioLibrarySounds SoundEffect;
 
     public DialogueLine(int characterIndex, string sentence)
     {
