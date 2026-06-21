@@ -26,6 +26,7 @@ public class TowerCellVisualizer : MonoBehaviour
     [SerializeField, Range(1, 8)]     int   previewBlurCopies  = 8;
 
     Sprite    _blockSprite;
+    [SerializeField] Sprite boxSprite;
     Texture2D _blockTex;
     Sprite    _outlineSprite;
     Texture2D _outlineTex;
@@ -92,7 +93,7 @@ public class TowerCellVisualizer : MonoBehaviour
             return;
         }
 
-        var color = state.isOriginalTower ? Util.NumberColor(state.number) : Util.PlacedNumberColor(state.number);
+        var color = Util.NumberColor(state.number);
         if (state.kind == CellKind.Bomb)
             color = Color.black;
         else if (state.kind == CellKind.Ice)
@@ -243,9 +244,7 @@ public class TowerCellVisualizer : MonoBehaviour
             }
 
             view.sr.sprite   = CreateBlockSprite();
-            view.sr.color    = state.isOriginalTower
-                ? Util.NumberColor(state.number)
-                : Util.PlacedNumberColor(state.number);
+            view.sr.color    = Util.NumberColor(state.number);
             view.sr.drawMode = SpriteDrawMode.Simple;
         }
     }
@@ -425,6 +424,31 @@ public class TowerCellVisualizer : MonoBehaviour
         _blockTex    = tex;
         _blockSprite = Sprite.Create(tex, new Rect(0, 0, size, size), new Vector2(0.5f, 0.5f), size);
         return _blockSprite;
+    }
+
+    public Sprite CreateBoxSprite()
+    {
+        if (boxSprite != null) return boxSprite;
+
+        boxSprite = Resources.Load<Sprite>("BlockTower/box");
+        if (boxSprite != null) return boxSprite;
+
+#if UNITY_EDITOR
+        boxSprite = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/00.Resources/Sprite/InGame/Box/box.png");
+        if (boxSprite != null) return boxSprite;
+#endif
+
+        return CreateBlockSprite();
+    }
+
+    public Vector3 ScaleSpriteToCell(Sprite sprite, float targetSize = 1f)
+    {
+        if (sprite == null) return Vector3.one * targetSize;
+        var size = sprite.bounds.size;
+        return new Vector3(
+            targetSize / Mathf.Max(0.0001f, size.x),
+            targetSize / Mathf.Max(0.0001f, size.y),
+            1f);
     }
 
     public Sprite CreateOutlineSprite()

@@ -42,6 +42,12 @@ public sealed class UnderwaterPostProcessingController : MonoBehaviour
     [SerializeField, Range(0f, 1f)] float maxWeight = 1f;
     [SerializeField] bool enableCameraPostProcessing = true;
 
+    [Header("Runtime Post Processing")]
+    [SerializeField, Tooltip("Keep the camera, Volume profile, weight, lights, and beams exactly as authored in the editor.")]
+    bool preserveEditorPostProcessingSettings;
+
+    public bool PreserveEditorPostProcessingSettings => preserveEditorPostProcessingSettings;
+
     [Header("Underwater Sun Light")]
     [SerializeField] bool enableUnderwaterSunLight = true;
     [SerializeField] Color sunLightColor = new(0.62f, 0.95f, 1f, 1f);
@@ -87,9 +93,10 @@ public sealed class UnderwaterPostProcessingController : MonoBehaviour
 
     [Header("Distance Contrast")]
     [SerializeField] bool enableDistanceContrast = true;
-    [SerializeField, Min(0f)] float contrastNearDistance = 5f;
-    [SerializeField, Min(0f)] float contrastFarDistance = 24f;
-    [SerializeField] float nearContrast = 30f;
+    [SerializeField] bool applyDistanceContrastAtRuntime = true;
+    [SerializeField, Min(0f)] float contrastNearDistance = 10f;
+    [SerializeField, Min(0f)] float contrastFarDistance = 90f;
+    [SerializeField] float nearContrast = -30f;
     [SerializeField] float farContrast = -100f;
 
     float _currentWeight;
@@ -105,8 +112,12 @@ public sealed class UnderwaterPostProcessingController : MonoBehaviour
     {
         underwaterVolume = FindVolumeComponent();
         targetCamera = Camera.main;
-        ApplyWeight(maxWeight);
-        EnablePostProcessing();
+
+        if (!PreserveEditorPostProcessingSettings)
+        {
+            ApplyWeight(maxWeight);
+            EnablePostProcessing();
+        }
     }
 
     void OnEnable()
@@ -118,10 +129,12 @@ public sealed class UnderwaterPostProcessingController : MonoBehaviour
             targetCamera = Camera.main;
 
         _currentWeight = ReadVolumeWeight();
-        EnablePostProcessing();
+        if (!PreserveEditorPostProcessingSettings)
+            EnablePostProcessing();
         EnsureSunLight();
         EnsureTintLights();
-        UpdateVolumeWeight(immediate: true);
+        if (!PreserveEditorPostProcessingSettings)
+            UpdateVolumeWeight(immediate: true);
     }
 
     void OnDisable()
@@ -137,8 +150,10 @@ public sealed class UnderwaterPostProcessingController : MonoBehaviour
 
         blendDepth = Mathf.Max(0.01f, blendDepth);
         blendSpeed = Mathf.Max(0f, blendSpeed);
-        NormalizeTintLightSettings();
-        UpdateVolumeWeight(immediate: true);
+        contrastNearDistance = Mathf.Max(0f, contrastNearDistance);
+        contrastFarDistance = Mathf.Max(contrastNearDistance + 0.01f, contrastFarDistance);
+        if (!PreserveEditorPostProcessingSettings)
+            UpdateVolumeWeight(immediate: true);
     }
 
     void Update()
@@ -149,11 +164,20 @@ public sealed class UnderwaterPostProcessingController : MonoBehaviour
         if (targetCamera == null)
             targetCamera = Camera.main;
 
-        EnablePostProcessing();
-        UpdateVolumeWeight(immediate: !Application.isPlaying);
+        if (!PreserveEditorPostProcessingSettings)
+        {
+            EnablePostProcessing();
+            UpdateVolumeWeight(immediate: !Application.isPlaying);
+        }
+        else
+        {
+            // Preserve the editor-authored value, but keep dependent lights and beams in sync with it.
+            _currentWeight = ReadVolumeWeight();
+        }
         UpdateSunLight();
         UpdateTintLight();
-        UpdateDistanceContrast();
+        if (Application.isPlaying && applyDistanceContrastAtRuntime)
+            UpdateDistanceContrast();
     }
 
     void UpdateVolumeWeight(bool immediate)
@@ -200,7 +224,7 @@ public sealed class UnderwaterPostProcessingController : MonoBehaviour
         if (_sunLight == null)
             return;
 
-        float pulse = 1f + Mathf.Sin(Time.time * sunLightPulseSpeed) * sunLightPulseAmount;
+        float pulse = 1f;
         _sunLight.enabled = _currentWeight > 0.001f;
         _sunLight.color = sunLightColor;
         _sunLight.intensity = sunLightIntensity * pulse * _currentWeight;
@@ -251,7 +275,9 @@ public sealed class UnderwaterPostProcessingController : MonoBehaviour
         if (!enableUnderwaterTintLight)
             return;
 
-        NormalizeTintLightSettings();
+        if (tintLights == null || tintLights.Length == 0)
+            return;
+
         if (_tintLights == null || _tintLights.Length != tintLights.Length)
             System.Array.Resize(ref _tintLights, tintLights.Length);
         if (_beamRenderers == null || _beamRenderers.Length != tintLights.Length)
@@ -263,6 +289,12 @@ public sealed class UnderwaterPostProcessingController : MonoBehaviour
 
         for (int i = 0; i < tintLights.Length; i++)
         {
+            if (tintLights[i] == null)
+            {
+                SetBeamRendererEnabled(i, false);
+                continue;
+            }
+
             string lightName = $"Underwater Tint Light {i + 1:00} {SafeLightName(tintLights[i].name)}";
             if (tintLights[i].light != null)
             {
@@ -272,7 +304,6 @@ public sealed class UnderwaterPostProcessingController : MonoBehaviour
             else
             {
                 _tintLights[i] = EnsureSpotLight(_tintLights[i], lightName, true);
-                tintLights[i].light = _tintLights[i];
             }
 
             EnsureTintBeam(i, $"Underwater Tint Beam {i + 1:00} {SafeLightName(tintLights[i].name)}");
@@ -300,6 +331,8 @@ public sealed class UnderwaterPostProcessingController : MonoBehaviour
             _beamRenderers[index] = beamObject.AddComponent<SpriteRenderer>();
         }
 
+        _beamRenderers[index].gameObject.SetActive(true);
+        _beamRenderers[index].gameObject.layer = gameObject.layer;
         _beamRenderers[index].shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
         _beamRenderers[index].receiveShadows = false;
     }
@@ -334,12 +367,16 @@ public sealed class UnderwaterPostProcessingController : MonoBehaviour
             settings.beamColor.r,
             settings.beamColor.g,
             settings.beamColor.b,
-            settings.beamOpacity * _currentWeight);
+            Mathf.Clamp01(settings.beamOpacity) * _currentWeight);
         renderer.sortingOrder = settings.beamSortingOrder;
         Vector3 basePosition = _tintLights[index] != null
             ? _tintLights[index].transform.localPosition
             : settings.localPosition;
-        renderer.transform.localPosition = basePosition + settings.beamLocalOffset;
+        var beamPosition = basePosition + settings.beamLocalOffset;
+        // The spot light may sit deep in 3D space. Keep its 2D beam sprite on the gameplay plane
+        // so camera zoom and far clipping cannot make the visual disappear.
+        beamPosition.z = settings.beamLocalOffset.z;
+        renderer.transform.localPosition = beamPosition;
         renderer.transform.localRotation = Quaternion.Euler(settings.beamEulerAngles);
         float spriteAspectHeight = Mathf.Max(0.01f, beamTextureHeight / (float)Mathf.Max(1, beamTextureWidth));
         renderer.transform.localScale = new Vector3(settings.beamWidth, settings.beamLength / spriteAspectHeight, 1f);
@@ -629,7 +666,7 @@ public sealed class UnderwaterPostProcessingController : MonoBehaviour
 
         DestroyBeamRenderers();
         for (int i = 0; i < _tintLights.Length; i++)
-            DestroyLight(ref _tintLights[i]);
+            ReleaseRuntimeLight(ref _tintLights[i]);
         _tintLights = new Light[0];
     }
 
@@ -639,7 +676,8 @@ public sealed class UnderwaterPostProcessingController : MonoBehaviour
         {
             for (int i = 0; i < _beamRenderers.Length; i++)
             {
-                if (_beamRenderers[i] != null)
+                if (_beamRenderers[i] != null &&
+                    (_beamRenderers[i].gameObject.hideFlags & HideFlags.DontSave) != 0)
                     DestroyLocal(_beamRenderers[i].gameObject);
             }
         }
@@ -751,6 +789,13 @@ public sealed class UnderwaterPostProcessingController : MonoBehaviour
         }
     }
 
+    static void ReleaseRuntimeLight(ref Light light)
+    {
+        if (light != null && (light.gameObject.hideFlags & HideFlags.DontSave) != 0)
+            DestroyLocal(light.gameObject);
+        light = null;
+    }
+
     static void WriteFloatProperty(Component component, string propertyName, float value)
     {
         var property = component.GetType().GetProperty(propertyName);
@@ -816,7 +861,7 @@ public sealed class UnderwaterPostProcessingController : MonoBehaviour
 
     public void ApplyLevelVisual(LevelVisualSO visual)
     {
-        if (visual == null) return;
+        if (visual == null || PreserveEditorPostProcessingSettings) return;
 
         sunLightColor        = visual.sunLightColor;
         sunLightIntensity    = visual.sunLightIntensity;

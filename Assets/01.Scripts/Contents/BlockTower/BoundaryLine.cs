@@ -4,6 +4,7 @@ using UnityEngine.Events;
 public class BoundaryLine : MonoBehaviour
 {
     public UnityAction OnBlockTouched;
+    public UnityAction<Rigidbody> OnDetachedBlocksTouched;
 
     void OnTriggerEnter(Collider other)
     {
@@ -21,7 +22,15 @@ public class BoundaryLine : MonoBehaviour
             return;
 
         var rb = other.attachedRigidbody;
-        if (rb != null && !rb.isKinematic)
-            OnBlockTouched?.Invoke();
+        if (rb == null || rb.isKinematic)
+            return;
+
+        if (rb.gameObject.name == "DetachedBlocks")
+        {
+            OnDetachedBlocksTouched?.Invoke(rb);
+            return;
+        }
+
+        OnBlockTouched?.Invoke();
     }
 }

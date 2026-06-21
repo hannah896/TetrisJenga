@@ -8,6 +8,10 @@ public class GoldFishProjectile : MonoBehaviour
     [SerializeField] Vector2 initialDirection = new(1f, 1f);
     [SerializeField] float stuckSeconds = 0.6f;
     [SerializeField] float stallRecoverySeconds = 0.15f;
+
+    [Header("Visual")]
+    [SerializeField] Vector2 visualCellSize = Vector2.one;
+    [SerializeField, Range(0.01f, 3f)] float visualScaleMultiplier = 1f / 3f;
     
     [SerializeField] ScoreController  scoreController; 
 
@@ -26,12 +30,14 @@ public class GoldFishProjectile : MonoBehaviour
     void OnValidate()
     {
         Util.SetNoPostLayer(gameObject);
-        scoreController = FindObjectOfType<ScoreController>();
+        FitSpriteToCell();
+        scoreController = FindFirstObjectByType<ScoreController>();
     }
 
     void Awake()
     {
         Util.SetNoPostLayer(gameObject);
+        FitSpriteToCell();
 
         _rb = GetComponent<Rigidbody>();
         if (_rb == null)
@@ -47,6 +53,25 @@ public class GoldFishProjectile : MonoBehaviour
         var dir = initialDirection.sqrMagnitude > 0.001f ? initialDirection.normalized : Vector2.one.normalized;
         _lastTravelDirection = new Vector3(dir.x, dir.y, 0f).normalized;
         _rb.linearVelocity = _lastTravelDirection * speed;
+    }
+
+    void FitSpriteToCell()
+    {
+        if (!TryGetComponent<SpriteRenderer>(out var sr) || sr.sprite == null)
+            return;
+
+        var spriteSize = sr.sprite.bounds.size;
+        if (spriteSize.x <= 0.0001f || spriteSize.y <= 0.0001f)
+            return;
+
+        float targetWidth = Mathf.Max(0.0001f, visualCellSize.x * visualScaleMultiplier);
+        float targetHeight = Mathf.Max(0.0001f, visualCellSize.y * visualScaleMultiplier);
+        float scaleX = targetWidth / spriteSize.x;
+        float scaleY = targetHeight / spriteSize.y;
+        transform.localScale = new Vector3(scaleX, scaleY, 1f);
+
+        if (TryGetComponent<BoxCollider>(out var box))
+            box.size = new Vector3(targetWidth / scaleX, targetHeight / scaleY, box.size.z);
     }
 
     void FixedUpdate()
@@ -123,7 +148,7 @@ public class GoldFishProjectile : MonoBehaviour
             return;
 
         _finished = true;
-        AudioManager.PlaySound(_AudioLibrarySounds.EscapeFish);
+        AudioPlayback.PlaySound(_AudioLibrarySounds.EscapeFish);
         scoreController?.AwardGoldFishDeadlineScore(transform.position);
         Destroy(gameObject);
     }

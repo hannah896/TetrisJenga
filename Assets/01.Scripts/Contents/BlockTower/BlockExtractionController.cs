@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using UnityEngine;
 using JSAM;
@@ -21,11 +20,36 @@ public class BlockExtractionController : MonoBehaviour
     int _extractionMinCol, _extractionMaxCol;
     Vector2 _lastExtractionCenter;
     GameObject _presetOutlineRoot;
+    Vector3 _presetOutlineBaseLocalPosition;
+    bool _presetGrowthActive;
+    float _presetGrowthStartedAt;
+
+    [Header("Titan Event")]
+    [SerializeField, Min(0.05f)] float titanFirstTurnSeconds = 5f;
+    [SerializeField, Min(0.05f)] float titanSecondsAfterTargetTurn = 2f;
+    [SerializeField, Min(1)] int titanTargetTurn = 50;
+    [SerializeField, Min(0.05f)] float titanMinimumSeconds = 2f;
+    [SerializeField, Min(1)] int titanPresetSearchRadius = 4;
+
+    const float PresetOutlineThickness = 0.125f;
+    const float PresetOutlineExpansion = 0.18f;
+    int _completedTitanTurns;
 
     public int ExtractionMinRow => _extractionMinRow;
     public int ExtractionMaxRow => _extractionMaxRow;
     public int ExtractionMinCol => _extractionMinCol;
     public int ExtractionMaxCol => _extractionMaxCol;
+    public float CurrentTitanEventDuration
+    {
+        get
+        {
+            float progress = Mathf.Clamp01(_completedTitanTurns / (float)Mathf.Max(1, titanTargetTurn));
+            float duration = Mathf.Lerp(titanFirstTurnSeconds, titanSecondsAfterTargetTurn, progress);
+            return Mathf.Max(titanMinimumSeconds, duration);
+        }
+    }
+
+    public void CompleteTitanTurn() => _completedTitanTurns++;
 
     private void OnValidate()
     {
@@ -57,6 +81,7 @@ public class BlockExtractionController : MonoBehaviour
     {
         if (!Application.isPlaying || _tower.IsGameOver) return;
         UpdatePresetOutlineFeedback();
+        UpdatePresetGrowth();
     }
 
     // ── Grid Query (for TetrominoSelectionController) ────────────────
@@ -131,7 +156,7 @@ public class BlockExtractionController : MonoBehaviour
 
     public void ClearSelection()
     {
-        _selection.IsPresetSelectionActive = false;
+        _selection.CancelPresetSelection();
         ClearPresetOutlinePreview();
         foreach (var c in new List<Vector2Int>(_selection.Selected))
             DeselectCell(c);
@@ -229,9 +254,10 @@ public class BlockExtractionController : MonoBehaviour
             go.transform.localScale    = Vector3.one * bodyScale;
 
             var sr = go.AddComponent<SpriteRenderer>();
-            sr.sprite = _visualizer?.CreateBlockSprite();
+            sr.sprite = _visualizer?.CreateBoxSprite();
             sr.color  = heldColor;
             sr.sortingOrder = 20;
+            go.transform.localScale = _visualizer?.ScaleSpriteToCell(sr.sprite, bodyScale) ?? Vector3.one * bodyScale;
             var blurRenderers = _visualizer?.CreatePreviewBlur(go.transform) ?? new List<SpriteRenderer>();
 
             var box = go.AddComponent<BoxCollider>();
@@ -250,11 +276,12 @@ public class BlockExtractionController : MonoBehaviour
         _physics?.CheckForDetachment();
         _physics?.UpdateTowerPhysicsState();
 
-        AudioManager.PlaySound(_AudioLibrarySounds.Hold);
+        AudioPlayback.PlaySound(_AudioLibrarySounds.Hold);
         _held.IsHolding = true;
         if (_heldPlacement != null)
             _held.BaseCell = _heldPlacement.GetDefaultHeldBaseCell();
         _held.UsingKeyboardPlacement = true;
+        _heldPlacement?.BeginHeldGrowthAndAutoPlace();
         _tower.OnBlocksLifted?.Invoke();
         _score?.AddScore(_held.MatchesBonus ? 2 : 1, extractionScorePos);
         _score?.RollBonusTarget();
@@ -303,6 +330,7 @@ public class BlockExtractionController : MonoBehaviour
         _held.MatchesBonus         = false;
         _held.IsHolding            = false;
         _held.UsingKeyboardPlacement = false;
+        _selection.CancelPresetSelection();
         _physics?.UpdateTowerPhysicsState();
         _tower.OnHoldCancelled?.Invoke();
         FocusDefaultExtractionCell();
@@ -313,39 +341,245 @@ public class BlockExtractionController : MonoBehaviour
 
     public void CreatePresetOutlinePreview(List<Vector2Int> cells)
     {
-        ClearPresetOutlinePreview();
+        DestroyPresetOutlinePreview();
+        if (cells == null || cells.Count == 0) return;
+
+        var occupied = new HashSet<Vector2Int>(cells);
+        int minX = int.MaxValue, minY = int.MaxValue;
+        int maxX = int.MinValue, maxY = int.MinValue;
+        foreach (var cell in cells)
+        {
+            minX = Mathf.Min(minX, cell.x);
+            minY = Mathf.Min(minY, cell.y);
+            maxX = Mathf.Max(maxX, cell.x);
+            maxY = Mathf.Max(maxY, cell.y);
+        }
+        var center = new Vector2((minX + maxX + 1f) * 0.5f, (minY + maxY + 1f) * 0.5f);
+
         _presetOutlineRoot = new GameObject("PresetOutlinePreview");
         _tower.TrackGeneratedObject(_presetOutlineRoot);
         _presetOutlineRoot.transform.SetParent(_tower.TowerRoot, false);
+        _presetOutlineBaseLocalPosition = new Vector3(center.x, center.y, 0.04f);
+        _presetOutlineRoot.transform.localPosition = _presetOutlineBaseLocalPosition;
         Util.SetNoPostLayer(_presetOutlineRoot);
 
         foreach (var cell in cells)
         {
-            var go = new GameObject($"PresetOutline_{cell.x}_{cell.y}");
-            _tower.TrackGeneratedObject(go);
-            go.transform.SetParent(_presetOutlineRoot.transform, false);
-            Util.SetNoPostLayer(go);
-            go.transform.localPosition = new Vector3(cell.x + 0.5f, cell.y + 0.5f, 0.04f);
-            go.transform.localScale    = Vector3.one * (_visualizer?.SelectedOutlineScale ?? 1.10f);
-
-            var sr = go.AddComponent<SpriteRenderer>();
-            sr.sprite = _visualizer?.CreateOutlineSprite();
-            sr.color  = _visualizer?.SelectedOutlineColor ?? new Color(1f, 1f, 1f, 0.95f);
-            sr.sortingOrder = 5;
+            var localCenter = new Vector3(cell.x + 0.5f - center.x, cell.y + 0.5f - center.y, 0f);
+            CreatePresetFill(cell, localCenter);
+            CreatePresetExposedEdges(cell, localCenter, occupied);
         }
+
+        ApplyPresetGrowthScale();
+    }
+
+    void CreatePresetFill(Vector2Int cell, Vector3 localCenter)
+    {
+        var go = new GameObject($"PresetFill_{cell.x}_{cell.y}");
+        _tower.TrackGeneratedObject(go);
+        go.transform.SetParent(_presetOutlineRoot.transform, false);
+        go.transform.localPosition = localCenter;
+        Util.SetNoPostLayer(go);
+
+        var sr = go.AddComponent<SpriteRenderer>();
+        sr.sprite = _visualizer?.CreateBoxSprite();
+        sr.color = _tower.Grid.HasCell(cell)
+            ? (_heldPlacement?.ValidPreviewColor ?? new Color(0.55f, 0.85f, 0.6f, 0.5f))
+            : (_heldPlacement?.InvalidPreviewColor ?? new Color(1f, 0.25f, 0.25f, 0.6f));
+        sr.sortingOrder = 5;
+        go.transform.localScale = _visualizer?.ScaleSpriteToCell(sr.sprite) ?? Vector3.one;
+    }
+
+    void CreatePresetExposedEdges(Vector2Int cell, Vector3 localCenter, HashSet<Vector2Int> occupied)
+    {
+        float edgeOffset = 0.5f + PresetOutlineExpansion * 0.5f;
+        float edgeLength = 1f + PresetOutlineExpansion * 2f;
+        if (!occupied.Contains(cell + Vector2Int.left))  CreatePresetEdge(cell, "Left",   localCenter + Vector3.left * edgeOffset,  PresetOutlineThickness, edgeLength);
+        if (!occupied.Contains(cell + Vector2Int.right)) CreatePresetEdge(cell, "Right",  localCenter + Vector3.right * edgeOffset, PresetOutlineThickness, edgeLength);
+        if (!occupied.Contains(cell + Vector2Int.down))  CreatePresetEdge(cell, "Bottom", localCenter + Vector3.down * edgeOffset,  edgeLength, PresetOutlineThickness);
+        if (!occupied.Contains(cell + Vector2Int.up))    CreatePresetEdge(cell, "Top",    localCenter + Vector3.up * edgeOffset,    edgeLength, PresetOutlineThickness);
+    }
+
+    void CreatePresetEdge(Vector2Int cell, string side, Vector3 localPosition, float width, float height)
+    {
+        var go = new GameObject($"PresetOutline_{cell.x}_{cell.y}_{side}");
+        _tower.TrackGeneratedObject(go);
+        go.transform.SetParent(_presetOutlineRoot.transform, false);
+        go.transform.localPosition = new Vector3(localPosition.x, localPosition.y, -0.01f);
+        go.transform.localScale = new Vector3(width, height, 1f);
+        Util.SetNoPostLayer(go);
+
+        var sr = go.AddComponent<SpriteRenderer>();
+        sr.sprite = _visualizer?.CreateBlockSprite();
+        sr.color = _visualizer?.SelectedOutlineColor ?? new Color(1f, 1f, 1f, 0.95f);
+        sr.sortingOrder = 6;
+    }
+
+    public void BeginPresetGrowth()
+    {
+        _presetGrowthStartedAt = Time.time;
+        _presetGrowthActive = true;
+    }
+
+    void UpdatePresetGrowth()
+    {
+        if (!_presetGrowthActive || !_selection.IsPresetSelectionActive) return;
+        ApplyPresetGrowthScale();
+        if (Time.time - _presetGrowthStartedAt < CurrentTitanEventDuration) return;
+
+        ResolveExpiredPresetSelection();
+    }
+
+    void ApplyPresetGrowthScale()
+    {
+        if (_presetOutlineRoot == null || !_presetGrowthActive) return;
+        float scale = Mathf.Clamp01((Time.time - _presetGrowthStartedAt) / CurrentTitanEventDuration);
+        foreach (Transform child in _presetOutlineRoot.transform)
+        {
+            if (!child.name.StartsWith("PresetFill_")) continue;
+            var sr = child.GetComponent<SpriteRenderer>();
+            var targetScale = _visualizer?.ScaleSpriteToCell(sr != null ? sr.sprite : null) ?? Vector3.one;
+            child.localScale = targetScale * scale;
+        }
+    }
+
+    void ResolveExpiredPresetSelection()
+    {
+        if (_selection.CanApplyPresetSelection(this, _selection.Anchor, _selection.Preset, _selection.Rotation))
+        {
+            _selection.ConfirmPresetSelection(this);
+            return;
+        }
+
+        if (TryFindTitanPresetCandidate(onlyCurrentPreset: true, requireNearby: true,
+                out var anchor, out var preset, out var rotation) ||
+            TryFindTitanPresetCandidate(onlyCurrentPreset: false, requireNearby: true,
+                out anchor, out preset, out rotation) ||
+            TryFindTitanPresetCandidate(onlyCurrentPreset: false, requireNearby: false,
+                out anchor, out preset, out rotation))
+        {
+            _selection.TrySetPresetSelection(this, anchor, preset, rotation);
+            _selection.ConfirmPresetSelection(this);
+            return;
+        }
+
+        PlayPlacementFailFeedback();
+        BeginPresetGrowth();
+    }
+
+    bool TryFindTitanPresetCandidate(
+        bool onlyCurrentPreset,
+        bool requireNearby,
+        out Vector2Int bestAnchor,
+        out TetrominoPreset bestPreset,
+        out int bestRotation)
+    {
+        bestAnchor = default;
+        bestPreset = default;
+        bestRotation = 0;
+        int bestDistance = int.MaxValue;
+        bool found = false;
+        var outlineCells = GetPresetCells(_selection.Anchor, _selection.Preset, _selection.Rotation);
+
+        int firstPreset = onlyCurrentPreset ? (int)_selection.Preset : (int)TetrominoPreset.I;
+        int lastPreset = onlyCurrentPreset ? (int)_selection.Preset : (int)TetrominoPreset.Z;
+        for (int presetIndex = firstPreset; presetIndex <= lastPreset; presetIndex++)
+        {
+            var candidatePreset = (TetrominoPreset)presetIndex;
+            for (int candidateRotation = 0; candidateRotation < 4; candidateRotation++)
+            {
+                var zeroCells = GetPresetCells(Vector2Int.zero, candidatePreset, candidateRotation);
+                var anchors = new HashSet<Vector2Int>();
+                foreach (var pair in _tower.Grid.AllCells)
+                {
+                    if (!IsExtractableCell(pair.Key)) continue;
+                    foreach (var offset in zeroCells)
+                        anchors.Add(pair.Key - offset);
+                }
+
+                foreach (var candidateAnchor in anchors)
+                {
+                    var candidateCells = GetPresetCells(candidateAnchor, candidatePreset, candidateRotation);
+                    if (!AreAllExtractable(candidateCells)) continue;
+
+                    int distance = GridSetDistance(outlineCells, candidateCells);
+                    if (requireNearby && distance > titanPresetSearchRadius) continue;
+                    bool keepsRotation = candidatePreset == _selection.Preset && candidateRotation == _selection.Rotation;
+                    bool bestKeepsRotation = bestPreset == _selection.Preset && bestRotation == _selection.Rotation;
+                    if (found && (distance > bestDistance || (distance == bestDistance && !keepsRotation && bestKeepsRotation)))
+                        continue;
+
+                    found = true;
+                    bestDistance = distance;
+                    bestAnchor = candidateAnchor;
+                    bestPreset = candidatePreset;
+                    bestRotation = candidateRotation;
+                }
+            }
+        }
+
+        return found;
+    }
+
+    bool AreAllExtractable(List<Vector2Int> cells)
+    {
+        if (cells.Count != 4) return false;
+        foreach (var cell in cells)
+            if (!IsExtractableCell(cell)) return false;
+        return true;
+    }
+
+    static int GridSetDistance(List<Vector2Int> from, List<Vector2Int> to)
+    {
+        int best = int.MaxValue;
+        foreach (var a in from)
+            foreach (var b in to)
+                best = Mathf.Min(best, Mathf.Abs(a.x - b.x) + Mathf.Abs(a.y - b.y));
+        return best;
     }
 
     void UpdatePresetOutlineFeedback()
     {
         if (_presetOutlineRoot == null) return;
         bool isFailing = Time.time < _held.FailEndTime;
-        _presetOutlineRoot.transform.localPosition = _held.FailShakeOffset(isFailing);
-        var color = isFailing ? _failFlashColor : (_visualizer?.SelectedOutlineColor ?? new Color(1f, 1f, 1f, 0.95f));
+        _presetOutlineRoot.transform.localPosition = _presetOutlineBaseLocalPosition + _held.FailShakeOffset(isFailing);
         foreach (var sr in _presetOutlineRoot.GetComponentsInChildren<SpriteRenderer>())
-            sr.color = color;
+        {
+            if (isFailing)
+            {
+                sr.color = _failFlashColor;
+                continue;
+            }
+
+            if (sr.gameObject.name.StartsWith("PresetFill_"))
+            {
+                var cell = ParsePresetFillCell(sr.gameObject.name);
+                sr.color = cell.HasValue && _tower.Grid.HasCell(cell.Value)
+                    ? (_heldPlacement?.ValidPreviewColor ?? new Color(0.55f, 0.85f, 0.6f, 0.5f))
+                    : (_heldPlacement?.InvalidPreviewColor ?? new Color(1f, 0.25f, 0.25f, 0.6f));
+            }
+            else
+            {
+                sr.color = _visualizer?.SelectedOutlineColor ?? new Color(1f, 1f, 1f, 0.95f);
+            }
+        }
+    }
+
+    Vector2Int? ParsePresetFillCell(string objectName)
+    {
+        var parts = objectName.Split('_');
+        if (parts.Length != 3 || !int.TryParse(parts[1], out int x) || !int.TryParse(parts[2], out int y))
+            return null;
+        return new Vector2Int(x, y);
     }
 
     public void ClearPresetOutlinePreview()
+    {
+        _presetGrowthActive = false;
+        DestroyPresetOutlinePreview();
+    }
+
+    void DestroyPresetOutlinePreview()
     {
         if (_presetOutlineRoot != null) { _tower.DestroyTracked(_presetOutlineRoot); _presetOutlineRoot = null; }
     }

@@ -44,11 +44,7 @@ public class StageUIResourcesLoader : IAsyncStartable, IDisposable
             _controller.Initialize(images, setting, map);
         }
 
-        if (AudioManager.Instance != null && AudioManager.Instance.Initialized)
-        {
-            AudioManager.StopAllMusic();
-            AudioManager.PlayMusic(_AudioLibraryMusic.StageBGM);
-        }
+        AudioPlayback.PlayMusic(_AudioLibraryMusic.StageBGM, stopCurrent: true);
 
         Debug.Log("[StageUIResourcesLoader] 스테이지 UI 리소스 로드 완료");
         return UniTask.CompletedTask;

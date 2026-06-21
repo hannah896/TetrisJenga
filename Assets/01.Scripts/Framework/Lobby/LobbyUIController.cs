@@ -105,21 +105,21 @@ public class LobbyUIController : MonoBehaviour
         if (playButton != null)
         {
             playButton.clicked += ShowModeSelect;
-            playButton.clicked += () => AudioManager.PlaySound(_AudioLibrarySounds.Play);
+            playButton.clicked += () => AudioPlayback.PlaySound(_AudioLibrarySounds.Play);
         }
 
         Button exitButton = root.Q<Button>("exit-button");
         if (exitButton != null)
         {
             exitButton.clicked += QuitGame;
-            exitButton.clicked += () => AudioManager.PlaySound(_AudioLibrarySounds.BtnClick);
+            exitButton.clicked += () => AudioPlayback.PlaySound(_AudioLibrarySounds.BtnClick);
         }
 
         _endlessButton = root.Q<Button>("endless-button");
         if (_endlessButton != null)
         {
             _endlessButton.clicked += () => { if (_endlessUnlocked) { GameManager.Instance.CurrentStageIndex = GameManager.EndlessStageIndex; LoadScene(endlessSceneName); } };
-            _endlessButton.clicked += () => { if (_endlessUnlocked) AudioManager.PlaySound(_AudioLibrarySounds.BtnClick); };
+            _endlessButton.clicked += () => { if (_endlessUnlocked) AudioPlayback.PlaySound(_AudioLibrarySounds.BtnClick); };
             _endlessButton.RegisterCallback<PointerEnterEvent>(_ => SetPreview(EndlessTitle, EndlessDesc));
         }
 
@@ -127,7 +127,7 @@ public class LobbyUIController : MonoBehaviour
         if (storyButton != null)
         {
             storyButton.clicked += () => LoadScene(storySceneName);
-            storyButton.clicked+= () => AudioManager.PlaySound(_AudioLibrarySounds.BtnClick);
+            storyButton.clicked+= () => AudioPlayback.PlaySound(_AudioLibrarySounds.BtnClick);
             storyButton.RegisterCallback<PointerEnterEvent>(_ => SetPreview(StoryTitle, StoryDesc));
         }
 

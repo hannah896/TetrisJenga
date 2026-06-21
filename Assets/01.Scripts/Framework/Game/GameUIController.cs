@@ -30,6 +30,10 @@ public class GameUIController : MonoBehaviour
 
     [SerializeField] SettingUIImageLibrarySO settingImageLibrary;
 
+    [Header("Bonus Queue Animation")]
+    [SerializeField, Min(0.05f)] float bonusQueueRiseDuration = 0.4f;
+    [SerializeField, Min(0f)] float bonusQueueRiseFallbackDistance = 180f;
+
     [Header("클리어 연출")]
     [SerializeField] SpriteRenderer _clearBgRenderer;
 
@@ -49,6 +53,9 @@ public class GameUIController : MonoBehaviour
     Label _bonusThirdKeyLabel;
     VisualElement _bonusPreview;
     VisualElement _bonusBackground;
+    VisualElement _bonusSlot;
+    VisualElement _bonusNextSlot;
+    VisualElement _bonusThirdSlot;
     VisualElement _bonusCells;
     VisualElement _bonusNextCells;
     VisualElement _bonusThirdCells;
@@ -70,6 +77,8 @@ public class GameUIController : MonoBehaviour
     Font _runtimeHudFont;
     bool _showingResultHud;
     Coroutine _scorePopupRoutine;
+    Coroutine _bonusQueueRoutine;
+    bool _bonusPreviewInitialized;
     readonly UI_Setting_Controller _uiSetting = new();
 
     #region Lifecycle Function
@@ -96,14 +105,11 @@ public class GameUIController : MonoBehaviour
 
     void PlayStageBGM()
     {
-        if (AudioManager.Instance == null || !AudioManager.Instance.Initialized) return;
-
-        AudioManager.StopAllMusic();
         int idx = GameManager.Instance.CurrentStageIndex;
         if (idx >= 0 && idx <= 5)
-            AudioManager.PlayMusic((_AudioLibraryMusic)((int)_AudioLibraryMusic.Stage1 + idx));
+            AudioPlayback.PlayMusic((_AudioLibraryMusic)((int)_AudioLibraryMusic.Stage1 + idx), stopCurrent: true);
         else
-            AudioManager.PlayMusic(_AudioLibraryMusic.EndlessBGM);
+            AudioPlayback.PlayMusic(_AudioLibraryMusic.EndlessBGM, stopCurrent: true);
     }
 
     void OnEnable()
@@ -236,12 +242,53 @@ public class GameUIController : MonoBehaviour
 
     void HandleBonusRolled(TetrominoPreset current, TetrominoPreset next, TetrominoPreset third)
     {
+        bool animate = _bonusPreviewInitialized && Application.isPlaying;
         SetLabelText(_bonusKeyLabel,      Util.PresetKeyText(current));
         SetLabelText(_bonusNextKeyLabel,  Util.PresetKeyText(next));
         SetLabelText(_bonusThirdKeyLabel, Util.PresetKeyText(third));
         UpdateBonusPreviewSlot(_bonusCells,      _bonusCellElements,      current);
         UpdateBonusPreviewSlot(_bonusNextCells,  _bonusNextCellElements,  next);
         UpdateBonusPreviewSlot(_bonusThirdCells, _bonusThirdCellElements, third);
+        _bonusPreviewInitialized = true;
+
+        if (animate)
+            PlayBonusQueueRise();
+    }
+
+    void PlayBonusQueueRise()
+    {
+        if (_bonusSlot == null || _bonusNextSlot == null || _bonusThirdSlot == null) return;
+        if (_bonusQueueRoutine != null)
+            StopCoroutine(_bonusQueueRoutine);
+        _bonusQueueRoutine = StartCoroutine(RunBonusQueueRise());
+    }
+
+    IEnumerator RunBonusQueueRise()
+    {
+        float measuredDistance = Mathf.Abs(_bonusNextSlot.worldBound.y - _bonusSlot.worldBound.y);
+        float distance = measuredDistance > 1f ? measuredDistance : bonusQueueRiseFallbackDistance;
+        var slots = new[] { _bonusSlot, _bonusNextSlot, _bonusThirdSlot };
+        foreach (var slot in slots)
+            slot.style.top = distance;
+
+        float duration = Mathf.Max(0.05f, bonusQueueRiseDuration);
+        float elapsed = 0f;
+        while (elapsed < duration)
+        {
+            elapsed += Time.deltaTime;
+            float t = Mathf.Clamp01(elapsed / duration);
+            float eased = 1f - Mathf.Pow(1f - t, 3f);
+            float offset = Mathf.Lerp(distance, 0f, eased);
+            foreach (var slot in slots)
+                if (slot != null)
+                    slot.style.top = offset;
+            yield return null;
+        }
+
+        foreach (var slot in slots)
+            if (slot != null)
+                slot.style.top = 0f;
+        _bonusQueueRoutine = null;
     }
 
     void HandleGameOver(int score, int target)
@@ -306,6 +353,7 @@ public class GameUIController : MonoBehaviour
     void BindHud()
     {
         _showingResultHud = false;
+        _bonusPreviewInitialized = false;
         EnsureHudDocument();
         if (hudDocument == null) return;
         EnsureHudPanelSettings();
@@ -325,6 +373,9 @@ public class GameUIController : MonoBehaviour
         _bonusThirdKeyLabel  = root.Q<Label>("BonusPreview3Key");
         _bonusPreview        = root.Q<VisualElement>("BonusPreview");
         _bonusBackground     = root.Q<VisualElement>("BonusPreviewBackground");
+        _bonusSlot           = root.Q<VisualElement>("BonusPreview1");
+        _bonusNextSlot       = root.Q<VisualElement>("BonusPreview2");
+        _bonusThirdSlot      = root.Q<VisualElement>("BonusPreview3");
         _bonusCells          = root.Q<VisualElement>("BonusPreview1Cells") ?? root.Q<VisualElement>("BonusPreviewCells");
         _bonusNextCells      = root.Q<VisualElement>("BonusPreview2Cells");
         _bonusThirdCells     = root.Q<VisualElement>("BonusPreview3Cells");

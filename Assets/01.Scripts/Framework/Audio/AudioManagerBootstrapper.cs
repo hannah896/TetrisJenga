@@ -1,62 +1,87 @@
-using System.Collections.Generic;
 using Cysharp.Threading.Tasks;
 using JSAM;
 using UnityEngine;
 using UnityEngine.AddressableAssets;
 using UnityEngine.ResourceManagement.AsyncOperations;
+using UnityEngine.SceneManagement;
 
-/// <summary>
-/// LobbyScene을 거치지 않고 씬을 직접 시작할 때 AudioManager가 없으면
-/// Addressables "default" 라벨에서 소환하고 지정된 BGM을 재생한다.
-/// </summary>
 public class AudioManagerBootstrapper : MonoBehaviour
 {
     [SerializeField] _AudioLibraryMusic bgm = _AudioLibraryMusic.EndlessBGM;
-    [SerializeField] string defaultLabel = "default";
+    [SerializeField] string audioManagerAddress = "Audio Manager Variant";
+    [SerializeField] float audioReadyTimeoutSeconds = 5f;
+
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
+    static void BootstrapAudioForDirectSceneStart()
+    {
+        if (!Application.isPlaying || AudioPlayback.IsReady) return;
+        if (!TryGetSceneBGM(SceneManager.GetActiveScene().name, out var sceneBgm)) return;
+
+        var go = new GameObject(nameof(AudioManagerBootstrapper));
+        var bootstrapper = go.AddComponent<AudioManagerBootstrapper>();
+        bootstrapper.bgm = sceneBgm;
+    }
 
     async void Start()
     {
-        if (AudioManager.Instance != null && AudioManager.Instance.Initialized)
-        {
-            PlayBGM();
-            return;
-        }
+        if (!AudioPlayback.IsReady)
+            await BootstrapAudioManager();
 
-        await BootstrapAudioManager();
         PlayBGM();
+        Destroy(gameObject);
     }
 
     async UniTask BootstrapAudioManager()
     {
-        var locHandle = Addressables.LoadResourceLocationsAsync(defaultLabel);
-        var locations = locHandle.WaitForCompletion();
+        var audioHandle = Addressables.InstantiateAsync(audioManagerAddress);
+        var audioManager = audioHandle.WaitForCompletion();
 
-        if (locHandle.Status != AsyncOperationStatus.Succeeded || locations == null)
+        if (audioHandle.Status != AsyncOperationStatus.Succeeded || audioManager == null)
         {
-            Debug.LogWarning("[AudioManagerBootstrapper] default 라벨 로드 실패");
-            Addressables.Release(locHandle);
+            Debug.LogWarning($"[AudioManagerBootstrapper] AudioManager load failed: {audioManagerAddress}");
             return;
         }
 
-        var instanceHandles = new List<AsyncOperationHandle<GameObject>>();
-        foreach (var loc in locations)
+        float deadline = Time.realtimeSinceStartup + audioReadyTimeoutSeconds;
+        while (!AudioPlayback.IsReady && Time.realtimeSinceStartup < deadline)
         {
-            var assetHandle = Addressables.LoadAssetAsync<GameObject>(loc);
-            var prefab = assetHandle.WaitForCompletion();
-            if (prefab != null)
-                instanceHandles.Add(Addressables.InstantiateAsync(loc.PrimaryKey));
+            await UniTask.Yield(PlayerLoopTiming.Update, destroyCancellationToken);
         }
 
-        Addressables.Release(locHandle);
-
-        await UniTask.WaitUntil(
-            () => AudioManager.Instance != null && AudioManager.Instance.Initialized,
-            cancellationToken: destroyCancellationToken);
+        if (!AudioPlayback.IsReady)
+            Debug.LogWarning("[AudioManagerBootstrapper] Timed out waiting for AudioManager initialization");
     }
 
     void PlayBGM()
     {
-        AudioManager.StopAllMusic();
-        AudioManager.PlayMusic(bgm);
+        AudioPlayback.PlayMusic(bgm, stopCurrent: true);
+    }
+
+    static bool TryGetSceneBGM(string sceneName, out _AudioLibraryMusic sceneBgm)
+    {
+        if (sceneName == "Endless")
+        {
+            sceneBgm = _AudioLibraryMusic.EndlessBGM;
+            return true;
+        }
+
+        if (sceneName == "StageScene")
+        {
+            sceneBgm = _AudioLibraryMusic.StageBGM;
+            return true;
+        }
+
+        const string levelPrefix = "Level";
+        if (sceneName.StartsWith(levelPrefix) &&
+            int.TryParse(sceneName.Substring(levelPrefix.Length), out int level) &&
+            level >= 1 &&
+            level <= 6)
+        {
+            sceneBgm = (_AudioLibraryMusic)((int)_AudioLibraryMusic.Stage1 + level - 1);
+            return true;
+        }
+
+        sceneBgm = default;
+        return false;
     }
 }

@@ -57,6 +57,7 @@ public class BlockTower : MonoBehaviour
     [SerializeField] Transform towerRootTransform;
     [SerializeField] Transform floorTransform;
     [SerializeField] ScoreController _scoreController;
+    [SerializeField] bool followTowerRootMovement = true;
 
     #endregion
 
@@ -68,6 +69,9 @@ public class BlockTower : MonoBehaviour
     GameObject _bonusPreviewRoot;
     readonly HashSet<GameObject> _generatedObjects = new();
     bool _initialTowerNumbersRandomizedThisPlay;
+    bool _hasTowerRootFollowState;
+    Vector3 _lastTowerRootPosition;
+    Vector3 _lastBlockTowerPosition;
 
     readonly TowerGridModel _grid = new();
     readonly Dictionary<Vector2Int, CellView> _cellViews    = new();
@@ -95,6 +99,7 @@ public class BlockTower : MonoBehaviour
     public bool IsHolding                => Held.IsHolding;
     public bool HasFocusedCell           => Selection.HasFocusedCell;
     public bool IsPresetSelectionActive  => Selection.IsPresetSelectionActive;
+    public bool IsResolvingTopPuyo       => _heldPlacementController != null && _heldPlacementController.IsResolvingTopPuyo;
     public bool HasLastPlacementCenter   => _heldPlacementController != null && _heldPlacementController.HasLastPlacementCenter;
     public Vector2 LastPlacementCenter   => _heldPlacementController?.LastPlacementCenter ?? Vector2.zero;
     public int  ExtractionMinRow         => _extractionController?.ExtractionMinRow ?? 0;
@@ -202,6 +207,11 @@ public class BlockTower : MonoBehaviour
 
         if (IsGameOver) return;
         SyncPlacementZoneFromObject();
+    }
+
+    void LateUpdate()
+    {
+        SyncBlockTowerToTowerRootMovement();
     }
 
     #endregion
@@ -382,6 +392,7 @@ public class BlockTower : MonoBehaviour
             return false;
 
         _towerRoot = root;
+        CaptureTowerRootFollowState();
         _physicsController?.ConfigureTowerRigidbody();
 
         _grid.Clear();
@@ -493,6 +504,7 @@ public class BlockTower : MonoBehaviour
         if (createdTowerRoot)
             towerRootGO.transform.position = new Vector3(-columns * 0.5f, -rows * 0.5f, 0f);
         _towerRoot = towerRootGO.transform;
+        CaptureTowerRootFollowState();
 
         if (Application.isPlaying)
             _physicsController?.ConfigureTowerRigidbody();
@@ -686,7 +698,13 @@ public class BlockTower : MonoBehaviour
 
         var rb = ice.GetComponent<Rigidbody>();
         if (rb != null)
+        {
+            rb.useGravity = false;
+            rb.isKinematic = true;
+            rb.linearVelocity = Vector3.zero;
+            rb.angularVelocity = Vector3.zero;
             Destroy(rb);
+        }
 
         var worldPosition = ice.position;
         ice.SetParent(transform, worldPositionStays: true);
@@ -750,6 +768,7 @@ public class BlockTower : MonoBehaviour
         if (root != null)
         {
             _towerRoot = root;
+            CaptureTowerRootFollowState();
             PruneOverlappingSceneCells(root);
             if (_grid.Count == 0)
                 TryRestoreRuntimeStateFromScene();
@@ -794,6 +813,7 @@ public class BlockTower : MonoBehaviour
             }
 
             _towerRoot = null;
+            ResetTowerRootFollowState();
             _physicsController?.ClearRigidbody();
         }
 
@@ -898,6 +918,80 @@ public class BlockTower : MonoBehaviour
     {
         placementController.Configure(this, _towerRoot, _sceneBuilder != null ? _sceneBuilder.TowerStackDividerGO?.transform : null, _visualizer?.CreateBlockSprite());
         placementController.SyncPlacementZoneFromObject(updateVisuals);
+    }
+
+    void SyncBlockTowerToTowerRootMovement()
+    {
+        if (!followTowerRootMovement || _towerRoot == null || _towerRoot == transform)
+        {
+            ResetTowerRootFollowState();
+            return;
+        }
+
+        var rootPosition = _towerRoot.position;
+        var blockPosition = transform.position;
+
+        if (!_hasTowerRootFollowState)
+        {
+            _lastTowerRootPosition = rootPosition;
+            _lastBlockTowerPosition = blockPosition;
+            _hasTowerRootFollowState = true;
+            return;
+        }
+
+        var rootDelta = rootPosition - _lastTowerRootPosition;
+        var blockDelta = blockPosition - _lastBlockTowerPosition;
+        var rootOnlyDelta = rootDelta - blockDelta;
+
+        if (rootOnlyDelta.sqrMagnitude > 0.0000001f)
+        {
+            var iceWorldPositions = new Dictionary<Transform, Vector3>();
+            foreach (var pair in _iceCellViews)
+                if (pair.Value.go != null)
+                    iceWorldPositions[pair.Value.go.transform] = pair.Value.go.transform.position;
+
+            transform.position += rootOnlyDelta;
+            _towerRoot.position = rootPosition;
+            foreach (var pair in iceWorldPositions)
+                if (pair.Key != null)
+                    pair.Key.position = pair.Value;
+            RefreshFloorYFromKnownFloor();
+            SyncPlacementZoneFromObject(false);
+        }
+        else if (blockDelta.sqrMagnitude > 0.0000001f)
+        {
+            RefreshFloorYFromKnownFloor();
+        }
+
+        _lastTowerRootPosition = _towerRoot.position;
+        _lastBlockTowerPosition = transform.position;
+    }
+
+    void CaptureTowerRootFollowState()
+    {
+        if (_towerRoot == null)
+        {
+            ResetTowerRootFollowState();
+            return;
+        }
+
+        _lastTowerRootPosition = _towerRoot.position;
+        _lastBlockTowerPosition = transform.position;
+        _hasTowerRootFollowState = true;
+    }
+
+    void ResetTowerRootFollowState()
+    {
+        _hasTowerRootFollowState = false;
+        _lastTowerRootPosition = Vector3.zero;
+        _lastBlockTowerPosition = Vector3.zero;
+    }
+
+    void RefreshFloorYFromKnownFloor()
+    {
+        var floor = floorTransform != null ? floorTransform : _generatedFloor != null ? _generatedFloor.transform : null;
+        if (floor != null)
+            _floorY = floor.position.y;
     }
 
     void CreateFloor()       => _sceneBuilder?.CreateFloor();

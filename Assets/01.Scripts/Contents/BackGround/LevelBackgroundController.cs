@@ -3,6 +3,7 @@ using UnityEngine;
 public sealed class LevelBackgroundController : MonoBehaviour
 {
     [SerializeField] UnderwaterPostProcessingController _background;
+    [SerializeField] bool applyLevelVisualAtRuntime;
 
     [SerializeField] LevelVisualSO _level1Visual;
     [SerializeField] LevelVisualSO _level2Visual;
@@ -30,7 +31,7 @@ public sealed class LevelBackgroundController : MonoBehaviour
 
     void ApplyCurrentLevel()
     {
-        if (_background == null) return;
+        if (_background == null || !applyLevelVisualAtRuntime) return;
 
         int idx = GameManager.Instance?.CurrentStageIndex ?? -1;
         var visual = idx switch

@@ -294,7 +294,7 @@ public class StageUIController : MonoBehaviour
             Debug.LogWarning("StageUIController: 이동할 씬 이름이 비어 있습니다.");
             return;
         }
-        AudioManager.StopAllMusic();
+        AudioPlayback.StopAllMusic();
         SceneManager.LoadScene(sceneName);
     }
 

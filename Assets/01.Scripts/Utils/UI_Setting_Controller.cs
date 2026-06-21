@@ -152,11 +152,11 @@ public class UI_Setting_Controller
     // AudioManager가 씬에 없거나(InternalInstance == null) 비재생 상태면 볼륨 조작을 건너뛴다.
     // 매니저가 한 번 잡히면 InternalInstance가 static 캐시되어 이후 부수효과(FindObjectOfType)가 없다.
     // JSAM은 볼륨 set 시 자체적으로 PlayerPrefs에 저장/로드하므로 별도 영속화는 두지 않는다.
-    private static bool AudioReady => Application.isPlaying && AudioManager.InternalInstance != null;
+    private static bool AudioReady => Application.isPlaying && AudioPlayback.IsReady;
 
-    private float ReadMusicVolume() => AudioReady ? AudioManager.MusicVolume : DefaultVolume;
+    private float ReadMusicVolume() => AudioPlayback.MusicVolumeOrDefault(DefaultVolume);
 
-    private float ReadSoundVolume() => AudioReady ? AudioManager.SoundVolume : DefaultVolume;
+    private float ReadSoundVolume() => AudioPlayback.SoundVolumeOrDefault(DefaultVolume);
 
     private void ApplyMusicVolume(float value)
     {
@@ -167,7 +167,7 @@ public class UI_Setting_Controller
         if (!AudioReady)
             return;
 
-        AudioManager.MusicVolume = value;
+        AudioPlayback.SetMusicVolume(value);
     }
 
     private void ApplySoundVolume(float value)
@@ -179,6 +179,6 @@ public class UI_Setting_Controller
         if (!AudioReady)
             return;
 
-        AudioManager.SoundVolume = value;
+        AudioPlayback.SetSoundVolume(value);
     }
 }

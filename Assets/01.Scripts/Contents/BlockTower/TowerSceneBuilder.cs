@@ -6,9 +6,11 @@ public class TowerSceneBuilder : MonoBehaviour
     [SerializeField] BlockTower _tower;
     PlacementZoneController _placement;
     TowerCellVisualizer     _visualizer;
+    TowerPhysicsController  _physics;
 
     GameObject _leftBoundary;
     GameObject _rightBoundary;
+    GameObject _bottomBoundary;
     GameObject _towerStackDivider;
 
     public GameObject TowerStackDividerGO => _towerStackDivider;
@@ -18,6 +20,7 @@ public class TowerSceneBuilder : MonoBehaviour
         if (_tower == null)    _tower     = GetComponent<BlockTower>();
         if (_placement == null) _placement = GetComponent<PlacementZoneController>();
         if (_visualizer == null) _visualizer = GetComponent<TowerCellVisualizer>();
+        if (_physics == null) _physics = GetComponent<TowerPhysicsController>();
     }
 
 #if UNITY_EDITOR
@@ -26,6 +29,7 @@ public class TowerSceneBuilder : MonoBehaviour
         if (_tower == null)    _tower     = GetComponent<BlockTower>();
         if (_placement == null) _placement = GetComponent<PlacementZoneController>();
         if (_visualizer == null) _visualizer = GetComponent<TowerCellVisualizer>();
+        if (_physics == null) _physics = GetComponent<TowerPhysicsController>();
     }
 #endif
 
@@ -77,6 +81,39 @@ public class TowerSceneBuilder : MonoBehaviour
             sr.sprite = _visualizer?.CreateBlockSprite();
             sr.color  = new Color(0.2f, 0.2f, 0.2f, 1f);
         }
+
+        if (created)
+            FitFloorSpriteToCurrentCellSize(floorGO, sr);
+    }
+
+    void FitFloorSpriteToCurrentCellSize(GameObject floorGO, SpriteRenderer sr)
+    {
+        if (floorGO == null || sr == null || sr.sprite == null) return;
+
+        var spriteSize = sr.sprite.bounds.size;
+        if (spriteSize.x <= 0.0001f || spriteSize.y <= 0.0001f) return;
+
+        var t = floorGO.transform;
+        bool hasCollider = floorGO.TryGetComponent<BoxCollider>(out var col);
+        float targetWidth = hasCollider
+            ? Mathf.Abs(col.size.x * t.localScale.x)
+            : Mathf.Abs(t.localScale.x);
+        float targetHeight = hasCollider
+            ? Mathf.Abs(col.size.y * t.localScale.y)
+            : Mathf.Abs(t.localScale.y);
+        targetWidth = Mathf.Max(0.0001f, targetWidth);
+        targetHeight = Mathf.Max(0.0001f, targetHeight);
+        float signX = Mathf.Sign(t.localScale.x);
+        float signY = Mathf.Sign(t.localScale.y);
+        if (Mathf.Approximately(signX, 0f)) signX = 1f;
+        if (Mathf.Approximately(signY, 0f)) signY = 1f;
+
+        float scaleX = signX * targetWidth / spriteSize.x;
+        float scaleY = signY * targetHeight / spriteSize.y;
+        t.localScale = new Vector3(scaleX, scaleY, t.localScale.z);
+
+        if (!hasCollider) return;
+        col.size = new Vector3(targetWidth / Mathf.Abs(scaleX), targetHeight / Mathf.Abs(scaleY), col.size.z);
     }
 
     public void CreateBoundaries()
@@ -103,13 +140,22 @@ public class TowerSceneBuilder : MonoBehaviour
             if (existing != null) _rightBoundary = existing.gameObject;
         }
 
+        if (_bottomBoundary == null)
+        {
+            var existing = Util.FindSceneObjectByName(transform, gameObject.scene, "BoundaryBottom");
+            if (existing != null) _bottomBoundary = existing.gameObject;
+        }
+
         if (_leftBoundary == null)
             _leftBoundary  = SpawnBoundary("BoundaryLeft",  new Vector3(-offsetX, centerY, 0f), lineWidth, lineHeight, lineColor);
         if (_rightBoundary == null)
             _rightBoundary = SpawnBoundary("BoundaryRight", new Vector3( offsetX, centerY, 0f), lineWidth, lineHeight, lineColor);
+        if (_bottomBoundary == null)
+            _bottomBoundary = SpawnBoundary("BoundaryBottom", new Vector3(0f, _tower.FloorY, 0f), _tower.columns + 4f, lineWidth, lineColor);
 
         ConfigureBoundary(_leftBoundary,  lineColor);
         ConfigureBoundary(_rightBoundary, lineColor);
+        ConfigureBoundary(_bottomBoundary, lineColor);
         UpdateTowerStackDivider();
     }
 
@@ -133,36 +179,13 @@ public class TowerSceneBuilder : MonoBehaviour
             _towerStackDivider = new GameObject("TowerStackDivider");
             if (Application.isPlaying)
                 _tower.TrackGeneratedObject(_towerStackDivider);
-            _towerStackDivider.transform.SetParent(_tower.transform, worldPositionStays: true);
             created = true;
-        }
-        else
-        {
-            _towerStackDivider.transform.SetParent(_tower.transform, worldPositionStays: true);
         }
 
         float minX  = _placement != null ? _placement.placementMin.x       : 0f;
         float maxX  = _placement != null ? _placement.placementMax.x + 1f  : _tower.columns;
         float width = Mathf.Max(0.1f, maxX - minX);
         float y     = _tower.ExtractionMaxRow + 1f;
-
-        bool authoredDivider  = !created && !_tower.IsTrackedObject(_towerStackDivider);
-        var  dividerLocalPos  = new Vector3((minX + maxX) * 0.5f, y, 0.02f);
-
-        if (authoredDivider)
-        {
-            var authoredLocal = _tower.TowerRoot.InverseTransformPoint(_towerStackDivider.transform.position);
-            authoredLocal.y = y;
-            _towerStackDivider.transform.position = _tower.TowerRoot.TransformPoint(authoredLocal);
-        }
-        else
-        {
-            _towerStackDivider.transform.SetParent(_tower.transform, worldPositionStays: true);
-            _towerStackDivider.transform.position = _tower.TowerRoot.TransformPoint(dividerLocalPos);
-        }
-
-        if (!authoredDivider)
-            _towerStackDivider.transform.localScale = new Vector3(width, 0.12f, 1f);
 
         var dividerRenderer = _towerStackDivider.GetComponent<SpriteRenderer>();
         if (dividerRenderer == null)
@@ -184,8 +207,28 @@ public class TowerSceneBuilder : MonoBehaviour
                 dividerRenderer.sortingOrder = 2;
         }
 
+        SnapDividerToTowerGrid(minX, maxX, y, width, dividerRenderer);
+
         _placement?.SetTowerStackDivider(_towerStackDivider.transform);
         _placement?.AlignPlacementZoneToDivider(y);
+    }
+
+    void SnapDividerToTowerGrid(float minX, float maxX, float y, float width, SpriteRenderer dividerRenderer)
+    {
+        if (_towerStackDivider == null || _tower.TowerRoot == null)
+            return;
+
+        var spriteSize = dividerRenderer != null && dividerRenderer.sprite != null
+            ? dividerRenderer.sprite.bounds.size
+            : Vector3.one;
+        float spriteWidth = Mathf.Max(0.0001f, spriteSize.x);
+        float spriteHeight = Mathf.Max(0.0001f, spriteSize.y);
+
+        var divider = _towerStackDivider.transform;
+        divider.SetParent(_tower.TowerRoot, worldPositionStays: false);
+        divider.localPosition = new Vector3((minX + maxX) * 0.5f, y, 0.02f);
+        divider.localRotation = Quaternion.identity;
+        divider.localScale = new Vector3(width / spriteWidth, 0.12f / spriteHeight, divider.localScale.z);
     }
 
     public void CreateScoreLabel()
@@ -235,7 +278,10 @@ public class TowerSceneBuilder : MonoBehaviour
 
         if (!boundary.TryGetComponent<BoundaryLine>(out var bl))
             bl = boundary.AddComponent<BoundaryLine>();
+        bl.OnBlockTouched -= _tower.TriggerGameOver;
         bl.OnBlockTouched += _tower.TriggerGameOver;
+        bl.OnDetachedBlocksTouched -= _physics.HandleDetachedDeadlineContact;
+        bl.OnDetachedBlocksTouched += _physics.HandleDetachedDeadlineContact;
     }
 
     GameObject SpawnBoundary(string name, Vector3 worldPos, float width, float height, Color color)
@@ -243,7 +289,7 @@ public class TowerSceneBuilder : MonoBehaviour
         var go = new GameObject(name);
         if (Application.isPlaying)
             _tower.TrackGeneratedObject(go);
-        go.transform.SetParent(_tower.transform);
+        go.transform.SetParent(null);
         go.transform.position   = worldPos;
         go.transform.localScale = new Vector3(width, height, 1f);
 
@@ -263,6 +309,7 @@ public class TowerSceneBuilder : MonoBehaviour
 
             var bl = go.AddComponent<BoundaryLine>();
             bl.OnBlockTouched = _tower.TriggerGameOver;
+            bl.OnDetachedBlocksTouched = _physics.HandleDetachedDeadlineContact;
         }
 
         return go;

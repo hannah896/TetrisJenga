@@ -115,20 +115,6 @@ public class TowerGridModel
 
         return visited.Count == cells.Count;
     }
-    public bool TouchesPlacedTopBlock(List<Vector2Int> component)
-    {
-        foreach (var cell in component)
-        {
-            foreach (var neighbor in Util.Neighbors(cell))
-            {
-                if (!_cells.TryGetValue(neighbor, out var state)) continue;
-                if (!state.isOriginalTower)
-                    return true;
-            }
-        }
-
-        return false;
-    }
     public bool TouchesGround(List<Vector2Int> component)
     {
         foreach (var cell in component)

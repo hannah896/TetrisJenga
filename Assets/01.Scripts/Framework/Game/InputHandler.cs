@@ -46,6 +46,12 @@ public class InputHandler : MonoBehaviour
     void Update()
     {
         if (_tower == null || (_scoreController != null && _scoreController.IsGameOver)) return;
+        if (_tower.IsResolvingTopPuyo)
+        {
+            _camera?.UpdateCameraTarget();
+            _camera?.UpdateSecondaryViewCamera();
+            return;
+        }
 
         var mouse    = Mouse.current;
         var keyboard = Keyboard.current;

@@ -126,7 +126,8 @@ public class PlacementZoneController : MonoBehaviour
 
         if (placementZoneTransform != null)
         {
-            ParentToBlockTowerPreserveWorld(placementZoneTransform);
+            ParentToTowerRootPreserveWorld(placementZoneTransform);
+            SyncPlacementZoneFromObject();
             return;
         }
 
@@ -137,8 +138,9 @@ public class PlacementZoneController : MonoBehaviour
         float minY = placementMin.y;
         float maxY = placementMax.y + 1f;
         var zoneLocalCenter = new Vector3((minX + maxX) * 0.5f, (minY + maxY) * 0.5f, -0.04f);
-        zone.transform.SetParent(transform, worldPositionStays: true);
-        zone.transform.position = TowerGridLocalToWorld(zoneLocalCenter);
+        zone.transform.SetParent(towerRoot, worldPositionStays: false);
+        zone.transform.localPosition = zoneLocalCenter;
+        zone.transform.localRotation = Quaternion.identity;
         zone.transform.localScale = new Vector3(Mathf.Max(0.1f, maxX - minX), Mathf.Max(0.1f, maxY - minY), 1f);
 
         var sr = zone.AddComponent<SpriteRenderer>();
@@ -168,13 +170,14 @@ public class PlacementZoneController : MonoBehaviour
         if (placementZoneTransform == null || towerRoot == null)
             return;
 
-        ParentToBlockTowerPreserveWorld(placementZoneTransform);
+        ParentToTowerRootPreserveWorld(placementZoneTransform);
         RectInt zoneRect = default;
         if (TryTransformToGridRect(placementZoneTransform, out zoneRect))
         {
             zoneRect = MatchRectToDividerX(zoneRect);
             placementMin = new Vector2Int(zoneRect.xMin, zoneRect.yMin);
             placementMax = new Vector2Int(zoneRect.xMax - 1, zoneRect.yMax - 1);
+            SnapTransformToTowerGridRect(placementZoneTransform, zoneRect, -0.04f);
         }
 
         ParentPlacementExclusionsToBlockTower();
@@ -377,7 +380,7 @@ public class PlacementZoneController : MonoBehaviour
         }
 
         foreach (var exclusion in exclusions)
-            ParentToBlockTowerPreserveWorld(exclusion);
+            ParentToTowerRootPreserveWorld(exclusion);
     }
 
     List<Transform> FindPlacementExclusionTransforms()
@@ -489,10 +492,41 @@ public class PlacementZoneController : MonoBehaviour
     Transform FindBlockTowerChild(string objectName) =>
         Util.FindChildObject(transform, objectName);
 
-    void ParentToBlockTowerPreserveWorld(Transform child)
+    void ParentToTowerRootPreserveWorld(Transform child)
     {
-        if (child != null && child.parent != transform)
-            child.SetParent(transform, worldPositionStays: true);
+        if (child != null && towerRoot != null && child.parent != towerRoot)
+            child.SetParent(towerRoot, worldPositionStays: true);
+    }
+
+    void SnapTransformToTowerGridRect(Transform target, RectInt rect, float localZ)
+    {
+        if (target == null || towerRoot == null || rect.width <= 0 || rect.height <= 0)
+            return;
+
+        var spriteSize = GetSpriteLocalSize(target);
+        target.SetParent(towerRoot, worldPositionStays: true);
+        target.localPosition = new Vector3(
+            rect.xMin + rect.width * 0.5f,
+            rect.yMin + rect.height * 0.5f,
+            localZ);
+        target.localRotation = Quaternion.identity;
+        target.localScale = new Vector3(
+            rect.width / spriteSize.x,
+            rect.height / spriteSize.y,
+            target.localScale.z);
+    }
+
+    Vector2 GetSpriteLocalSize(Transform target)
+    {
+        var spriteRenderer = target != null ? target.GetComponent<SpriteRenderer>() : null;
+        var sprite = spriteRenderer != null ? spriteRenderer.sprite : null;
+        if (sprite == null)
+            sprite = GetFallbackSprite();
+
+        var size = sprite != null ? sprite.bounds.size : Vector3.one;
+        return new Vector2(
+            Mathf.Max(0.0001f, size.x),
+            Mathf.Max(0.0001f, size.y));
     }
 
     void EnsureOwner()

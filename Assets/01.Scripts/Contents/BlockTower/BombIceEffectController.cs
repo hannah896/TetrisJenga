@@ -52,7 +52,7 @@ public class BombIceEffectController : MonoBehaviour
 
     public void TriggerBombAt(Vector2Int center)
     {
-        AudioManager.PlaySound(_AudioLibrarySounds.Boom);
+        AudioPlayback.PlaySound(_AudioLibrarySounds.Boom);
         foreach (var offset in BombBoxOffsets())
         {
             var cell = center + offset;
@@ -81,8 +81,17 @@ public class BombIceEffectController : MonoBehaviour
 
         var go = new GameObject($"BombObscure_{cell.x}_{cell.y}");
         _tower.TrackGeneratedObject(go);
-        go.transform.SetParent(_tower.transform, worldPositionStays: true);
-        go.transform.position = _tower.TowerRoot != null ? _tower.TowerRoot.TransformPoint(new Vector3(cell.x + 0.5f, cell.y + 0.5f, -0.08f)) : new Vector3(cell.x + 0.5f, cell.y + 0.5f, -0.08f);
+        if (_tower.TowerRoot != null)
+        {
+            go.transform.SetParent(_tower.TowerRoot, worldPositionStays: false);
+            go.transform.localPosition = new Vector3(cell.x + 0.5f, cell.y + 0.5f, -0.08f);
+            go.transform.localRotation = Quaternion.identity;
+        }
+        else
+        {
+            go.transform.SetParent(_tower.transform, worldPositionStays: false);
+            go.transform.localPosition = new Vector3(cell.x + 0.5f, cell.y + 0.5f, -0.08f);
+        }
         go.transform.localScale = Vector3.one;
 
         go.AddComponent<NoPostProcessingRenderer>();

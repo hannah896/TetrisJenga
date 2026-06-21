@@ -30,7 +30,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 3.48, y: 3.48, z: 3.48}
+  m_LocalScale: {x: 2.0833333, y: 2.5641026, z: 1}
   m_ConstrainProportionsScale: 1
   m_Children: []
   m_Father: {fileID: 0}
@@ -113,7 +113,7 @@ BoxCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Size: {x: 0.5, y: 0.5, z: 1}
+  m_Size: {x: 0.16, y: 0.13, z: 1}
   m_Center: {x: 0, y: 0, z: 0}
 --- !u!54 &9101000000000000005
 Rigidbody:
@@ -158,3 +158,6 @@ MonoBehaviour:
   initialDirection: {x: 1, y: 1}
   stuckSeconds: 0.6
   stallRecoverySeconds: 0.15
+  visualCellSize: {x: 1, y: 1}
+  visualScaleMultiplier: 0.33333334
+  scoreController: {fileID: 0}

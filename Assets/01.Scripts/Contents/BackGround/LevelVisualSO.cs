@@ -17,6 +17,6 @@ public sealed class LevelVisualSO : ScriptableObject
     [Range(0f, 1f)] public float beamOpacity = 0.72f;
 
     [Header("거리 대비")]
-    public float nearContrast = 30f;
+    public float nearContrast = -30f;
     public float farContrast  = -100f;
 }

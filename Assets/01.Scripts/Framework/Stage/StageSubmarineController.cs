@@ -176,7 +176,6 @@ public class StageSubmarineController
 
     static void PlayMoveAudio()
     {
-        if (AudioManager.Instance == null || !AudioManager.Instance.Initialized) return;
-        AudioManager.PlaySound(_AudioLibrarySounds.BtnClick);
+        AudioPlayback.PlaySound(_AudioLibrarySounds.BtnClick);
     }
 }

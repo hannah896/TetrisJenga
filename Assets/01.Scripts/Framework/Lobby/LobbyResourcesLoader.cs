@@ -41,14 +41,12 @@ namespace Framework.Lobby
             LoadByLabel(DefaultLabel);
             // 소환된 AudioManager가 초기화된 뒤 로비 BGM 재생
             await UniTask.WaitUntil(
-                () => AudioManager.Instance != null &&
-                      AudioManager.Instance.Initialized,
+                () => AudioPlayback.IsReady,
                 cancellationToken: cancellation);
 
             await UniTask.NextFrame(cancellation);
 
-            AudioManager.StopAllMusic();
-            AudioManager.PlayMusic(_AudioLibraryMusic.LobbyBGM);
+            AudioPlayback.PlayMusic(_AudioLibraryMusic.LobbyBGM, stopCurrent: true);
         }
 
         private void LoadByLabel(string label)

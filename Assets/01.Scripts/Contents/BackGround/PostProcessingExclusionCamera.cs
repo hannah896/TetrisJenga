@@ -17,6 +17,7 @@ public sealed class PostProcessingExclusionCamera : MonoBehaviour
         "TowerStackDivider",
         "BoundaryLeft",
         "BoundaryRight",
+        "BoundaryBottom",
         "Floor",
         "PresetOutlinePreview"
     };
@@ -26,6 +27,8 @@ public sealed class PostProcessingExclusionCamera : MonoBehaviour
     };
 
     Camera _overlayCamera;
+    readonly Dictionary<Camera, Camera> _additionalOverlays = new();
+    readonly Dictionary<Camera, int> _originalAdditionalMasks = new();
     int _layer = -1;
     int _lastMainMask;
     bool _hasLastMainMask;
@@ -41,6 +44,20 @@ public sealed class PostProcessingExclusionCamera : MonoBehaviour
 
         if (_overlayCamera != null)
             _overlayCamera.enabled = false;
+
+        foreach (var overlay in _additionalOverlays.Values)
+        {
+            if (overlay != null)
+                overlay.enabled = false;
+        }
+
+        foreach (var pair in _originalAdditionalMasks)
+        {
+            if (pair.Key != null)
+                pair.Key.cullingMask = pair.Value;
+        }
+
+        _originalAdditionalMasks.Clear();
     }
 
     void OnValidate()
@@ -192,8 +209,6 @@ public sealed class PostProcessingExclusionCamera : MonoBehaviour
 
     void ConfigureAdditionalCameraMasks()
     {
-        int layerMask = 1 << _layer;
-
         foreach (string cameraName in camerasThatShouldSeeExcludedLayer)
         {
             if (string.IsNullOrWhiteSpace(cameraName))
@@ -204,30 +219,85 @@ public sealed class PostProcessingExclusionCamera : MonoBehaviour
             if (camera == null || camera == sourceCamera || camera == _overlayCamera)
                 continue;
 
-            camera.cullingMask |= layerMask;
-
-            var camData = camera.GetUniversalAdditionalCameraData();
-            if (camData != null)
-                camData.renderPostProcessing = false;
+            ConfigureAdditionalCamera(camera);
         }
+    }
+
+    void ConfigureAdditionalCamera(Camera camera)
+    {
+        int layerMask = 1 << _layer;
+        if (!_originalAdditionalMasks.ContainsKey(camera))
+            _originalAdditionalMasks.Add(camera, camera.cullingMask);
+
+        camera.cullingMask = _originalAdditionalMasks[camera] & ~layerMask;
+        var overlay = EnsureAdditionalOverlay(camera);
+        if (overlay == null)
+            return;
+
+        CopyCameraSettings(camera, overlay);
+        overlay.cullingMask = layerMask;
+
+        var mainData = sourceCamera.GetUniversalAdditionalCameraData();
+        var cameraData = camera.GetUniversalAdditionalCameraData();
+        var overlayData = overlay.GetUniversalAdditionalCameraData();
+
+        cameraData.renderType = CameraRenderType.Base;
+        cameraData.renderPostProcessing = mainData.renderPostProcessing;
+        cameraData.volumeLayerMask = mainData.volumeLayerMask;
+        cameraData.volumeTrigger = mainData.volumeTrigger;
+        cameraData.antialiasing = mainData.antialiasing;
+        cameraData.antialiasingQuality = mainData.antialiasingQuality;
+        cameraData.stopNaN = mainData.stopNaN;
+        cameraData.dithering = mainData.dithering;
+
+        overlayData.renderType = CameraRenderType.Overlay;
+        overlayData.renderPostProcessing = false;
+        var stack = cameraData.cameraStack;
+        if (!stack.Contains(overlay))
+            stack.Add(overlay);
+    }
+
+    Camera EnsureAdditionalOverlay(Camera camera)
+    {
+        if (_additionalOverlays.TryGetValue(camera, out var overlay) && overlay != null)
+            return overlay;
+
+        string overlayName = $"{camera.name} No Post Camera";
+        var existing = GameObject.Find(overlayName);
+        overlay = existing != null ? existing.GetComponent<Camera>() : null;
+        if (overlay == null)
+        {
+            var go = new GameObject(overlayName);
+            overlay = go.AddComponent<Camera>();
+        }
+
+        var listener = overlay.GetComponent<AudioListener>();
+        if (listener != null)
+            DestroyLocal(listener);
+
+        overlay.enabled = true;
+        _additionalOverlays[camera] = overlay;
+        return overlay;
     }
 
     void CopyCameraSettings()
     {
-        _overlayCamera.transform.SetPositionAndRotation(sourceCamera.transform.position, sourceCamera.transform.rotation);
-        _overlayCamera.clearFlags = CameraClearFlags.Nothing;
-        _overlayCamera.backgroundColor = Color.clear;
-        _overlayCamera.orthographic = sourceCamera.orthographic;
-        _overlayCamera.orthographicSize = sourceCamera.orthographicSize;
-        _overlayCamera.fieldOfView = sourceCamera.fieldOfView;
-        _overlayCamera.nearClipPlane = sourceCamera.nearClipPlane;
-        _overlayCamera.farClipPlane = sourceCamera.farClipPlane;
-        _overlayCamera.depth = sourceCamera.depth + 1f;
-        _overlayCamera.allowHDR = sourceCamera.allowHDR;
-        _overlayCamera.allowMSAA = sourceCamera.allowMSAA;
-        _overlayCamera.targetTexture = null;
+        CopyCameraSettings(sourceCamera, _overlayCamera);
 
         ConfigureUrpCameraStack();
+    }
+
+    static void CopyCameraSettings(Camera source, Camera destination)
+    {
+        int cullingMask = destination.cullingMask;
+        destination.CopyFrom(source);
+        destination.transform.SetPositionAndRotation(source.transform.position, source.transform.rotation);
+        destination.clearFlags = CameraClearFlags.Nothing;
+        destination.backgroundColor = Color.clear;
+        destination.cullingMask = cullingMask;
+        destination.depth = source.depth + 1f;
+        destination.targetTexture = null;
+        destination.enabled = source.enabled;
     }
 
     void RestoreSourceCameraMask()

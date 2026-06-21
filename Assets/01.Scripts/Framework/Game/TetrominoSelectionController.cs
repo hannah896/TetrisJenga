@@ -12,6 +12,7 @@ public class TetrominoSelectionController : MonoBehaviour
     public TetrominoPreset Preset          { get; set; }
     public Vector2Int Anchor               { get; set; }
     public int Rotation                    { get; set; }
+    bool resumePresetAfterPlacement;
 
     public void ResetState()
     {
@@ -22,6 +23,7 @@ public class TetrominoSelectionController : MonoBehaviour
         Preset                  = default;
         Anchor                  = Vector2Int.zero;
         Rotation                = 0;
+        resumePresetAfterPlacement = false;
     }
 
     public void SetFocus(BlockExtractionController extraction, Vector2Int cell)
@@ -75,6 +77,7 @@ public class TetrominoSelectionController : MonoBehaviour
         Preset  = preset;
         Anchor  = FocusedCell;
         Rotation = 0;
+        extraction.BeginPresetGrowth();
         ApplyPresetSelection(extraction);
     }
 
@@ -164,6 +167,7 @@ public class TetrominoSelectionController : MonoBehaviour
     {
         if (selected.Count > 0)
         {
+            resumePresetAfterPlacement = true;
             IsPresetSelectionActive = false;
             extraction.LiftBlocks();
         }
@@ -173,7 +177,24 @@ public class TetrominoSelectionController : MonoBehaviour
         }
     }
 
-    public void CancelPresetSelection() => IsPresetSelectionActive = false;
+    public void CancelPresetSelection()
+    {
+        IsPresetSelectionActive = false;
+        resumePresetAfterPlacement = false;
+    }
+
+    public bool RestorePresetSelectionAfterPlacement(BlockExtractionController extraction)
+    {
+        if (!resumePresetAfterPlacement)
+            return false;
+
+        resumePresetAfterPlacement = false;
+        IsPresetSelectionActive = true;
+        HasFocusedCell = false;
+        extraction.BeginPresetGrowth();
+        ApplyPresetSelection(extraction);
+        return true;
+    }
 
     public bool IsAdjacentToSelected(Vector2Int cell)
     {

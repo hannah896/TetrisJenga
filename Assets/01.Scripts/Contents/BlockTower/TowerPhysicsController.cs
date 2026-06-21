@@ -124,18 +124,18 @@ public class TowerPhysicsController : MonoBehaviour
 
     Vector3 CalculateCenterOfMass()
     {
-        float totalWeight = 0f;
-        Vector2 weightedSum = Vector2.zero;
+        int cellCount = 0;
+        Vector2 positionSum = Vector2.zero;
         foreach (var (cell, state) in _grid.AllCells)
         {
             if (state.kind == CellKind.Ice) continue;
             var localPos = new Vector2(cell.x + 0.5f, cell.y + 0.5f);
-            weightedSum += localPos * state.number;
-            totalWeight += state.number;
+            positionSum += localPos;
+            cellCount++;
         }
 
-        var com = totalWeight > 0f
-            ? weightedSum / totalWeight
+        var com = cellCount > 0
+            ? positionSum / cellCount
             : new Vector2(_tower.columns * 0.5f, _tower.rows * 0.5f);
         return new Vector3(com.x, com.y, 0f);
     }
@@ -184,8 +184,6 @@ public class TowerPhysicsController : MonoBehaviour
     {
         if (_grid.Count == 0) return;
 
-        DetachOriginalTowerBlocksSupportedOnlyByTop();
-
         var components = _grid.FindConnectedComponents();
         if (components.Count <= 1) return;
 
@@ -194,20 +192,6 @@ public class TowerPhysicsController : MonoBehaviour
         {
             if (i == mainIdx) continue;
             DetachComponent(components[i]);
-        }
-    }
-
-    void DetachOriginalTowerBlocksSupportedOnlyByTop()
-    {
-        var components = _grid.FindOriginalTowerComponents();
-        if (components.Count <= 1) return;
-
-        int mainIdx = FindMainTowerComponentIndex(components);
-        for (int i = 0; i < components.Count; i++)
-        {
-            if (i == mainIdx) continue;
-            if (_grid.TouchesPlacedTopBlock(components[i]))
-                DetachComponent(components[i]);
         }
     }
 
@@ -222,6 +206,9 @@ public class TowerPhysicsController : MonoBehaviour
 
     bool IsBetterMainTowerComponent(List<Vector2Int> candidate, List<Vector2Int> current)
     {
+        if (candidate.Count != current.Count)
+            return candidate.Count > current.Count;
+
         bool cGrounded = _grid.TouchesGround(candidate);
         bool curGrounded = _grid.TouchesGround(current);
         if (cGrounded != curGrounded) return cGrounded;
@@ -230,7 +217,7 @@ public class TowerPhysicsController : MonoBehaviour
         int curMinY = _grid.MinComponentY(current);
         if (cMinY != curMinY) return cMinY < curMinY;
 
-        return candidate.Count > current.Count;
+        return false;
     }
 
     void DetachComponent(List<Vector2Int> component)
@@ -422,6 +409,19 @@ public class TowerPhysicsController : MonoBehaviour
         _score?.AddScore(-Mathf.Max(0, detached.scorePenalty), scorePos);
     }
 
+    public void HandleDetachedDeadlineContact(Rigidbody detachedRigidbody)
+    {
+        if (detachedRigidbody == null) return;
+
+        for (int i = _detachedComponents.Count - 1; i >= 0; i--)
+        {
+            var detached = _detachedComponents[i];
+            if (detached.rb != detachedRigidbody) continue;
+            ApplyDetachedPenalty(detached);
+            return;
+        }
+    }
+
     bool IsBelowDeadline(DetachedComponent detached) =>
         detached.root != null &&
         detached.root.transform.position.y < _tower.FloorY - deadlineFallDepth;
@@ -541,7 +541,7 @@ public class TowerPhysicsController : MonoBehaviour
         }
 
         Destroy(detachedRoot);
-        AudioManager.PlaySound(_AudioLibrarySounds.Drop);
+        AudioPlayback.PlaySound(_AudioLibrarySounds.Drop);
         UpdateTowerPhysicsState();
         _tower.UpdateExtractionTowerRowsFromCells();
         if (!_tower.IsHolding)

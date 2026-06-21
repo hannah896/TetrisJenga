@@ -12,6 +12,7 @@ GameObject:
   - component: {fileID: 2683735546261567321}
   - component: {fileID: 85331153973530226}
   - component: {fileID: 5865975558212496507}
+  - component: {fileID: 7000000000000000001}
   m_Layer: 0
   m_Name: Underwater Post Processing Volume
   m_TagString: Untagged
@@ -71,6 +72,7 @@ MonoBehaviour:
   blendSpeed: 6
   maxWeight: 1
   enableCameraPostProcessing: 1
+  preserveEditorPostProcessingSettings: 0
   enableUnderwaterSunLight: 1
   sunLightColor: {r: 0.62, g: 0.95, b: 1, a: 1}
   sunLightIntensity: 2.2
@@ -87,29 +89,168 @@ MonoBehaviour:
     name: Center Beam
     enabled: 1
     color: {r: 0.34, g: 0.86, b: 1, a: 1}
-    intensity: 3.2
-    localPosition: {x: 0, y: 6, z: 3.5}
+    intensity: 0.2
+    localPosition: {x: 0, y: 0, z: 0}
     eulerAngles: {x: 68, y: 0, z: 0}
     range: 16
     spotAngle: 28
     innerSpotAngle: 8
     beamColor: {r: 0.82, g: 0.96, b: 1, a: 1}
     disableBeamEffect: 0
-    beamOpacity: 0.72
-    beamLength: 11
-    beamWidth: 2.8
+    beamOpacity: 2
+    beamLength: 100
+    beamWidth: 8
     beamCoreWidth: 0.18
     beamFeather: 0.62
     beamFalloff: 1.6
     disableBottomFade: 0
     beamBottomFadeStart: 0.45
-    beamLocalOffset: {x: 0, y: -0.2, z: -0.05}
-    beamEulerAngles: {x: 0, y: 0, z: 0}
+    beamLocalOffset: {x: 0, y: 44.7, z: 25.4}
+    beamEulerAngles: {x: 0, y: 0, z: -11.37}
+    beamSortingOrder: 80
+  - light: {fileID: 0}
+    name: Center Beam
+    enabled: 1
+    color: {r: 0.34, g: 0.86, b: 1, a: 1}
+    intensity: 0.2
+    localPosition: {x: 0, y: 0, z: 0}
+    eulerAngles: {x: 68, y: 0, z: 0}
+    range: 16
+    spotAngle: 28
+    innerSpotAngle: 8
+    beamColor: {r: 0.82, g: 0.96, b: 1, a: 1}
+    disableBeamEffect: 0
+    beamOpacity: 2
+    beamLength: 100
+    beamWidth: 4
+    beamCoreWidth: 0.01
+    beamFeather: 0.62
+    beamFalloff: 1.6
+    disableBottomFade: 0
+    beamBottomFadeStart: 0.45
+    beamLocalOffset: {x: 19.18, y: 44.7, z: 32.8}
+    beamEulerAngles: {x: 0, y: 0, z: -11.37}
+    beamSortingOrder: 80
+  - light: {fileID: 0}
+    name: Center Beam
+    enabled: 1
+    color: {r: 0.34, g: 0.86, b: 1, a: 1}
+    intensity: 0.2
+    localPosition: {x: 0, y: 0, z: 0}
+    eulerAngles: {x: 68, y: 0, z: 0}
+    range: 16
+    spotAngle: 28
+    innerSpotAngle: 8
+    beamColor: {r: 0.82, g: 0.96, b: 1, a: 1}
+    disableBeamEffect: 0
+    beamOpacity: 1
+    beamLength: 100
+    beamWidth: 1
+    beamCoreWidth: 0.487
+    beamFeather: 0.493
+    beamFalloff: 1.6
+    disableBottomFade: 0
+    beamBottomFadeStart: 0.45
+    beamLocalOffset: {x: 14.13, y: 44.7, z: 30.3}
+    beamEulerAngles: {x: 0, y: 0, z: -11.37}
+    beamSortingOrder: 80
+  - light: {fileID: 0}
+    name: Center Beam
+    enabled: 1
+    color: {r: 0.34, g: 0.86, b: 1, a: 1}
+    intensity: 0.2
+    localPosition: {x: 0, y: 0, z: 0}
+    eulerAngles: {x: 0, y: 0, z: 0}
+    range: 16
+    spotAngle: 28
+    innerSpotAngle: 8
+    beamColor: {r: 0.82, g: 0.96, b: 1, a: 1}
+    disableBeamEffect: 0
+    beamOpacity: 1
+    beamLength: 100
+    beamWidth: 3
+    beamCoreWidth: 0.426
+    beamFeather: 0.413
+    beamFalloff: 1.6
+    disableBottomFade: 0
+    beamBottomFadeStart: 0.45
+    beamLocalOffset: {x: 11.4, y: 44.7, z: 33.3}
+    beamEulerAngles: {x: 0, y: 0, z: -11.37}
+    beamSortingOrder: 80
+  - light: {fileID: 0}
+    name: Center Beam
+    enabled: 1
+    color: {r: 0.34, g: 0.86, b: 1, a: 1}
+    intensity: 0.2
+    localPosition: {x: 0, y: 0, z: 0}
+    eulerAngles: {x: 68, y: 0, z: 0}
+    range: 16
+    spotAngle: 28
+    innerSpotAngle: 8
+    beamColor: {r: 0.82, g: 0.96, b: 1, a: 1}
+    disableBeamEffect: 0
+    beamOpacity: 2
+    beamLength: 100
+    beamWidth: 8
+    beamCoreWidth: 0.01
+    beamFeather: 0.62
+    beamFalloff: 1.6
+    disableBottomFade: 0
+    beamBottomFadeStart: 0.45
+    beamLocalOffset: {x: 33.8, y: 44.7, z: 33.3}
+    beamEulerAngles: {x: 0, y: 0, z: -11.37}
+    beamSortingOrder: 80
+  - light: {fileID: 0}
+    name: Center Beam
+    enabled: 1
+    color: {r: 0.34, g: 0.86, b: 1, a: 1}
+    intensity: 0.2
+    localPosition: {x: 0, y: 0, z: 0}
+    eulerAngles: {x: 68, y: 0, z: 0}
+    range: 16
+    spotAngle: 28
+    innerSpotAngle: 8
+    beamColor: {r: 0.82, g: 0.96, b: 1, a: 1}
+    disableBeamEffect: 0
+    beamOpacity: 2
+    beamLength: 100
+    beamWidth: 10
+    beamCoreWidth: 0.01
+    beamFeather: 0.62
+    beamFalloff: 1.6
+    disableBottomFade: 0
+    beamBottomFadeStart: 0.45
+    beamLocalOffset: {x: -23.6, y: 44.7, z: 33.3}
+    beamEulerAngles: {x: 0, y: 0, z: -11.37}
+    beamSortingOrder: 80
+  - light: {fileID: 0}
+    name: Center Beam
+    enabled: 1
+    color: {r: 0.34, g: 0.86, b: 1, a: 1}
+    intensity: 0.2
+    localPosition: {x: 0, y: 0, z: 0}
+    eulerAngles: {x: 68, y: 0, z: 0}
+    range: 16
+    spotAngle: 28
+    innerSpotAngle: 8
+    beamColor: {r: 0.82, g: 0.96, b: 1, a: 1}
+    disableBeamEffect: 0
+    beamOpacity: 2
+    beamLength: 100
+    beamWidth: 2
+    beamCoreWidth: 0.01
+    beamFeather: 0.62
+    beamFalloff: 1.6
+    disableBottomFade: 0
+    beamBottomFadeStart: 0.45
+    beamLocalOffset: {x: -15.61, y: 44.7, z: 33.3}
+    beamEulerAngles: {x: 0, y: 0, z: -11.37}
     beamSortingOrder: 80
   enableDistanceContrast: 1
-  contrastNearDistance: 5
-  contrastFarDistance: 24
-  nearContrast: 30
+  applyDistanceContrastAtRuntime: 1
+  contrastNearDistance: 10
+  contrastFarDistance: 90
+  nearContrast: -30
   farContrast: -100
 --- !u!114 &5865975558212496507
 MonoBehaviour:
@@ -131,3 +272,52 @@ MonoBehaviour:
   _level5Visual: {fileID: 11400000, guid: c928cd4a43b7b224980470d03bdbae60, type: 2}
   _level6Visual: {fileID: 11400000, guid: 8342f44a3f482c548bd18de595c90aad, type: 2}
   _endlessVisual: {fileID: 11400000, guid: d4ea5388e57c6e847b9378c2adb967e1, type: 2}
+--- !u!114 &7000000000000000001
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6526717474927590399}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a2222222222222222222222222222222, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::UnderwaterSeaLifeMap
+  layoutPrefab: {fileID: 1463941239681263576, guid: 80588900911df7d41a3a189a4193be65, type: 3}
+  decorationPrefabs:
+  - {fileID: 1001, guid: b1111111111111111111111111111111, type: 3}
+  - {fileID: 1001, guid: b2222222222222222222222222222222, type: 3}
+  - {fileID: 1001, guid: b3333333333333333333333333333333, type: 3}
+  - {fileID: 1001, guid: b4444444444444444444444444444444, type: 3}
+  - {fileID: 1001, guid: b5555555555555555555555555555555, type: 3}
+  - {fileID: 1001, guid: b6666666666666666666666666666666, type: 3}
+  - {fileID: 1001, guid: b7777777777777777777777777777777, type: 3}
+  - {fileID: 1001, guid: b8888888888888888888888888888888, type: 3}
+  localPositions:
+  - {x: -4.2, y: -8, z: 1}
+  - {x: -3.05, y: -8.15, z: 1.05}
+  - {x: -1.85, y: -8.15, z: 1.1}
+  - {x: -0.6, y: -8.1, z: 1.15}
+  - {x: 0.65, y: -7.9, z: 1.2}
+  - {x: 1.75, y: -7.9, z: 1.25}
+  - {x: 3, y: -8.1, z: 1.3}
+  - {x: 4.1, y: -8.55, z: 1.35}
+  localScales:
+  - 0.08
+  - 0.09
+  - 0.12
+  - 0.1
+  - 0.09
+  - 0.09
+  - 0.12
+  - 0.18
+  flipX:
+  - 0
+  - 1
+  - 0
+  - 1
+  - 0
+  - 1
+  - 0
+  - 1

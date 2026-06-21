@@ -401,6 +401,7 @@ GameObject:
   - component: {fileID: 223400101}
   - component: {fileID: 223400102}
   - component: {fileID: 223400103}
+  - component: {fileID: 223400104}
   m_Layer: 0
   m_Name: Underwater Post Processing Volume
   m_TagString: Untagged
@@ -460,6 +461,7 @@ MonoBehaviour:
   blendSpeed: 6
   maxWeight: 1
   enableCameraPostProcessing: 1
+  preserveEditorPostProcessingSettings: 0
   enableUnderwaterSunLight: 1
   sunLightColor: {r: 0.62, g: 0.95, b: 1, a: 1}
   sunLightIntensity: 2.2
@@ -476,168 +478,219 @@ MonoBehaviour:
     name: Center Beam
     enabled: 1
     color: {r: 0.34, g: 0.86, b: 1, a: 1}
-    intensity: 3.2
-    localPosition: {x: 40, y: 80, z: 40}
+    intensity: 0.2
+    localPosition: {x: 0, y: 0, z: 0}
     eulerAngles: {x: 68, y: 0, z: 0}
     range: 16
     spotAngle: 28
     innerSpotAngle: 8
     beamColor: {r: 0.82, g: 0.96, b: 1, a: 1}
     disableBeamEffect: 0
-    beamOpacity: 5
-    beamLength: 120
-    beamWidth: 2.8
-    beamCoreWidth: 0.266
-    beamFeather: 0.259
+    beamOpacity: 2
+    beamLength: 100
+    beamWidth: 8
+    beamCoreWidth: 0.18
+    beamFeather: 0.62
     beamFalloff: 1.6
     disableBottomFade: 0
     beamBottomFadeStart: 0.45
-    beamLocalOffset: {x: 0, y: -0.2, z: -0.05}
-    beamEulerAngles: {x: 0, y: 0, z: -12}
+    beamLocalOffset: {x: 0, y: 44.7, z: 25.4}
+    beamEulerAngles: {x: 0, y: 0, z: -11.37}
     beamSortingOrder: 80
   - light: {fileID: 0}
     name: Center Beam
     enabled: 1
     color: {r: 0.34, g: 0.86, b: 1, a: 1}
-    intensity: 3.2
-    localPosition: {x: 21.6, y: 80, z: 43.2}
+    intensity: 0.2
+    localPosition: {x: 0, y: 0, z: 0}
     eulerAngles: {x: 68, y: 0, z: 0}
     range: 16
     spotAngle: 28
     innerSpotAngle: 8
     beamColor: {r: 0.82, g: 0.96, b: 1, a: 1}
     disableBeamEffect: 0
-    beamOpacity: 5
-    beamLength: 80
-    beamWidth: 12.82
-    beamCoreWidth: 0.138
-    beamFeather: 0.259
+    beamOpacity: 2
+    beamLength: 100
+    beamWidth: 4
+    beamCoreWidth: 0.01
+    beamFeather: 0.62
     beamFalloff: 1.6
     disableBottomFade: 0
     beamBottomFadeStart: 0.45
-    beamLocalOffset: {x: 0, y: -0.2, z: -0.05}
-    beamEulerAngles: {x: 0, y: 0, z: -12}
+    beamLocalOffset: {x: 19.18, y: 44.7, z: 32.8}
+    beamEulerAngles: {x: 0, y: 0, z: -11.37}
     beamSortingOrder: 80
   - light: {fileID: 0}
     name: Center Beam
     enabled: 1
     color: {r: 0.34, g: 0.86, b: 1, a: 1}
-    intensity: 3.2
-    localPosition: {x: 9.24, y: 80, z: 44.3}
+    intensity: 0.2
+    localPosition: {x: 0, y: 0, z: 0}
     eulerAngles: {x: 68, y: 0, z: 0}
     range: 16
     spotAngle: 28
     innerSpotAngle: 8
     beamColor: {r: 0.82, g: 0.96, b: 1, a: 1}
     disableBeamEffect: 0
-    beamOpacity: 5
-    beamLength: 110.7
-    beamWidth: 5
-    beamCoreWidth: 0.454
-    beamFeather: 0.259
+    beamOpacity: 1
+    beamLength: 100
+    beamWidth: 1
+    beamCoreWidth: 0.487
+    beamFeather: 0.493
     beamFalloff: 1.6
     disableBottomFade: 0
     beamBottomFadeStart: 0.45
-    beamLocalOffset: {x: 0, y: -0.2, z: -0.05}
-    beamEulerAngles: {x: 0, y: 0, z: -12}
+    beamLocalOffset: {x: 14.13, y: 44.7, z: 30.3}
+    beamEulerAngles: {x: 0, y: 0, z: -11.37}
     beamSortingOrder: 80
   - light: {fileID: 0}
     name: Center Beam
     enabled: 1
     color: {r: 0.34, g: 0.86, b: 1, a: 1}
-    intensity: 3.2
-    localPosition: {x: -7.2, y: 80, z: 32.3}
-    eulerAngles: {x: 68, y: 0, z: 0}
+    intensity: 0.2
+    localPosition: {x: 0, y: 0, z: 0}
+    eulerAngles: {x: 0, y: 0, z: 0}
     range: 16
     spotAngle: 28
     innerSpotAngle: 8
     beamColor: {r: 0.82, g: 0.96, b: 1, a: 1}
     disableBeamEffect: 0
-    beamOpacity: 9.99
-    beamLength: 78.3
+    beamOpacity: 1
+    beamLength: 100
     beamWidth: 3
-    beamCoreWidth: 0.454
-    beamFeather: 0.259
+    beamCoreWidth: 0.426
+    beamFeather: 0.413
     beamFalloff: 1.6
     disableBottomFade: 0
     beamBottomFadeStart: 0.45
-    beamLocalOffset: {x: 0, y: -0.2, z: -0.05}
-    beamEulerAngles: {x: 0, y: 0, z: -12}
+    beamLocalOffset: {x: 11.4, y: 44.7, z: 33.3}
+    beamEulerAngles: {x: 0, y: 0, z: -11.37}
     beamSortingOrder: 80
   - light: {fileID: 0}
     name: Center Beam
     enabled: 1
     color: {r: 0.34, g: 0.86, b: 1, a: 1}
-    intensity: 3.2
-    localPosition: {x: 22.3, y: 57.5, z: 29.9}
+    intensity: 0.2
+    localPosition: {x: 0, y: 0, z: 0}
     eulerAngles: {x: 68, y: 0, z: 0}
     range: 16
     spotAngle: 28
     innerSpotAngle: 8
     beamColor: {r: 0.82, g: 0.96, b: 1, a: 1}
     disableBeamEffect: 0
-    beamOpacity: 5
-    beamLength: 83.6
+    beamOpacity: 2
+    beamLength: 100
+    beamWidth: 8
+    beamCoreWidth: 0.01
+    beamFeather: 0.62
+    beamFalloff: 1.6
+    disableBottomFade: 0
+    beamBottomFadeStart: 0.45
+    beamLocalOffset: {x: 33.8, y: 44.7, z: 33.3}
+    beamEulerAngles: {x: 0, y: 0, z: -11.37}
+    beamSortingOrder: 80
+  - light: {fileID: 0}
+    name: Center Beam
+    enabled: 1
+    color: {r: 0.34, g: 0.86, b: 1, a: 1}
+    intensity: 0.2
+    localPosition: {x: 0, y: 0, z: 0}
+    eulerAngles: {x: 68, y: 0, z: 0}
+    range: 16
+    spotAngle: 28
+    innerSpotAngle: 8
+    beamColor: {r: 0.82, g: 0.96, b: 1, a: 1}
+    disableBeamEffect: 0
+    beamOpacity: 2
+    beamLength: 100
+    beamWidth: 10
+    beamCoreWidth: 0.01
+    beamFeather: 0.62
+    beamFalloff: 1.6
+    disableBottomFade: 0
+    beamBottomFadeStart: 0.45
+    beamLocalOffset: {x: -23.6, y: 44.7, z: 33.3}
+    beamEulerAngles: {x: 0, y: 0, z: -11.37}
+    beamSortingOrder: 80
+  - light: {fileID: 0}
+    name: Center Beam
+    enabled: 1
+    color: {r: 0.34, g: 0.86, b: 1, a: 1}
+    intensity: 0.2
+    localPosition: {x: 0, y: 0, z: 0}
+    eulerAngles: {x: 68, y: 0, z: 0}
+    range: 16
+    spotAngle: 28
+    innerSpotAngle: 8
+    beamColor: {r: 0.82, g: 0.96, b: 1, a: 1}
+    disableBeamEffect: 0
+    beamOpacity: 2
+    beamLength: 100
     beamWidth: 2
-    beamCoreWidth: 0.401
-    beamFeather: 0.259
+    beamCoreWidth: 0.01
+    beamFeather: 0.62
     beamFalloff: 1.6
     disableBottomFade: 0
     beamBottomFadeStart: 0.45
-    beamLocalOffset: {x: 0, y: -0.2, z: -0.05}
-    beamEulerAngles: {x: 0, y: 0, z: -12}
-    beamSortingOrder: 80
-  - light: {fileID: 0}
-    name: Center Beam
-    enabled: 1
-    color: {r: 0.34, g: 0.86, b: 1, a: 1}
-    intensity: 3.2
-    localPosition: {x: -26.3, y: 80, z: 40}
-    eulerAngles: {x: 68, y: 0, z: 0}
-    range: 16
-    spotAngle: 28
-    innerSpotAngle: 8
-    beamColor: {r: 0.82, g: 0.96, b: 1, a: 1}
-    disableBeamEffect: 0
-    beamOpacity: 9.99
-    beamLength: 70.4
-    beamWidth: 20
-    beamCoreWidth: 0.454
-    beamFeather: 0.259
-    beamFalloff: 1.6
-    disableBottomFade: 0
-    beamBottomFadeStart: 0.45
-    beamLocalOffset: {x: 0, y: -0.2, z: -0.05}
-    beamEulerAngles: {x: 0, y: 0, z: -12}
-    beamSortingOrder: 80
-  - light: {fileID: 0}
-    name: Center Beam
-    enabled: 1
-    color: {r: 0.34, g: 0.86, b: 1, a: 1}
-    intensity: 3.2
-    localPosition: {x: 46.5, y: 80, z: 40}
-    eulerAngles: {x: 68, y: 0, z: 0}
-    range: 16
-    spotAngle: 28
-    innerSpotAngle: 8
-    beamColor: {r: 0.82, g: 0.96, b: 1, a: 1}
-    disableBeamEffect: 0
-    beamOpacity: 4.54
-    beamLength: 94.2
-    beamWidth: 6.55
-    beamCoreWidth: 0.454
-    beamFeather: 0.259
-    beamFalloff: 1.6
-    disableBottomFade: 0
-    beamBottomFadeStart: 0.45
-    beamLocalOffset: {x: 0, y: -0.2, z: -0.05}
-    beamEulerAngles: {x: 0, y: 0, z: -12}
+    beamLocalOffset: {x: -15.61, y: 44.7, z: 33.3}
+    beamEulerAngles: {x: 0, y: 0, z: -11.37}
     beamSortingOrder: 80
   enableDistanceContrast: 1
-  contrastNearDistance: 5
-  contrastFarDistance: 24
-  nearContrast: 30
+  applyDistanceContrastAtRuntime: 1
+  contrastNearDistance: 10
+  contrastFarDistance: 90
+  nearContrast: -30
   farContrast: -100
+--- !u!114 &223400104
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 223400100}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a2222222222222222222222222222222, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::UnderwaterSeaLifeMap
+  layoutPrefab: {fileID: 1463941239681263576, guid: 80588900911df7d41a3a189a4193be65, type: 3}
+  decorationPrefabs:
+  - {fileID: 1001, guid: b1111111111111111111111111111111, type: 3}
+  - {fileID: 1001, guid: b2222222222222222222222222222222, type: 3}
+  - {fileID: 1001, guid: b3333333333333333333333333333333, type: 3}
+  - {fileID: 1001, guid: b4444444444444444444444444444444, type: 3}
+  - {fileID: 1001, guid: b5555555555555555555555555555555, type: 3}
+  - {fileID: 1001, guid: b6666666666666666666666666666666, type: 3}
+  - {fileID: 1001, guid: b7777777777777777777777777777777, type: 3}
+  - {fileID: 1001, guid: b8888888888888888888888888888888, type: 3}
+  localPositions:
+  - {x: -4.2, y: -8, z: 1}
+  - {x: -3.05, y: -8.15, z: 1.05}
+  - {x: -1.85, y: -8.15, z: 1.1}
+  - {x: -0.6, y: -8.1, z: 1.15}
+  - {x: 0.65, y: -7.9, z: 1.2}
+  - {x: 1.75, y: -7.9, z: 1.25}
+  - {x: 3, y: -8.1, z: 1.3}
+  - {x: 4.1, y: -8.55, z: 1.35}
+  localScales:
+  - 0.08
+  - 0.09
+  - 0.12
+  - 0.1
+  - 0.09
+  - 0.09
+  - 0.12
+  - 0.18
+  flipX:
+  - 0
+  - 1
+  - 0
+  - 1
+  - 0
+  - 1
+  - 0
+  - 1
+
 --- !u!1 &307834455
 GameObject:
   m_ObjectHideFlags: 0
@@ -839,7 +892,7 @@ Camera:
     width: 1
     height: 1
   near clip plane: 0.3
-  far clip plane: 100
+  far clip plane: 120
   field of view: 60
   orthographic: 0
   orthographic size: 6.25
@@ -1425,6 +1478,97 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &720000011
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 720000012}
+  - component: {fileID: 720000013}
+  m_Layer: 8
+  m_Name: BoundaryBottom
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &720000012
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 720000011}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: -9, z: 0}
+  m_LocalScale: {x: 10, y: 0.15, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!212 &720000013
+SpriteRenderer:
+  serializedVersion: 2
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 720000011}
+  m_Enabled: 1
+  m_CastShadows: 0
+  m_ReceiveShadows: 0
+  m_DynamicOccludee: 1
+  m_StaticShadowCaster: 0
+  m_MotionVectors: 1
+  m_LightProbeUsage: 1
+  m_ReflectionProbeUsage: 1
+  m_RayTracingMode: 0
+  m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
+  m_RenderingLayerMask: 1
+  m_RendererPriority: 0
+  m_Materials:
+  - {fileID: 10754, guid: 0000000000000000f000000000000000, type: 0}
+  m_StaticBatchInfo:
+    firstSubMesh: 0
+    subMeshCount: 0
+  m_StaticBatchRoot: {fileID: 0}
+  m_ProbeAnchor: {fileID: 0}
+  m_LightProbeVolumeOverride: {fileID: 0}
+  m_ScaleInLightmap: 1
+  m_ReceiveGI: 1
+  m_PreserveUVs: 0
+  m_IgnoreNormalsForChartDetection: 0
+  m_ImportantGI: 0
+  m_StitchLightmapSeams: 1
+  m_SelectedEditorRenderState: 0
+  m_MinimumChartSize: 4
+  m_AutoUVMaxDistance: 0.5
+  m_AutoUVMaxAngle: 89
+  m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
+  m_SortingLayerID: 0
+  m_SortingLayer: 0
+  m_SortingOrder: 0
+  m_MaskInteraction: 0
+  m_Sprite: {fileID: 7482667652216324306, guid: 48e93eef0688c4a259cb0eddcd8661f7, type: 3}
+  m_Color: {r: 1, g: 0.25, b: 0.25, a: 0.7}
+  m_FlipX: 0
+  m_FlipY: 0
+  m_DrawMode: 0
+  m_Size: {x: 1, y: 1}
+  m_AdaptiveModeThreshold: 0.5
+  m_SpriteTileMode: 0
+  m_WasSpriteAssigned: 1
+  m_SpriteSortPoint: 0
 --- !u!1 &720000007
 GameObject:
   m_ObjectHideFlags: 0
@@ -2521,7 +2665,7 @@ Camera:
     width: 1
     height: 1
   near clip plane: 0.3
-  far clip plane: 100
+  far clip plane: 120
   field of view: 60
   orthographic: 0
   orthographic size: 6.25
@@ -7450,6 +7594,7 @@ SceneRoots:
   - {fileID: 1020354796}
   - {fileID: 720000004}
   - {fileID: 720000006}
+  - {fileID: 720000012}
   - {fileID: 1653400924}
   - {fileID: 223400101}
   - {fileID: 945452942}
