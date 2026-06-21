@@ -12,41 +12,67 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2150504852ee59e4496ad5828adc5b60, type: 3}
   m_Name: Stage2
   m_EditorClassIdentifier: Assembly-CSharp::Dialogue
+  Background: {fileID: 0}
   Characters:
-  - Name: "나레이션"
-    Sprite: {fileID: 0}
-  - Name: "주인공"
-    Sprite: {fileID: 0}
-  - Name: "동료"
-    Sprite: {fileID: 0}
-  - Name: "효과음"
+  - Name: "\uB098\uB808\uC774\uC158"
+    Sprite: {fileID: -776501124, guid: ea337a04be4df094ea6e7d4467b52ad1, type: 3}
+  - Name: "\uC8FC\uC778\uACF5"
+    Sprite: {fileID: -1892686050, guid: def74e369b3b6614985a33db90c2b4e1, type: 3}
+  - Name: "\uB3D9\uB8CC"
+    Sprite: {fileID: -290104245, guid: 4de254a1672fd1c4da8fee3c495bcf9b, type: 3}
+  - Name: "\uD6A8\uACFC\uC74C"
     Sprite: {fileID: 0}
   Lines:
   - CharacterIndex: 0
-    Sentence: "2스테이지 -(페트병)"
+    Sentence: "2\uC2A4\uD14C\uC774\uC9C0 -(\uD398\uD2B8\uBCD1)"
+    SoundEffect: {fileID: 0}
   - CharacterIndex: 0
-    Sentence: "배경: 손상된 잠수함 내부"
+    Sentence: "\uBC30\uACBD: \uC190\uC0C1\uB41C \uC7A0\uC218\uD568 \uB0B4\uBD80"
+    SoundEffect: {fileID: 0}
   - CharacterIndex: 3
-    Sentence: "펑!"
+    Sentence: "\uD391!"
+    SoundEffect: {fileID: 0}
   - CharacterIndex: 0
-    Sentence: "소리와 함께 잠수함은 멈춰버린다."
+    Sentence: "\uC18C\uB9AC\uC640 \uD568\uAED8 \uC7A0\uC218\uD568\uC740 \uBA48\uCDB0\uBC84\uB9B0\uB2E4."
+    SoundEffect: {fileID: 0}
   - CharacterIndex: 2
-    Sentence: "어? 왜 이러지?"
+    Sentence: "\uC5B4? \uC65C \uC774\uB7EC\uC9C0?"
+    SoundEffect: {fileID: 0}
   - CharacterIndex: 0
-    Sentence: "동료는 기어를 최대로 당겨 잠수함을 앞으로 나가게 하려고 하지만 실패한다."
+    Sentence: "\uB3D9\uB8CC\uB294 \uAE30\uC5B4\uB97C \uCD5C\uB300\uB85C \uB2F9\uACA8
+      \uC7A0\uC218\uD568\uC744 \uC55E\uC73C\uB85C \uB098\uAC00\uAC8C \uD558\uB824\uACE0
+      \uD558\uC9C0\uB9CC \uC2E4\uD328\uD55C\uB2E4."
+    SoundEffect: {fileID: 0}
   - CharacterIndex: 2
-    Sentence: "전혀 안 움직여요."
+    Sentence: "\uC804\uD600 \uC548 \uC6C0\uC9C1\uC5EC\uC694."
+    SoundEffect: {fileID: 0}
   - CharacterIndex: 1
-    Sentence: "외부에 문제가 생긴 것 같아. 살펴보고 올게."
+    Sentence: "\uC678\uBD80\uC5D0 \uBB38\uC81C\uAC00 \uC0DD\uAE34 \uAC83 \uAC19\uC544.
+      \uC0B4\uD3B4\uBCF4\uACE0 \uC62C\uAC8C."
+    SoundEffect: {fileID: 0}
   - CharacterIndex: 0
-    Sentence: "잠수함 외부"
+    Sentence: "\uC7A0\uC218\uD568 \uC678\uBD80"
+    SoundEffect: {fileID: 0}
   - CharacterIndex: 1
-    Sentence: "…. 지형이 잘 안 보이네. 조심하면서 살펴봐야겠어."
+    Sentence: "\u2026. \uC9C0\uD615\uC774 \uC798 \uC548 \uBCF4\uC774\uB124. \uC870\uC2EC\uD558\uBA74\uC11C
+      \uC0B4\uD3B4\uBD10\uC57C\uACA0\uC5B4."
+    SoundEffect: {fileID: 0}
   - CharacterIndex: 0
-    Sentence: "잠수함을 짚고 천천히 돌며 살펴본다."
+    Sentence: "\uC7A0\uC218\uD568\uC744 \uC9DA\uACE0 \uCC9C\uCC9C\uD788 \uB3CC\uBA70
+      \uC0B4\uD3B4\uBCF8\uB2E4."
+    SoundEffect: {fileID: 0}
   - CharacterIndex: 0
-    Sentence: "페트병들이 프로펠러에 길게 찢어져 해초처럼 복잡하게 꼬여 있는 것을 보았다."
+    Sentence: "\uD398\uD2B8\uBCD1\uB4E4\uC774 \uD504\uB85C\uD3A0\uB7EC\uC5D0 \uAE38\uAC8C
+      \uCC22\uC5B4\uC838 \uD574\uCD08\uCC98\uB7FC \uBCF5\uC7A1\uD558\uAC8C \uAF2C\uC5EC
+      \uC788\uB294 \uAC83\uC744 \uBCF4\uC558\uB2E4."
+    SoundEffect: {fileID: 0}
   - CharacterIndex: 1
-    Sentence: "이 플라스틱이 문제였네. 대체 이것들이 어디에서 나온 거야."
+    Sentence: "\uC774 \uD50C\uB77C\uC2A4\uD2F1\uC774 \uBB38\uC81C\uC600\uB124. \uB300\uCCB4
+      \uC774\uAC83\uB4E4\uC774 \uC5B4\uB514\uC5D0\uC11C \uB098\uC628 \uAC70\uC57C."
+    SoundEffect: {fileID: 0}
   - CharacterIndex: 0
-    Sentence: "바다를 둘러보니 코에 플라스틱 빨대가 꽂힌 바다거북과, 깨진 페트병 안에 갇힌 작은 물고기가 보인다."
+    Sentence: "\uBC14\uB2E4\uB97C \uB458\uB7EC\uBCF4\uB2C8 \uCF54\uC5D0 \uD50C\uB77C\uC2A4\uD2F1
+      \uBE68\uB300\uAC00 \uAF42\uD78C \uBC14\uB2E4\uAC70\uBD81\uACFC, \uAE68\uC9C4
+      \uD398\uD2B8\uBCD1 \uC548\uC5D0 \uAC07\uD78C \uC791\uC740 \uBB3C\uACE0\uAE30\uAC00
+      \uBCF4\uC778\uB2E4."
+    SoundEffect: {fileID: 0}

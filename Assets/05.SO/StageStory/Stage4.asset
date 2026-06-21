@@ -12,31 +12,45 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2150504852ee59e4496ad5828adc5b60, type: 3}
   m_Name: Stage4
   m_EditorClassIdentifier: Assembly-CSharp::Dialogue
+  Background: {fileID: 0}
   Characters:
-  - Name: "나레이션"
-    Sprite: {fileID: 0}
-  - Name: "주인공"
-    Sprite: {fileID: 0}
-  - Name: "동료"
-    Sprite: {fileID: 0}
-  - Name: "효과음"
+  - Name: "\uB098\uB808\uC774\uC158"
+    Sprite: {fileID: -776501124, guid: ea337a04be4df094ea6e7d4467b52ad1, type: 3}
+  - Name: "\uC8FC\uC778\uACF5"
+    Sprite: {fileID: -1892686050, guid: def74e369b3b6614985a33db90c2b4e1, type: 3}
+  - Name: "\uB3D9\uB8CC"
+    Sprite: {fileID: -290104245, guid: 4de254a1672fd1c4da8fee3c495bcf9b, type: 3}
+  - Name: "\uD6A8\uACFC\uC74C"
     Sprite: {fileID: 0}
   Lines:
   - CharacterIndex: 0
-    Sentence: "4스테이지 -(유리병)"
+    Sentence: "4\uC2A4\uD14C\uC774\uC9C0 -(\uC720\uB9AC\uBCD1)"
+    SoundEffect: {fileID: 0}
   - CharacterIndex: 0
-    Sentence: "배경: 손상된 잠수함 내부"
+    Sentence: "\uBC30\uACBD: \uC190\uC0C1\uB41C \uC7A0\uC218\uD568 \uB0B4\uBD80"
+    SoundEffect: {fileID: 0}
   - CharacterIndex: 2
-    Sentence: "저기… 하얀 빛이 계속 반짝이는데요?"
+    Sentence: "\uC800\uAE30\u2026 \uD558\uC580 \uBE5B\uC774 \uACC4\uC18D \uBC18\uC9DD\uC774\uB294\uB370\uC694?"
+    SoundEffect: {fileID: 0}
   - CharacterIndex: 0
-    Sentence: "강렬한 하얀 섬광이 잠수함을 덮친다. 수많은 유리병들이 빛을 반사해 눈이 부실 정도다."
+    Sentence: "\uAC15\uB82C\uD55C \uD558\uC580 \uC12C\uAD11\uC774 \uC7A0\uC218\uD568\uC744
+      \uB36E\uCE5C\uB2E4. \uC218\uB9CE\uC740 \uC720\uB9AC\uBCD1\uB4E4\uC774 \uBE5B\uC744
+      \uBC18\uC0AC\uD574 \uB208\uC774 \uBD80\uC2E4 \uC815\uB3C4\uB2E4."
+    SoundEffect: {fileID: 0}
   - CharacterIndex: 1
-    Sentence: "너무 밝아! 앞이 안 보여!"
+    Sentence: "\uB108\uBB34 \uBC1D\uC544! \uC55E\uC774 \uC548 \uBCF4\uC5EC!"
+    SoundEffect: {fileID: 0}
   - CharacterIndex: 3
-    Sentence: "쨍그랑!"
+    Sentence: "\uCA0D\uADF8\uB791!"
+    SoundEffect: {fileID: 0}
   - CharacterIndex: 0
-    Sentence: "유리병이 부딪히며 외벽에 구멍이 뚫리고 물이 쏟아져 들어온다."
+    Sentence: "\uC720\uB9AC\uBCD1\uC774 \uBD80\uB52A\uD788\uBA70 \uC678\uBCBD\uC5D0
+      \uAD6C\uBA4D\uC774 \uB6AB\uB9AC\uACE0 \uBB3C\uC774 \uC3DF\uC544\uC838 \uB4E4\uC5B4\uC628\uB2E4."
+    SoundEffect: {fileID: 0}
   - CharacterIndex: 2
-    Sentence: "어푸! 물 들어와요!!"
+    Sentence: "\uC5B4\uD478! \uBB3C \uB4E4\uC5B4\uC640\uC694!!"
+    SoundEffect: {fileID: 0}
   - CharacterIndex: 1
-    Sentence: "얼른 막아야 해! 내가 막고 있을 테니 너는 얼른 조종해!"
+    Sentence: "\uC5BC\uB978 \uB9C9\uC544\uC57C \uD574! \uB0B4\uAC00 \uB9C9\uACE0
+      \uC788\uC744 \uD14C\uB2C8 \uB108\uB294 \uC5BC\uB978 \uC870\uC885\uD574!"
+    SoundEffect: {fileID: 0}

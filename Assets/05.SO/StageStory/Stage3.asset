@@ -12,37 +12,54 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2150504852ee59e4496ad5828adc5b60, type: 3}
   m_Name: Stage3
   m_EditorClassIdentifier: Assembly-CSharp::Dialogue
+  Background: {fileID: 0}
   Characters:
-  - Name: "나레이션"
-    Sprite: {fileID: 0}
-  - Name: "주인공"
-    Sprite: {fileID: 0}
-  - Name: "동료"
-    Sprite: {fileID: 0}
-  - Name: "효과음"
+  - Name: "\uB098\uB808\uC774\uC158"
+    Sprite: {fileID: -776501124, guid: ea337a04be4df094ea6e7d4467b52ad1, type: 3}
+  - Name: "\uC8FC\uC778\uACF5"
+    Sprite: {fileID: -1892686050, guid: def74e369b3b6614985a33db90c2b4e1, type: 3}
+  - Name: "\uB3D9\uB8CC"
+    Sprite: {fileID: -290104245, guid: 4de254a1672fd1c4da8fee3c495bcf9b, type: 3}
+  - Name: "\uD6A8\uACFC\uC74C"
     Sprite: {fileID: 0}
   Lines:
   - CharacterIndex: 0
-    Sentence: "3스테이지 - (비닐봉지)"
+    Sentence: "3\uC2A4\uD14C\uC774\uC9C0 - (\uBE44\uB2D0\uBD09\uC9C0)"
+    SoundEffect: {fileID: 0}
   - CharacterIndex: 0
-    Sentence: "배경: 손상된 잠수함 내부"
+    Sentence: "\uBC30\uACBD: \uC190\uC0C1\uB41C \uC7A0\uC218\uD568 \uB0B4\uBD80"
+    SoundEffect: {fileID: 0}
   - CharacterIndex: 0
-    Sentence: "갑자기 내부가 완전히 깜깜해진다."
+    Sentence: "\uAC11\uC790\uAE30 \uB0B4\uBD80\uAC00 \uC644\uC804\uD788 \uAE5C\uAE5C\uD574\uC9C4\uB2E4."
+    SoundEffect: {fileID: 0}
   - CharacterIndex: 2
-    Sentence: "뭐지? 시스템이 나간 건가?"
+    Sentence: "\uBB50\uC9C0? \uC2DC\uC2A4\uD15C\uC774 \uB098\uAC04 \uAC74\uAC00?"
+    SoundEffect: {fileID: 0}
   - CharacterIndex: 1
-    Sentence: "(손전등 켜며) 아니야. 창문을 봐."
+    Sentence: "(\uC190\uC804\uB4F1 \uCF1C\uBA70) \uC544\uB2C8\uC57C. \uCC3D\uBB38\uC744
+      \uBD10."
+    SoundEffect: {fileID: 0}
   - CharacterIndex: 0
-    Sentence: "검은 비닐봉지들이 유리창과 외벽에 빽빽하게 붙어 빛을 막고 있다."
+    Sentence: "\uAC80\uC740 \uBE44\uB2D0\uBD09\uC9C0\uB4E4\uC774 \uC720\uB9AC\uCC3D\uACFC
+      \uC678\uBCBD\uC5D0 \uBE7D\uBE7D\uD558\uAC8C \uBD99\uC5B4 \uBE5B\uC744 \uB9C9\uACE0
+      \uC788\uB2E4."
+    SoundEffect: {fileID: 0}
   - CharacterIndex: 1
-    Sentence: "비닐봉지들이야…"
+    Sentence: "\uBE44\uB2D0\uBD09\uC9C0\uB4E4\uC774\uC57C\u2026"
+    SoundEffect: {fileID: 0}
   - CharacterIndex: 1
-    Sentence: "나가서 제거해야 할 것 같아."
+    Sentence: "\uB098\uAC00\uC11C \uC81C\uAC70\uD574\uC57C \uD560 \uAC83 \uAC19\uC544."
+    SoundEffect: {fileID: 0}
   - CharacterIndex: 2
-    Sentence: "지금 라이트도 비닐봉지에 감싸진 것 같은데 위험할 것 같아요."
+    Sentence: "\uC9C0\uAE08 \uB77C\uC774\uD2B8\uB3C4 \uBE44\uB2D0\uBD09\uC9C0\uC5D0
+      \uAC10\uC2F8\uC9C4 \uAC83 \uAC19\uC740\uB370 \uC704\uD5D8\uD560 \uAC83 \uAC19\uC544\uC694."
+    SoundEffect: {fileID: 0}
   - CharacterIndex: 3
-    Sentence: "띠잉! 띠잉"
+    Sentence: "\uB760\uC789! \uB760\uC789"
+    SoundEffect: {fileID: 0}
   - CharacterIndex: 0
-    Sentence: "잠수함에 해류 경고등이 울린다."
+    Sentence: "\uC7A0\uC218\uD568\uC5D0 \uD574\uB958 \uACBD\uACE0\uB4F1\uC774 \uC6B8\uB9B0\uB2E4."
+    SoundEffect: {fileID: 0}
   - CharacterIndex: 2
-    Sentence: "어떡하죠?"
+    Sentence: "\uC5B4\uB5A1\uD558\uC8E0?"
+    SoundEffect: {fileID: 0}
