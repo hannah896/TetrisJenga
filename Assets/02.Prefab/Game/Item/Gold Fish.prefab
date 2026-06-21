@@ -10,9 +10,9 @@ GameObject:
   m_Component:
   - component: {fileID: 9101000000000000002}
   - component: {fileID: 9101000000000000003}
-  - component: {fileID: 9101000000000000004}
   - component: {fileID: 9101000000000000005}
   - component: {fileID: 9101000000000000006}
+  - component: {fileID: 9092747108564967532}
   m_Layer: 8
   m_Name: Gold Fish
   m_TagString: Untagged
@@ -30,7 +30,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 2.0833333, y: 2.5641026, z: 1}
+  m_LocalScale: {x: 0.3125, y: 0.3846154, z: 1}
   m_ConstrainProportionsScale: 1
   m_Children: []
   m_Father: {fileID: 0}
@@ -94,27 +94,6 @@ SpriteRenderer:
   m_SpriteTileMode: 0
   m_WasSpriteAssigned: 1
   m_SpriteSortPoint: 0
---- !u!65 &9101000000000000004
-BoxCollider:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 9101000000000000001}
-  m_Material: {fileID: 0}
-  m_IncludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ExcludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_LayerOverridePriority: 0
-  m_IsTrigger: 0
-  m_ProvidesContacts: 0
-  m_Enabled: 1
-  serializedVersion: 3
-  m_Size: {x: 0.16, y: 0.13, z: 1}
-  m_Center: {x: 0, y: 0, z: 0}
 --- !u!54 &9101000000000000005
 Rigidbody:
   m_ObjectHideFlags: 0
@@ -161,3 +140,26 @@ MonoBehaviour:
   visualCellSize: {x: 1, y: 1}
   visualScaleMultiplier: 0.33333334
   scoreController: {fileID: 0}
+--- !u!136 &9092747108564967532
+CapsuleCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 9101000000000000001}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 2
+  m_Radius: 0.1823642
+  m_Height: 1.2465479
+  m_Direction: 1
+  m_Center: {x: -0.013110829, y: 0.060361274, z: 0}

@@ -355,7 +355,7 @@ public class BlockTower : MonoBehaviour
                 box = child.gameObject.AddComponent<BoxCollider>();
             box.size = Vector3.one * (_physicsController?.LocalColliderSize() ?? 0.92f);
             box.sharedMaterial = _physicsController?.CreateFrictionMaterial();
-            box.enabled = Application.isPlaying;
+            box.enabled = true;
 
             if (Application.isPlaying && isIce)
                 MakeIceCellStatic(child);
