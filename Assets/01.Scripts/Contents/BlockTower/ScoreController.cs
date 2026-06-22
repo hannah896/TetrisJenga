@@ -116,7 +116,7 @@ public class ScoreController : MonoBehaviour
     public void RegisterBonusExtraction(bool success)
     {
         _bonusComboMultiplier = success
-            ? (_bonusComboMultiplier <= 1 ? 2 : _bonusComboMultiplier + 1)
+            ? Mathf.Min(10, _bonusComboMultiplier <= 1 ? 2 : _bonusComboMultiplier + 1)
             : 1;
         OnBonusComboChanged?.Invoke(_bonusComboMultiplier);
     }
@@ -125,6 +125,11 @@ public class ScoreController : MonoBehaviour
     {
         long score = (long)_bonusComboMultiplier * blockNumber * connectedBlockCount;
         AddScore((int)Math.Min(score, int.MaxValue), worldPosition);
+        if (_bonusComboMultiplier > 1)
+        {
+            _bonusComboMultiplier = 1;
+            OnBonusComboChanged?.Invoke(_bonusComboMultiplier);
+        }
     }
 
     public void UpdateScoreDisplay()

@@ -11,6 +11,7 @@ public sealed class PostProcessingExclusionCamera : MonoBehaviour
     [SerializeField] string exclusionLayerName = "BlockTowerNoPost";
     [SerializeField] string overlayCameraName = "BlockTower No Post Camera";
     [SerializeField] bool includeInactiveRenderers = true;
+    [SerializeField] bool renderExcludedObjectsOrthographic = true;
     [SerializeField] string[] extraExcludedRootNames =
     {
         "PlacementZone",
@@ -290,17 +291,38 @@ public sealed class PostProcessingExclusionCamera : MonoBehaviour
         ConfigureUrpCameraStack();
     }
 
-    static void CopyCameraSettings(Camera source, Camera destination)
+    void CopyCameraSettings(Camera source, Camera destination)
     {
         int cullingMask = destination.cullingMask;
         destination.CopyFrom(source);
         destination.transform.SetPositionAndRotation(source.transform.position, source.transform.rotation);
+        if (renderExcludedObjectsOrthographic)
+        {
+            destination.orthographic = true;
+            destination.orthographicSize = VisibleHalfHeightAtTargetPlane(source);
+        }
         destination.clearFlags = CameraClearFlags.Nothing;
         destination.backgroundColor = Color.clear;
         destination.cullingMask = cullingMask;
         destination.depth = source.depth + 1f;
         destination.targetTexture = null;
         destination.enabled = source.enabled;
+    }
+
+    float VisibleHalfHeightAtTargetPlane(Camera source)
+    {
+        if (source.orthographic)
+            return source.orthographicSize;
+
+        Vector3 planePoint = targetRoot != null ? targetRoot.position : Vector3.zero;
+        var tower = targetRoot != null ? targetRoot.GetComponent<BlockTower>() : null;
+        if (tower != null && tower.TowerRoot != null)
+            planePoint = tower.TowerRoot.position;
+        float distance = Mathf.Abs(Vector3.Dot(planePoint - source.transform.position, source.transform.forward));
+        if (distance < 0.01f)
+            distance = Mathf.Abs(planePoint.z - source.transform.position.z);
+
+        return Mathf.Max(0.01f, distance * Mathf.Tan(source.fieldOfView * Mathf.Deg2Rad * 0.5f));
     }
 
     void RestoreSourceCameraMask()

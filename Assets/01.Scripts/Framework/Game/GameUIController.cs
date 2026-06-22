@@ -147,6 +147,7 @@ public class GameUIController : MonoBehaviour
         }
         if (_camera != null) _camera.OnSecondaryViewTextureChanged -= HandleSecondaryViewTexture;
         UI_Setting_Controller.ImageSimplificationChanged -= HandleImageSimplificationChanged;
+        _uiSetting.Dispose();
     }
 
     void Update()
@@ -504,8 +505,7 @@ public class GameUIController : MonoBehaviour
             HandleBonusComboChanged(_scoreController.BonusComboMultiplier);
         }
 
-        _uiSetting.Initialize(root, settingImageLibrary,
-            onRestart: () => SceneManager.LoadScene(_stageSelectSceneName));
+        _uiSetting.Initialize(root, settingImageLibrary);
     }
 
     void EnsureHudDocument()
@@ -630,8 +630,11 @@ public class GameUIController : MonoBehaviour
         UISprites.Apply(_hudTargetScorePanel, hudImageLibrary.targetScorePanel);
         UISprites.Apply(_bonusPreview,        hudImageLibrary.bonusPreviewPanel);
         UISprites.Apply(_blockWeightGuide,    hudImageLibrary.weightGuidePanel);
-        UISprites.Apply(_secondaryViewPanel,  hudImageLibrary.weightGuidePanel);
-        if (_secondaryViewPanel != null && hudImageLibrary.weightGuidePanel != null)
+        Sprite secondaryPanelSprite = hudImageLibrary.subCameraPreviewPanel != null
+            ? hudImageLibrary.subCameraPreviewPanel
+            : hudImageLibrary.weightGuidePanel;
+        UISprites.Apply(_secondaryViewPanel, secondaryPanelSprite);
+        if (_secondaryViewPanel != null && secondaryPanelSprite != null)
             _secondaryViewPanel.style.unityBackgroundScaleMode = ScaleMode.StretchToFill;
         UISprites.Apply(_bonusKeyLabel,      hudImageLibrary.bonusKeyBadge);
         UISprites.Apply(_bonusNextKeyLabel,  hudImageLibrary.bonusKeyBadge);

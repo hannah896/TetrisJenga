@@ -107,7 +107,7 @@ public class TetrominoSelectionController : MonoBehaviour
 
     public bool TrySetPresetSelection(BlockExtractionController extraction, Vector2Int anchor, TetrominoPreset preset, int rotation)
     {
-        if (!PresetOverlapsAnyExtractableCell(extraction, anchor, preset, rotation))
+        if (!extraction.CanMovePresetOutlineTo(extraction.GetPresetCells(anchor, preset, rotation)))
         {
             extraction.PlayPlacementFailFeedback();
             ApplyPresetSelection(extraction);
@@ -191,6 +191,11 @@ public class TetrominoSelectionController : MonoBehaviour
         resumePresetAfterPlacement = false;
         IsPresetSelectionActive = true;
         HasFocusedCell = false;
+        if (!PresetOverlapsAnyExtractableCell(extraction, Anchor, Preset, Rotation) &&
+            extraction.TryFindNearestPresetAnchorWithBlock(Anchor, Preset, Rotation, out var nearestAnchor))
+        {
+            Anchor = nearestAnchor;
+        }
         extraction.BeginPresetGrowth();
         ApplyPresetSelection(extraction);
         return true;

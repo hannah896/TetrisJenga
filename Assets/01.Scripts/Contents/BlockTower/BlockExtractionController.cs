@@ -16,10 +16,12 @@ public class BlockExtractionController : MonoBehaviour
     [SerializeField] BlockEffectController   _effects;
 
     readonly Color _failFlashColor = new(1f, 0.08f, 0.08f, 0.85f);
+    readonly HashSet<Vector2Int> _initialOriginalCells = new();
 
     int _extractionMinRow, _extractionMaxRow;
     int _extractionMinCol, _extractionMaxCol;
     Vector2 _lastExtractionCenter;
+    bool _hasLastExtractionCenter;
     GameObject _presetOutlineRoot;
     Vector3 _presetOutlineBaseLocalPosition;
     bool _presetGrowthActive;
@@ -77,6 +79,14 @@ public class BlockExtractionController : MonoBehaviour
         _score         = GetComponent<ScoreController>();
         _sceneBuilder  = GetComponent<TowerSceneBuilder>();
         _effects       = GetComponent<BlockEffectController>();
+        if (_tower != null)
+            _tower.OnTowerReady += CaptureInitialOriginalCells;
+    }
+
+    void OnDestroy()
+    {
+        if (_tower != null)
+            _tower.OnTowerReady -= CaptureInitialOriginalCells;
     }
 
     void Update()
@@ -94,6 +104,70 @@ public class BlockExtractionController : MonoBehaviour
     public void PlayPlacementFailFeedback()            => _held.PlayPlacementFailFeedback();
     public List<Vector2Int> GetPresetCells(Vector2Int anchor, TetrominoPreset preset, int rotation) =>
         TetrominoShapeUtil.GetCells(anchor, preset, rotation);
+
+    public bool CanMovePresetOutlineTo(List<Vector2Int> cells)
+    {
+        EnsureInitialOriginalCells();
+        bool overlapsBlock = false;
+        bool allWereOriginalCells = cells != null && cells.Count > 0;
+        if (cells == null) return false;
+
+        foreach (var cell in cells)
+        {
+            overlapsBlock |= IsExtractableCell(cell);
+            allWereOriginalCells &= _initialOriginalCells.Contains(cell);
+        }
+
+        return overlapsBlock || allWereOriginalCells;
+    }
+
+    public bool TryFindNearestPresetAnchorWithBlock(
+        Vector2Int origin,
+        TetrominoPreset preset,
+        int rotation,
+        out Vector2Int bestAnchor)
+    {
+        bestAnchor = origin;
+        bool found = false;
+        int bestDistance = int.MaxValue;
+        var offsets = GetPresetCells(Vector2Int.zero, preset, rotation);
+        var candidates = new HashSet<Vector2Int>();
+
+        foreach (var pair in _tower.Grid.AllCells)
+        {
+            if (!IsExtractableCell(pair.Key) || !IsInExtractionTowerRows(pair.Key)) continue;
+            foreach (var offset in offsets)
+                candidates.Add(pair.Key - offset);
+        }
+
+        foreach (var candidate in candidates)
+        {
+            var cells = GetPresetCells(candidate, preset, rotation);
+            if (!CanMovePresetOutlineTo(cells)) continue;
+            int distance = Mathf.Abs(candidate.x - origin.x) + Mathf.Abs(candidate.y - origin.y);
+            if (found && distance >= bestDistance) continue;
+            found = true;
+            bestDistance = distance;
+            bestAnchor = candidate;
+        }
+
+        return found;
+    }
+
+    void CaptureInitialOriginalCells()
+    {
+        _initialOriginalCells.Clear();
+        foreach (var pair in _tower.Grid.AllCells)
+            if (pair.Value.isOriginalTower)
+                _initialOriginalCells.Add(pair.Key);
+        _hasLastExtractionCenter = false;
+    }
+
+    void EnsureInitialOriginalCells()
+    {
+        if (_initialOriginalCells.Count == 0)
+            CaptureInitialOriginalCells();
+    }
 
     // ── Selection ────────────────────────────────────────────────────
 
@@ -191,6 +265,7 @@ public class BlockExtractionController : MonoBehaviour
         _held.SourceCells.Clear();
         _held.StartScore = _score?.Score ?? 0;
         _lastExtractionCenter = new Vector2((minX + maxX + 1f) * 0.5f, (minY + maxY + 1f) * 0.5f);
+        _hasLastExtractionCenter = true;
 
         foreach (var c in _selection.Selected)
             _held.RelPos.Add(new Vector2Int(c.x - minX, c.y - minY));
@@ -247,7 +322,7 @@ public class BlockExtractionController : MonoBehaviour
         for (int i = 0; i < _held.RelPos.Count; i++)
         {
             var rel = _held.RelPos[i];
-            var go = new GameObject($"Held_{i}");
+            var go = new GameObject($"PresetFill_{i}");
             _tower.TrackGeneratedObject(go);
             go.transform.SetParent(_held.Root.transform, false);
             go.transform.localPosition = new Vector3(rel.x + 0.5f - _held.Center.x, rel.y + 0.5f - _held.Center.y, 0f);
@@ -270,20 +345,6 @@ public class BlockExtractionController : MonoBehaviour
 
             var heldState = new CellState { number = 1, isOriginalTower = false };
             var heldView = new CellView { go = go, sr = sr, previewBlurRenderers = blurRenderers };
-            _visualizer?.UpdateCellDataVisuals(heldState, heldView);
-            if (heldView.numberSpriteRenderer != null && heldView.numberSpriteRenderer.enabled)
-            {
-                heldView.numberSpriteRenderer.color = new Color(1f, 1f, 1f, heldColor.a);
-                heldView.numberSpriteRenderer.sortingOrder = 21;
-            }
-            else
-            {
-                var color = heldView.sr.color;
-                color.a = heldColor.a;
-                heldView.sr.color = color;
-            }
-            if (heldView.label != null && heldView.label.TryGetComponent<Renderer>(out var labelRenderer))
-                labelRenderer.sortingOrder = 22;
 
             _held.Data.Add((heldState, heldView));
         }
@@ -644,13 +705,46 @@ public class BlockExtractionController : MonoBehaviour
     public void FocusDefaultExtractionCell()
     {
         _selection.ClearFocus();
-        if (TryFindFocusNearLastExtraction(ignoreLastPlaced: true,  out var best) ||
-            TryFindFocusNearLastExtraction(ignoreLastPlaced: false, out best))
+        if (_hasLastExtractionCenter &&
+            (TryFindFocusNearLastExtraction(ignoreLastPlaced: true, out var best) ||
+             TryFindFocusNearLastExtraction(ignoreLastPlaced: false, out best)))
         { SetFocusCell(best); return; }
+
+        if (TryFindFocusNearCameraCenter(ignoreLastPlaced: true, out var cameraCell) ||
+            TryFindFocusNearCameraCenter(ignoreLastPlaced: false, out cameraCell))
+        { SetFocusCell(cameraCell); return; }
 
         if (TryFindDefaultFocusCell(ignoreLastPlaced: true,  out var cell) ||
             TryFindDefaultFocusCell(ignoreLastPlaced: false, out cell))
             SetFocusCell(cell);
+    }
+
+    bool TryFindFocusNearCameraCenter(bool ignoreLastPlaced, out Vector2Int best)
+    {
+        best = default;
+        if (_tower.TowerRoot == null || Camera.main == null) return false;
+
+        Vector3 centerWorld = _tower.TowerRoot.position;
+        var ray = Camera.main.ViewportPointToRay(new Vector3(0.5f, 0.5f, 0f));
+        var plane = new Plane(_tower.TowerRoot.forward, _tower.TowerRoot.position);
+        if (plane.Raycast(ray, out float distance))
+            centerWorld = ray.GetPoint(distance);
+        Vector3 centerLocal = _tower.TowerRoot.InverseTransformPoint(centerWorld);
+
+        bool found = false;
+        float bestDistance = float.MaxValue;
+        foreach (var pair in _tower.Grid.AllCells)
+        {
+            var cell = pair.Key;
+            if (ignoreLastPlaced && _heldPlacement.IsLastPlaced(cell)) continue;
+            if (!IsExtractableCell(cell) || !IsInExtractionTowerRows(cell)) continue;
+            float cellDistance = ((Vector2)cell + Vector2.one * 0.5f - (Vector2)centerLocal).sqrMagnitude;
+            if (found && cellDistance >= bestDistance) continue;
+            found = true;
+            bestDistance = cellDistance;
+            best = cell;
+        }
+        return found;
     }
 
     bool TryFindFocusNearLastExtraction(bool ignoreLastPlaced, out Vector2Int best)

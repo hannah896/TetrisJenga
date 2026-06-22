@@ -17,10 +17,13 @@ public class InputHandler : MonoBehaviour
 
     [SerializeField, Range(0.05f, 0.5f)]  float moveHoldInitialDelay   = 0.22f;
     [SerializeField, Range(0.02f, 0.25f)] float moveHoldRepeatInterval = 0.08f;
+    [SerializeField, Range(0f, 0.5f)] float placementConfirmDelay = 0.2f;
 
     Vector2Int _moveRepeatDir;
     float      _nextMoveRepeatTime;
     bool       _holdStartedByMouse;
+    bool       _wasHolding;
+    float      _placementConfirmAllowedAt;
 
     #region Lifecycle
 
@@ -46,6 +49,7 @@ public class InputHandler : MonoBehaviour
     void Update()
     {
         if (_tower == null || (_scoreController != null && _scoreController.IsGameOver)) return;
+        RefreshHoldingTransition();
         if (_tower.IsResolvingTopPuyo)
         {
             _camera?.UpdateCameraTarget();
@@ -80,6 +84,7 @@ public class InputHandler : MonoBehaviour
         {
             _holdStartedByMouse = false;
             HandleSelectionKeyboardInput(keyboard);
+            RefreshHoldingTransition();
             bool wasHolding = _held != null && _held.IsHolding;
             if (mouse != null && mouse.leftButton.wasPressedThisFrame)
             {
@@ -176,8 +181,17 @@ public class InputHandler : MonoBehaviour
                 _held.BaseCell = _placement?.ClampHeldBase(_held.BaseCell) ?? _held.BaseCell;
         }
 
-        if (ConfirmPressed(kb)) _heldPlacement?.DropHeldToNearestSurfaceAndPlace();
+        if (ConfirmPressed(kb) && Time.unscaledTime >= _placementConfirmAllowedAt)
+            _heldPlacement?.DropHeldToNearestSurfaceAndPlace();
         if (CancelPressed(kb))  _extraction?.CancelHold();
+    }
+
+    void RefreshHoldingTransition()
+    {
+        bool isHolding = _held != null && _held.IsHolding;
+        if (isHolding && !_wasHolding)
+            _placementConfirmAllowedAt = Time.unscaledTime + placementConfirmDelay;
+        _wasHolding = isHolding;
     }
 
     #endregion

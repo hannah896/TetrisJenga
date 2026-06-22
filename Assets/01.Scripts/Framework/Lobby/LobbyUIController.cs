@@ -73,7 +73,7 @@ public class LobbyUIController : MonoBehaviour
         }
 
         ApplySprites();
-        _uiSetting.Initialize(root, settingImages, onRestart: ShowLobby);
+        _uiSetting.Initialize(root, settingImages);
         BindButtons();
         RefreshEndlessUnlockState();
 
@@ -106,6 +106,11 @@ public class LobbyUIController : MonoBehaviour
         {
             ShowLobby();
         }
+    }
+
+    private void OnDisable()
+    {
+        _uiSetting.Dispose();
     }
 
     private void BindButtons()

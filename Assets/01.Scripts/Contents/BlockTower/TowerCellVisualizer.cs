@@ -8,14 +8,20 @@ using UnityEditor;
 
 public class TowerCellVisualizer : MonoBehaviour
 {
+    const string BitmapOutlineNamePrefix = "BitmapOutline_";
+
     [SerializeField] BlockTower _tower;
 
     [SerializeField] Color placedBlockColor = new(0.55f, 0.58f, 0.60f, 1f);
     [SerializeField] BlockNumberSpriteSetAsset numberSpriteSetAsset;
 
     [Header("Block Number Text")]
+    [SerializeField] TMP_FontAsset blockLabelFont;
+    [SerializeField] Font blockLabelSourceFont;
     [SerializeField] Color blockLabelOutlineColor = new(0.25f, 0.25f, 0.25f, 1f);
-    [SerializeField, Range(0f, 1f)] float blockLabelOutlineWidth = 0.3f;
+    [SerializeField, Range(0f, 5f)] float blockLabelOutlineWidth = 5f;
+    [SerializeField] Color bombLabelColor = new Color32(0xED, 0x45, 0x45, 0xFF);
+    [SerializeField] Color iceLabelColor = new Color32(0x42, 0xA6, 0xF5, 0xFF);
 
     [Header("Focus Feedback")]
     [SerializeField] Color focusedOutlineColor  = new(1f, 0.95f, 0.05f, 1f);
@@ -41,6 +47,7 @@ public class TowerCellVisualizer : MonoBehaviour
     Dictionary<Vector2Int, CellView> _iceCellViews;
     BombIceEffectController          _bombIce;
     TetrominoSelectionController     _selection;
+    TMP_FontAsset                    _runtimeBlockLabelFont;
 
     public Color PlacedBlockColor     => placedBlockColor;
     public Color SelectedOutlineColor => selectedOutlineColor;
@@ -69,6 +76,14 @@ public class TowerCellVisualizer : MonoBehaviour
         UI_Setting_Controller.ImageSimplificationChanged += ApplyImageSimplification;
         ApplyBlockNumberTextVisibility(UI_Setting_Controller.IsBlockNumberTextVisible);
         ApplyImageSimplification(UI_Setting_Controller.IsImageSimplificationEnabled);
+    }
+
+    void OnDestroy()
+    {
+        if (_runtimeBlockLabelFont == null) return;
+        if (Application.isPlaying) Destroy(_runtimeBlockLabelFont);
+        else DestroyImmediate(_runtimeBlockLabelFont);
+        _runtimeBlockLabelFont = null;
     }
 
     void OnDisable()
@@ -181,9 +196,16 @@ public class TowerCellVisualizer : MonoBehaviour
         {
             ApplyLabelOutline(view.label);
             view.label.text = state.kind == CellKind.Bomb ? "X" : state.number.ToString();
+            view.label.color = state.kind switch
+            {
+                CellKind.Bomb => bombLabelColor,
+                CellKind.Ice => iceLabelColor,
+                _ => Color.white
+            };
             view.label.fontSize = 6f;
+            bool isHeldPreview = view.sr != null && view.sr.sortingOrder >= 20;
             view.label.gameObject.SetActive(
-                UI_Setting_Controller.IsBlockNumberTextVisible && !state.concealedByBomb);
+                UI_Setting_Controller.IsBlockNumberTextVisible && !state.concealedByBomb && !isHeldPreview);
         }
 
         if (view.sr == null) return;
@@ -528,6 +550,8 @@ public class TowerCellVisualizer : MonoBehaviour
         rect.sizeDelta = Vector2.one;
 
         tmp.text             = number.ToString();
+        var labelFont = ResolveBlockLabelFont();
+        if (labelFont != null) tmp.font = labelFont;
         tmp.fontSize         = 6f;
         tmp.alignment        = TextAlignmentOptions.Center;
         tmp.color            = Color.white;
@@ -546,17 +570,60 @@ public class TowerCellVisualizer : MonoBehaviour
     public void ApplyLabelOutline(TMP_Text label)
     {
         if (label == null) return;
-        label.outlineColor = blockLabelOutlineColor;
-        label.outlineWidth = blockLabelOutlineWidth;
-        var material = label.fontMaterial;
+        if (label.gameObject.name.StartsWith(BitmapOutlineNamePrefix, StringComparison.Ordinal)) return;
+        RemoveLegacyBitmapOutlines(label.transform);
+
+        var labelFont = ResolveBlockLabelFont();
+        if (labelFont != null && label.font != labelFont)
+            label.font = labelFont;
+
+        float nativeOutlineWidth = Mathf.Clamp01(blockLabelOutlineWidth / 10f);
+        Material material;
+        if (Application.isPlaying)
+        {
+            label.outlineColor = blockLabelOutlineColor;
+            label.outlineWidth = nativeOutlineWidth;
+            material = label.fontMaterial;
+        }
+        else
+        {
+            material = label.fontSharedMaterial;
+        }
+
         if (material != null)
         {
             material.EnableKeyword("OUTLINE_ON");
+            material.SetFloat(ShaderUtilities.ID_OutlineWidth, nativeOutlineWidth);
             material.SetColor(ShaderUtilities.ID_OutlineColor, blockLabelOutlineColor);
-            material.SetFloat(ShaderUtilities.ID_OutlineWidth, blockLabelOutlineWidth);
         }
         label.UpdateMeshPadding();
         label.ForceMeshUpdate(true, true);
+    }
+
+    TMP_FontAsset ResolveBlockLabelFont()
+    {
+        if (_runtimeBlockLabelFont == null && blockLabelSourceFont != null)
+        {
+            _runtimeBlockLabelFont = TMP_FontAsset.CreateFontAsset(blockLabelSourceFont);
+            if (_runtimeBlockLabelFont != null)
+            {
+                _runtimeBlockLabelFont.name = $"{blockLabelSourceFont.name} Runtime SDF";
+                _runtimeBlockLabelFont.hideFlags = HideFlags.HideAndDontSave;
+            }
+        }
+
+        return _runtimeBlockLabelFont != null ? _runtimeBlockLabelFont : blockLabelFont;
+    }
+
+    static void RemoveLegacyBitmapOutlines(Transform labelTransform)
+    {
+        for (int i = labelTransform.childCount - 1; i >= 0; i--)
+        {
+            var child = labelTransform.GetChild(i);
+            if (!child.name.StartsWith(BitmapOutlineNamePrefix, StringComparison.Ordinal)) continue;
+            if (Application.isPlaying) Destroy(child.gameObject);
+            else DestroyImmediate(child.gameObject);
+        }
     }
 
     public void ApplyBlockNumberTextVisibility(bool visible)
@@ -565,8 +632,9 @@ public class TowerCellVisualizer : MonoBehaviour
         foreach (var blockCell in blockCells)
         {
             if (blockCell == null || blockCell.gameObject.scene != gameObject.scene) continue;
+            bool isHeldPreview = blockCell.TryGetComponent<SpriteRenderer>(out var sr) && sr.sortingOrder >= 20;
             foreach (var label in blockCell.GetComponentsInChildren<TextMeshPro>(true))
-                label.gameObject.SetActive(visible);
+                label.gameObject.SetActive(visible && !isHeldPreview);
         }
 
         if (!visible || _grid == null) return;

@@ -31,7 +31,8 @@ public class UI_Setting_Controller
     private Button stageButton;
     private Button backButton;
     private SettingUIImageLibrarySO currentImages;
-    private Action restartAction;
+    private float timeScaleBeforePause = 1f;
+    private bool pausedByPopup;
     
     private const float VolumeStep = 0.075f;
 
@@ -46,7 +47,7 @@ public class UI_Setting_Controller
     /// <param name="root">UIDocument rootVisualElement</param>
     /// <param name="images">설정 스프라이트 SO (없으면 USS 기본 색 사용)</param>
     /// <param name="onRestart">Restart 버튼 동작 (씬마다 다름, null 허용)</param>
-    public void Initialize(VisualElement root, SettingUIImageLibrarySO images, Action onRestart)
+    public void Initialize(VisualElement root, SettingUIImageLibrarySO images)
     {
         UnbindCallbacks();
 
@@ -55,6 +56,14 @@ public class UI_Setting_Controller
         {
             Debug.LogError("SettingPopupController: 'setting-popup' 요소를 찾을 수 없습니다. 씬 uxml에 설정 팝업 마크업이 있는지 확인하세요.");
             return;
+        }
+
+        // A UXML template instance creates a full-screen TemplateContainer around
+        // the popup. Ignore picking on that transparent wrapper so it cannot block
+        // the Lobby/Stage UI while the popup itself is hidden.
+        if (popup.parent != null && popup.parent != root)
+        {
+            popup.parent.pickingMode = PickingMode.Ignore;
         }
 
         bgmSlider = root.Q<Slider>("bgm-slider");
@@ -71,8 +80,6 @@ public class UI_Setting_Controller
         stageButton = root.Q<Button>("setting-stage-button");
         backButton = root.Q<Button>("setting-back-button");
         currentImages = images;
-        restartAction = onRestart;
-
         LoadState();
         ApplySprites(images);
         EnableInteraction();
@@ -92,6 +99,7 @@ public class UI_Setting_Controller
     public void Show()
     {
         if (popup == null) return;
+        PauseGame();
         EnableInteraction();
         popup.BringToFront();
         popup.RemoveFromClassList("hidden");
@@ -100,6 +108,13 @@ public class UI_Setting_Controller
     public void Hide()
     {
         popup?.AddToClassList("hidden");
+        ResumeGame();
+    }
+
+    public void Dispose()
+    {
+        UnbindCallbacks();
+        ResumeGame();
     }
 
     public void Toggle()
@@ -187,7 +202,10 @@ public class UI_Setting_Controller
     private void HandleRestartClicked()
     {
         Hide();
-        restartAction?.Invoke();
+        AudioPlayback.StopAllMusic();
+        Scene activeScene = SceneManager.GetActiveScene();
+        if (activeScene.IsValid())
+            SceneManager.LoadScene(activeScene.buildIndex);
     }
 
     private void HandleStageClicked()
@@ -195,6 +213,21 @@ public class UI_Setting_Controller
         Hide();
         AudioPlayback.StopAllMusic();
         SceneManager.LoadScene("StageScene");
+    }
+
+    private void PauseGame()
+    {
+        if (pausedByPopup) return;
+        timeScaleBeforePause = Time.timeScale;
+        Time.timeScale = 0f;
+        pausedByPopup = true;
+    }
+
+    private void ResumeGame()
+    {
+        if (!pausedByPopup) return;
+        Time.timeScale = timeScaleBeforePause;
+        pausedByPopup = false;
     }
 
     private void ApplySprites(SettingUIImageLibrarySO images)

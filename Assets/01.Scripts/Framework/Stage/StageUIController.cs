@@ -77,7 +77,7 @@ public class StageUIController : MonoBehaviour
         stageMap = root.Q<VisualElement>("stage-map");
 
         ApplyStaticSprites();
-        _uiSetting.Initialize(root, settingImages, onRestart: GoToLobby);
+        _uiSetting.Initialize(root, settingImages);
 
         var startButton = root.Q<Button>("start-button");
         if (startButton != null)
@@ -304,6 +304,11 @@ public class StageUIController : MonoBehaviour
         if (root == null) return;
         if (WasEscapePressedThisFrame()) { _uiSetting.Toggle(); return; }
         if (!_uiSetting.IsOpen && WasRightClickThisFrame()) GoToLobby();
+    }
+
+    private void OnDisable()
+    {
+        _uiSetting.Dispose();
     }
 
     private bool WasEscapePressedThisFrame()
