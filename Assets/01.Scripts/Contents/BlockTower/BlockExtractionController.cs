@@ -32,7 +32,6 @@ public class BlockExtractionController : MonoBehaviour
     [SerializeField, Min(1)] int titanPresetSearchRadius = 4;
 
     const float PresetOutlineThickness = 0.125f;
-    const float PresetOutlineExpansion = 0.18f;
     int _completedTitanTurns;
 
     public int ExtractionMinRow => _extractionMinRow;
@@ -361,6 +360,7 @@ public class BlockExtractionController : MonoBehaviour
         _presetOutlineRoot.transform.SetParent(_tower.TowerRoot, false);
         _presetOutlineBaseLocalPosition = new Vector3(center.x, center.y, 0.04f);
         _presetOutlineRoot.transform.localPosition = _presetOutlineBaseLocalPosition;
+        _presetOutlineRoot.AddComponent<NoPostProcessingRenderer>();
         Util.SetNoPostLayer(_presetOutlineRoot);
 
         foreach (var cell in cells)
@@ -392,8 +392,8 @@ public class BlockExtractionController : MonoBehaviour
 
     void CreatePresetExposedEdges(Vector2Int cell, Vector3 localCenter, HashSet<Vector2Int> occupied)
     {
-        float edgeOffset = 0.5f + PresetOutlineExpansion * 0.5f;
-        float edgeLength = 1f + PresetOutlineExpansion * 2f;
+        float edgeOffset = 0.5f + PresetOutlineThickness * 0.5f;
+        const float edgeLength = 1f;
         if (!occupied.Contains(cell + Vector2Int.left))  CreatePresetEdge(cell, "Left",   localCenter + Vector3.left * edgeOffset,  PresetOutlineThickness, edgeLength);
         if (!occupied.Contains(cell + Vector2Int.right)) CreatePresetEdge(cell, "Right",  localCenter + Vector3.right * edgeOffset, PresetOutlineThickness, edgeLength);
         if (!occupied.Contains(cell + Vector2Int.down))  CreatePresetEdge(cell, "Bottom", localCenter + Vector3.down * edgeOffset,  edgeLength, PresetOutlineThickness);
@@ -410,7 +410,7 @@ public class BlockExtractionController : MonoBehaviour
         Util.SetNoPostLayer(go);
 
         var sr = go.AddComponent<SpriteRenderer>();
-        sr.sprite = _visualizer?.CreateBlockSprite();
+        sr.sprite = _visualizer?.CreateBoxSprite();
         sr.color = _visualizer?.SelectedOutlineColor ?? new Color(1f, 1f, 1f, 0.95f);
         sr.sortingOrder = 6;
     }

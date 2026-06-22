@@ -6,7 +6,6 @@ using JSAM;
 public class HeldPlacementController : MonoBehaviour
 {
     const float HeldOutlineThickness = 0.125f;
-    const float HeldOutlineExpansion = 0.18f;
 
     BlockTower              _tower;
     HeldBlockController     _held;
@@ -110,6 +109,7 @@ public class HeldPlacementController : MonoBehaviour
         _heldOutlineSignature = signature;
         _heldOutlineRoot = new GameObject("HeldOutlinePreview");
         _heldOutlineRoot.transform.SetParent(_held.Root.transform, false);
+        _heldOutlineRoot.AddComponent<NoPostProcessingRenderer>();
         Util.SetNoPostLayer(_heldOutlineRoot);
 
         var occupied = new HashSet<Vector2Int>(_held.RelPos);
@@ -125,8 +125,8 @@ public class HeldPlacementController : MonoBehaviour
 
     void CreateHeldExposedEdges(Vector2Int cell, Vector3 localCenter, HashSet<Vector2Int> occupied)
     {
-        float edgeOffset = 0.5f + HeldOutlineExpansion * 0.5f;
-        float edgeLength = 1f + HeldOutlineExpansion * 2f;
+        float edgeOffset = 0.5f + HeldOutlineThickness * 0.5f;
+        const float edgeLength = 1f;
         if (!occupied.Contains(cell + Vector2Int.left))
             CreateHeldOutlineEdge(cell, "Left", localCenter + Vector3.left * edgeOffset, HeldOutlineThickness, edgeLength);
         if (!occupied.Contains(cell + Vector2Int.right))
@@ -146,7 +146,7 @@ public class HeldPlacementController : MonoBehaviour
         Util.SetNoPostLayer(go);
 
         var sr = go.AddComponent<SpriteRenderer>();
-        sr.sprite = _visualizer?.CreateBlockSprite();
+        sr.sprite = _visualizer?.CreateBoxSprite();
         sr.color = _visualizer?.SelectedOutlineColor ?? new Color(1f, 1f, 1f, 0.95f);
         sr.sortingOrder = 6;
     }
@@ -372,6 +372,7 @@ public class HeldPlacementController : MonoBehaviour
 
     void FinishPlacedTurn()
     {
+        _physics?.CheckForDetachment();
         _physics?.UpdateTowerPhysicsState();
         _tower.UpdateExtractionTowerRowsFromCells();
         _extraction?.CompleteTitanTurn();

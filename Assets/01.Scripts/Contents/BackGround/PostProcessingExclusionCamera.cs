@@ -19,7 +19,8 @@ public sealed class PostProcessingExclusionCamera : MonoBehaviour
         "BoundaryRight",
         "BoundaryBottom",
         "Floor",
-        "PresetOutlinePreview"
+        "PresetOutlinePreview",
+        "HeldOutlinePreview"
     };
     [SerializeField] string[] camerasThatShouldSeeExcludedLayer =
     {
@@ -177,7 +178,9 @@ public sealed class PostProcessingExclusionCamera : MonoBehaviour
             || renderer.GetComponentInParent<NoPostProcessingRenderer>() != null
             || renderer.GetComponentInParent<GoldFishProjectile>() != null
             || renderer.gameObject.name.StartsWith("PresetOutline_", System.StringComparison.Ordinal)
-            || HasAncestorNamed(renderer.transform, "PresetOutlinePreview");
+            || renderer.gameObject.name.StartsWith("HeldOutline_", System.StringComparison.Ordinal)
+            || HasAncestorNamed(renderer.transform, "PresetOutlinePreview")
+            || HasAncestorNamed(renderer.transform, "HeldOutlinePreview");
     }
 
     static bool HasAncestorNamed(Transform transform, string objectName)

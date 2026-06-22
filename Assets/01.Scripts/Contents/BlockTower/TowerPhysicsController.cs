@@ -255,11 +255,14 @@ public class TowerPhysicsController : MonoBehaviour
 
         float totalWeight   = 0f;
         Vector2 weightedSum = Vector2.zero;
+        bool containsHeldBlock = false;
 
         foreach (var cell in component)
         {
             if (!_grid.TryGetCell(cell, out var state)) continue;
             if (!_cellViews.TryGetValue(cell, out var view)) continue;
+
+            containsHeldBlock |= !state.isOriginalTower;
 
             view.go.transform.SetParent(orphanGO.transform, worldPositionStays: true);
 
@@ -281,7 +284,8 @@ public class TowerPhysicsController : MonoBehaviour
                 root        = orphanGO,
                 rb          = orphanRb,
                 detachedAt  = Time.time,
-                scorePenalty = Mathf.RoundToInt(totalWeight)
+                scorePenalty = Mathf.RoundToInt(totalWeight),
+                preventReattach = containsHeldBlock
             };
             var landingEffect = orphanGO.AddComponent<DetachedLandingEffect>();
             landingEffect.Initialize(this, detached.detachedAt);
@@ -319,7 +323,8 @@ public class TowerPhysicsController : MonoBehaviour
                 yield break;
             }
 
-            if (canTry && TryAbsorbDetachedComponent(detached.root, detached.rb))
+            if (canTry && !detached.preventReattach &&
+                TryAbsorbDetachedComponent(detached.root, detached.rb))
             {
                 detached.resolved = true;
                 _detachedComponents.Remove(detached);
@@ -379,7 +384,8 @@ public class TowerPhysicsController : MonoBehaviour
                 continue;
             }
 
-            if (canTry && TryAbsorbDetachedComponent(detached.root, detached.rb))
+            if (canTry && !detached.preventReattach &&
+                TryAbsorbDetachedComponent(detached.root, detached.rb))
             {
                 detached.resolved = true;
                 _detachedComponents.RemoveAt(i);

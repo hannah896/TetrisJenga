@@ -616,7 +616,7 @@ public class GameUIController : MonoBehaviour
         float elapsed  = 0f;
 
         _scorePopupText.text = delta > 0 ? $"+{delta}" : delta.ToString();
-        _scorePopupText.style.color   = delta > 0 ? Color.white : Color.red;
+        _scorePopupText.style.color   = new Color(1f, 175f / 255f, 0f, 1f);
         _scorePopupText.style.display = DisplayStyle.Flex;
 
         while (elapsed < duration && _scorePopupText != null)

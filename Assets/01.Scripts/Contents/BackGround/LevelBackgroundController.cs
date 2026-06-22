@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 public sealed class LevelBackgroundController : MonoBehaviour
 {
@@ -33,17 +34,33 @@ public sealed class LevelBackgroundController : MonoBehaviour
     {
         if (_background == null || !applyLevelVisualAtRuntime) return;
 
-        int idx = GameManager.Instance?.CurrentStageIndex ?? -1;
-        var visual = idx switch
+        string sceneName = SceneManager.GetActiveScene().name;
+        var visual = sceneName switch
         {
-            0 => _level1Visual,
-            1 => _level2Visual,
-            2 => _level3Visual,
-            3 => _level4Visual,
-            4 => _level5Visual,
-            5 => _level6Visual,
-            _ => _endlessVisual,
+            "Level1" => _level1Visual,
+            "Level2" => _level2Visual,
+            "Level3" => _level3Visual,
+            "Level4" => _level4Visual,
+            "Level5" => _level5Visual,
+            "Level6" => _level6Visual,
+            "Endless" => _endlessVisual,
+            _ => null,
         };
+
+        if (visual == null)
+        {
+            int idx = GameManager.Instance?.CurrentStageIndex ?? -1;
+            visual = idx switch
+            {
+                0 => _level1Visual,
+                1 => _level2Visual,
+                2 => _level3Visual,
+                3 => _level4Visual,
+                4 => _level5Visual,
+                5 => _level6Visual,
+                _ => _endlessVisual,
+            };
+        }
 
         _background.ApplyLevelVisual(visual);
     }

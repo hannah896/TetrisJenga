@@ -1061,6 +1061,7 @@ public class DetachedComponent
     public Rigidbody rb;
     public float detachedAt;
     public int scorePenalty;
+    public bool preventReattach;
     public bool resolved;
     public bool iceDamageApplied;
 }
