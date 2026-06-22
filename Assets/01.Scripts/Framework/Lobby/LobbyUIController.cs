@@ -76,7 +76,16 @@ public class LobbyUIController : MonoBehaviour
         _uiSetting.Initialize(root, settingImages, onRestart: ShowLobby);
         BindButtons();
         RefreshEndlessUnlockState();
-        ShowLobby();
+
+        if (GameManager.Instance.GoToModeSelect)
+        {
+            GameManager.Instance.GoToModeSelect = false;
+            ShowModeSelect();
+        }
+        else
+        {
+            ShowLobby();
+        }
     }
 
     private void Update()
