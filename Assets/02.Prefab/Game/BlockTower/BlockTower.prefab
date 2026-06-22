@@ -152,6 +152,7 @@ GameObject:
   - component: {fileID: 8874684664274375473}
   - component: {fileID: 3823804454855570051}
   - component: {fileID: 6635532522543960772}
+  - component: {fileID: 9188769338125460039}
   m_Layer: 0
   m_Name: BlockTower
   m_TagString: Untagged
@@ -204,6 +205,7 @@ MonoBehaviour:
   towerRootTransform: {fileID: 0}
   floorTransform: {fileID: 0}
   _scoreController: {fileID: 2329057359085479271}
+  followTowerRootMovement: 1
 --- !u!114 &811715404768301636
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -360,6 +362,7 @@ MonoBehaviour:
   previewBlurRadius: 0.12
   previewBlurAlpha: 0.1
   previewBlurCopies: 8
+  boxSprite: {fileID: 0}
 --- !u!114 &4543615309885719514
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -383,8 +386,12 @@ MonoBehaviour:
   hudPanelSettings: {fileID: 11400000, guid: 9e1f9a6d6e7e4f2dbb7c4d1c8f35a911, type: 2}
   hudImageLibrary: {fileID: 11400000, guid: 5358f87cc1fd5bc44bea6899aa0859c7, type: 2}
   settingImageLibrary: {fileID: 11400000, guid: e84876a0d46d3de4382a45385ca58ee8, type: 2}
+  bonusQueueRiseDuration: 0.4
+  bonusQueueRiseFallbackDistance: 180
   _clearBgRenderer: {fileID: 0}
   _stageSelectSceneName: StageScene
+  _lobbySceneName: LobbyScene
+  _dialogueSceneName: DialogueScene
 --- !u!114 &2329057359085479271
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -425,7 +432,7 @@ MonoBehaviour:
   deadlineFallDepth: 3
   blockBodyScale: 0.94
   blockColliderScale: 0.92
-  detachedLandingEffectPrefab: {fileID: 0}
+  detachedLandingEffectPrefab: {fileID: 1604227354005263177, guid: d6d04e4b024a73147a9b9f10d607f384, type: 3}
   detachedLandingEffectScale: 1
   _score: {fileID: 2329057359085479271}
   _bombIce: {fileID: 4827502866788952487}
@@ -455,6 +462,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2de54e4e383795640a5fda1cd20209ce, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::HeldPlacementController
+  topPuyoMinimumNumber: 2
+  topPuyoMatchCount: 5
+  topPuyoExtraScorePerBlock: 1
+  topPuyoFlashDuration: 2
+  topPuyoFlashInterval: 0.15
 --- !u!114 &6635532522543960772
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -476,3 +488,35 @@ MonoBehaviour:
   _bombIce: {fileID: 4827502866788952487}
   _score: {fileID: 2329057359085479271}
   _sceneBuilder: {fileID: 8874684664274375473}
+  _effects: {fileID: 9188769338125460039}
+  titanFirstTurnSeconds: 5
+  titanSecondsAfterTargetTurn: 2
+  titanTargetTurn: 50
+  titanMinimumSeconds: 2
+  titanPresetSearchRadius: 4
+--- !u!114 &9188769338125460039
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7404647146112777486}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b2cf3d3d92adf004d830f070e40f1b5d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::BlockEffectController
+  _tower: {fileID: 1446632597535237679}
+  _held: {fileID: 6374496317544387736}
+  extractionEffectSprites:
+  - {fileID: 181015733, guid: 1fba3b3c55be1554aa286f4db712618c, type: 3}
+  - {fileID: -89679544, guid: 1fba3b3c55be1554aa286f4db712618c, type: 3}
+  - {fileID: -1401776073, guid: 1fba3b3c55be1554aa286f4db712618c, type: 3}
+  - {fileID: -1094408026, guid: 1fba3b3c55be1554aa286f4db712618c, type: 3}
+  - {fileID: 631746333, guid: 1fba3b3c55be1554aa286f4db712618c, type: 3}
+  extractionEffectFps: 12
+  extractionEffectScale: 6
+  hardDropBackSprite: {fileID: 0}
+  hardDropFadeDuration: 0.5
+  towerShakeSprite: {fileID: 21300000, guid: adbe40a5dc184e645bfea48e797ac5e1, type: 3}
+  towerShakeImageScale: 1

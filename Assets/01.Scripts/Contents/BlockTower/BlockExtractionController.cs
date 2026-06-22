@@ -13,6 +13,7 @@ public class BlockExtractionController : MonoBehaviour
     [SerializeField] BombIceEffectController _bombIce;
     [SerializeField] ScoreController         _score;
     [SerializeField] TowerSceneBuilder       _sceneBuilder;
+    [SerializeField] BlockEffectController   _effects;
 
     readonly Color _failFlashColor = new(1f, 0.08f, 0.08f, 0.85f);
 
@@ -61,6 +62,7 @@ public class BlockExtractionController : MonoBehaviour
         _bombIce       = GetComponent<BombIceEffectController>();
         _score         = GetComponent<ScoreController>();
         _sceneBuilder  = GetComponent<TowerSceneBuilder>();
+        _effects       = GetComponent<BlockEffectController>();
     }
 
     void Awake()
@@ -74,6 +76,7 @@ public class BlockExtractionController : MonoBehaviour
         _bombIce       = GetComponent<BombIceEffectController>();
         _score         = GetComponent<ScoreController>();
         _sceneBuilder  = GetComponent<TowerSceneBuilder>();
+        _effects       = GetComponent<BlockEffectController>();
     }
 
     void Update()
@@ -234,6 +237,7 @@ public class BlockExtractionController : MonoBehaviour
         _selection.HasFocusedCell = false;
         foreach (var cell in changedCells) _visualizer?.ApplyCellVisual(cell);
         foreach (var bomb  in bombCells)   _bombIce?.TriggerBombAt(bomb);
+        _effects?.SpawnExtractionEffects(changedCells);
 
         _held.Root = new GameObject("HeldBlocks");
         _tower.TrackGeneratedObject(_held.Root);

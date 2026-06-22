@@ -16,6 +16,7 @@ public class HeldPlacementController : MonoBehaviour
     TowerSceneBuilder       _sceneBuilder;
     BlockExtractionController _extraction;
     ScoreController         _score;
+    BlockEffectController   _effects;
 
     readonly Color _validHoldColor   = new(0.55f, 0.85f, 0.6f,  0.5f);
     readonly Color _invalidHoldColor = new(1f,    0.25f, 0.25f, 0.6f);
@@ -53,6 +54,7 @@ public class HeldPlacementController : MonoBehaviour
         _sceneBuilder = GetComponent<TowerSceneBuilder>();
         _extraction = GetComponent<BlockExtractionController>();
         _score = GetComponent<ScoreController>();
+        _effects = GetComponent<BlockEffectController>();
     }
 
     public void ResetPlacementMemory()
@@ -172,7 +174,9 @@ public class HeldPlacementController : MonoBehaviour
             _held.PlayPlacementFailFeedback();
             return;
         }
+        var startBase = _held.BaseCell;
         _held.BaseCell = dropBase;
+        _effects?.SpawnHardDropEffect(startBase, dropBase);
         TryPlaceBlocks();
     }
 
@@ -359,6 +363,7 @@ public class HeldPlacementController : MonoBehaviour
         _held.UsingKeyboardPlacement = false;
         _selection.ClearFocus();
 
+        _effects?.SpawnExtractionEffects(_lastPlacedCells);
         AudioPlayback.PlaySound(_AudioLibrarySounds.Drop);
         var puyoMatches = FindTopPuyoMatches();
         if (puyoMatches.Count > 0)
