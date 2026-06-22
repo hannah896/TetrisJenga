@@ -1,6 +1,7 @@
 <ui:UXML xmlns:ui="UnityEngine.UIElements" editor-extension-mode="False">
     <Style src="../UnityThemes/UITheme.uss" />
     <Style src="LobbyUI.uss" />
+    <ui:Template name="SettingPopup" src="../Common/SettingPopup.uxml" />
 
     <ui:VisualElement name="root" class="ui-root">
 
@@ -35,28 +36,7 @@
             </ui:VisualElement>
         </ui:VisualElement>
 
-        <!-- ===================== 설정 팝업 (공통) ===================== -->
-        <ui:VisualElement name="setting-popup" class="setting-overlay hidden">
-            <ui:VisualElement class="setting-panel">
-                <ui:VisualElement class="setting-row">
-                    <ui:Label name="preset-guide-label" text="프리셋 가이드 창 여부" class="setting-row__label setting-row__label--wide" />
-                    <ui:VisualElement class="setting-row__spacer" />
-                    <ui:Toggle name="preset-guide-toggle" class="setting-toggle" />
-                </ui:VisualElement>
-                <ui:VisualElement class="setting-row">
-                    <ui:Label name="bgm-label" text="BGM" class="setting-row__label" />
-                    <ui:Slider name="bgm-slider" low-value="0" high-value="1" value="1" class="setting-slider" />
-                </ui:VisualElement>
-                <ui:VisualElement class="setting-row">
-                    <ui:Label name="sfx-label" text="SFX" class="setting-row__label" />
-                    <ui:Slider name="sfx-slider" low-value="0" high-value="1" value="1" class="setting-slider" />
-                </ui:VisualElement>
-                <ui:VisualElement class="setting-button-row">
-                    <ui:Button name="setting-restart-button" text="Restart" class="setting-button" />
-                    <ui:Button name="setting-back-button" text="Back" class="setting-button" />
-                </ui:VisualElement>
-            </ui:VisualElement>
-        </ui:VisualElement>
+        <ui:Instance template="SettingPopup" style="position: absolute; left: 0; top: 0; width: 100%; height: 100%;" />
 
     </ui:VisualElement>
 </ui:UXML>

@@ -313,9 +313,10 @@ public class BombIceEffectController : MonoBehaviour
         var label = iceObject.GetComponentInChildren<TextMeshPro>();
         if (label != null)
         {
+            _visualizer.ApplyLabelOutline(label);
             label.text = number.ToString();
             label.fontSize = 6f;
-            label.gameObject.SetActive(true);
+            label.gameObject.SetActive(UI_Setting_Controller.IsBlockNumberTextVisible);
         }
 
         if (iceCell.HasValue && _grid.TryGetIceCell(iceCell.Value, out var state))
@@ -337,9 +338,10 @@ public class BombIceEffectController : MonoBehaviour
         var label = blockCell.GetComponentInChildren<TextMeshPro>();
         if (label != null)
         {
+            _visualizer.ApplyLabelOutline(label);
             label.text = number.ToString();
             label.fontSize = 6f;
-            label.gameObject.SetActive(true);
+            label.gameObject.SetActive(UI_Setting_Controller.IsBlockNumberTextVisible);
         }
 
         var sr = blockCell.GetComponent<SpriteRenderer>();
@@ -349,7 +351,7 @@ public class BombIceEffectController : MonoBehaviour
         var numberSprite = _visualizer.GetNumberSprite(number);
         var numberRenderer = _visualizer.EnsureStandaloneNumberSpriteRenderer(blockCell.transform);
 
-        if (numberSprite != null)
+        if (numberSprite != null && !UI_Setting_Controller.IsImageSimplificationEnabled)
         {
             sr.color = Color.clear;
             numberRenderer.sprite = numberSprite;
@@ -366,9 +368,7 @@ public class BombIceEffectController : MonoBehaviour
                 numberRenderer.sprite = null;
             }
 
-            sr.color = blockCell.IsOriginalTower
-                ? Util.NumberColor(number)
-                : Util.PlacedNumberColor(number);
+            sr.color = Util.NumberColor(number);
         }
     }
 }

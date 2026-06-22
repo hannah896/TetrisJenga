@@ -1,6 +1,7 @@
 using System;
 using JSAM;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 using UnityEngine.UIElements;
 
 /// <summary>
@@ -11,29 +12,44 @@ using UnityEngine.UIElements;
 public class UI_Setting_Controller
 {
     private const string PresetGuideKey = "Settings.PresetGuide";
+    private const string BlockNumberTextKey = "Settings.BlockNumberText";
+    private const string ImageSimplificationKey = "Settings.ImageSimplification";
     private const float DefaultVolume = 1f;
     
     private VisualElement popup;
     private Slider bgmSlider;
     private Slider sfxSlider;
     private Toggle presetGuideToggle;
+    private Toggle blockNumberToggle;
+    private Toggle imageSimplificationToggle;
     private Label presetGuideLabel;
+    private Label blockNumberLabel;
+    private Label imageSimplificationLabel;
     private Label bgmLabel;
     private Label sfxLabel;
     private Button restartButton;
+    private Button stageButton;
     private Button backButton;
+    private SettingUIImageLibrarySO currentImages;
+    private Action restartAction;
     
     private const float VolumeStep = 0.075f;
 
 
 
     public bool IsOpen => popup != null && !popup.ClassListContains("hidden");
+    public static bool IsBlockNumberTextVisible => PlayerPrefs.GetInt(BlockNumberTextKey, 1) == 1;
+    public static bool IsImageSimplificationEnabled => PlayerPrefs.GetInt(ImageSimplificationKey, 0) == 1;
+    public static event Action<bool> BlockNumberTextVisibilityChanged;
+    public static event Action<bool> ImageSimplificationChanged;
 
     /// <param name="root">UIDocument rootVisualElement</param>
     /// <param name="images">설정 스프라이트 SO (없으면 USS 기본 색 사용)</param>
     /// <param name="onRestart">Restart 버튼 동작 (씬마다 다름, null 허용)</param>
     public void Initialize(VisualElement root, SettingUIImageLibrarySO images, Action onRestart)
     {
+        UnbindCallbacks();
+
         popup = root.Q<VisualElement>("setting-popup");
         if (popup == null)
         {
@@ -44,44 +60,41 @@ public class UI_Setting_Controller
         bgmSlider = root.Q<Slider>("bgm-slider");
         sfxSlider = root.Q<Slider>("sfx-slider");
         presetGuideToggle = root.Q<Toggle>("preset-guide-toggle");
+        blockNumberToggle = root.Q<Toggle>("block-number-toggle");
+        imageSimplificationToggle = root.Q<Toggle>("image-simplification-toggle");
         presetGuideLabel = root.Q<Label>("preset-guide-label");
+        blockNumberLabel = root.Q<Label>("block-number-label");
+        imageSimplificationLabel = root.Q<Label>("image-simplification-label");
         bgmLabel = root.Q<Label>("bgm-label");
         sfxLabel = root.Q<Label>("sfx-label");
         restartButton = root.Q<Button>("setting-restart-button");
+        stageButton = root.Q<Button>("setting-stage-button");
         backButton = root.Q<Button>("setting-back-button");
+        currentImages = images;
+        restartAction = onRestart;
 
-        ApplySprites(images);
         LoadState();
+        ApplySprites(images);
+        EnableInteraction();
 
-        bgmSlider?.RegisterValueChangedCallback(evt => ApplyMusicVolume(evt.newValue));
-        sfxSlider?.RegisterValueChangedCallback(evt => ApplySoundVolume(evt.newValue));
-        presetGuideToggle?.RegisterValueChangedCallback(evt =>
-        {
-            PlayerPrefs.SetInt(PresetGuideKey, evt.newValue ? 1 : 0);
-            PlayerPrefs.Save();
-            ApplyToggleSprite(images, evt.newValue);
-        });
-
-        if (restartButton != null)
-        {
-            restartButton.clicked += () =>
-            {
-                Hide();
-                onRestart?.Invoke();
-            };
-        }
-
-        if (backButton != null)
-        {
-            backButton.clicked += Hide;
-        }
+        bgmSlider?.RegisterValueChangedCallback(HandleBgmChanged);
+        sfxSlider?.RegisterValueChangedCallback(HandleSfxChanged);
+        presetGuideToggle?.RegisterValueChangedCallback(HandlePresetGuideChanged);
+        blockNumberToggle?.RegisterValueChangedCallback(HandleBlockNumberChanged);
+        imageSimplificationToggle?.RegisterValueChangedCallback(HandleImageSimplificationChanged);
+        if (restartButton != null) restartButton.clicked += HandleRestartClicked;
+        if (backButton != null) backButton.clicked += Hide;
+        if (stageButton != null) stageButton.clicked += HandleStageClicked;
 
         Hide();
     }
 
     public void Show()
     {
-        popup?.RemoveFromClassList("hidden");
+        if (popup == null) return;
+        EnableInteraction();
+        popup.BringToFront();
+        popup.RemoveFromClassList("hidden");
     }
 
     public void Hide()
@@ -106,6 +119,82 @@ public class UI_Setting_Controller
         bgmSlider?.SetValueWithoutNotify(ReadMusicVolume());
         sfxSlider?.SetValueWithoutNotify(ReadSoundVolume());
         presetGuideToggle?.SetValueWithoutNotify(PlayerPrefs.GetInt(PresetGuideKey, 1) == 1);
+        blockNumberToggle?.SetValueWithoutNotify(IsBlockNumberTextVisible);
+        imageSimplificationToggle?.SetValueWithoutNotify(IsImageSimplificationEnabled);
+    }
+
+    private void EnableInteraction()
+    {
+        if (popup == null) return;
+        popup.pickingMode = PickingMode.Position;
+        popup.SetEnabled(true);
+        popup.Query<Button>().ForEach(button =>
+        {
+            button.pickingMode = PickingMode.Position;
+            button.SetEnabled(true);
+        });
+        popup.Query<Slider>().ForEach(slider =>
+        {
+            slider.pickingMode = PickingMode.Position;
+            slider.SetEnabled(true);
+        });
+        popup.Query<Toggle>().ForEach(toggle =>
+        {
+            toggle.pickingMode = PickingMode.Position;
+            toggle.SetEnabled(true);
+        });
+    }
+
+    private void UnbindCallbacks()
+    {
+        bgmSlider?.UnregisterValueChangedCallback(HandleBgmChanged);
+        sfxSlider?.UnregisterValueChangedCallback(HandleSfxChanged);
+        presetGuideToggle?.UnregisterValueChangedCallback(HandlePresetGuideChanged);
+        blockNumberToggle?.UnregisterValueChangedCallback(HandleBlockNumberChanged);
+        imageSimplificationToggle?.UnregisterValueChangedCallback(HandleImageSimplificationChanged);
+        if (restartButton != null) restartButton.clicked -= HandleRestartClicked;
+        if (backButton != null) backButton.clicked -= Hide;
+        if (stageButton != null) stageButton.clicked -= HandleStageClicked;
+    }
+
+    private void HandleBgmChanged(ChangeEvent<float> evt) => ApplyMusicVolume(evt.newValue);
+
+    private void HandleSfxChanged(ChangeEvent<float> evt) => ApplySoundVolume(evt.newValue);
+
+    private void HandlePresetGuideChanged(ChangeEvent<bool> evt)
+    {
+        PlayerPrefs.SetInt(PresetGuideKey, evt.newValue ? 1 : 0);
+        PlayerPrefs.Save();
+        ApplyToggleSprite(currentImages, evt.newValue);
+    }
+
+    private void HandleBlockNumberChanged(ChangeEvent<bool> evt)
+    {
+        PlayerPrefs.SetInt(BlockNumberTextKey, evt.newValue ? 1 : 0);
+        PlayerPrefs.Save();
+        ApplyToggleSprite(currentImages, blockNumberToggle, evt.newValue);
+        BlockNumberTextVisibilityChanged?.Invoke(evt.newValue);
+    }
+
+    private void HandleImageSimplificationChanged(ChangeEvent<bool> evt)
+    {
+        PlayerPrefs.SetInt(ImageSimplificationKey, evt.newValue ? 1 : 0);
+        PlayerPrefs.Save();
+        ApplyToggleSprite(currentImages, imageSimplificationToggle, evt.newValue);
+        ImageSimplificationChanged?.Invoke(evt.newValue);
+    }
+
+    private void HandleRestartClicked()
+    {
+        Hide();
+        restartAction?.Invoke();
+    }
+
+    private void HandleStageClicked()
+    {
+        Hide();
+        AudioPlayback.StopAllMusic();
+        SceneManager.LoadScene("StageScene");
     }
 
     private void ApplySprites(SettingUIImageLibrarySO images)
@@ -117,11 +206,16 @@ public class UI_Setting_Controller
 
         UISprites.Apply(popup.Q<VisualElement>(className: "setting-panel"), images.panel);
         UISprites.Apply(restartButton, images.restartButton);
+        UISprites.Apply(stageButton, images.restartButton);
         UISprites.Apply(backButton, images.backButton);
         ApplyToggleSprite(images, presetGuideToggle?.value ?? false);
+        ApplyToggleSprite(images, blockNumberToggle, blockNumberToggle?.value ?? true);
+        ApplyToggleSprite(images, imageSimplificationToggle, imageSimplificationToggle?.value ?? false);
         ApplySliderSprites(bgmSlider, images.bgmSliderTrack, images.bgmSliderHandle);
         ApplySliderSprites(sfxSlider, images.sfxSliderTrack, images.sfxSliderHandle);
         UISprites.Apply(presetGuideLabel, images.presetGuideLabel);
+        UISprites.Apply(blockNumberLabel, images.presetGuideLabel);
+        UISprites.Apply(imageSimplificationLabel, images.presetGuideLabel);
         UISprites.Apply(bgmLabel, images.bgmLabel);
         UISprites.Apply(sfxLabel, images.sfxLabel);
     }
@@ -139,8 +233,13 @@ public class UI_Setting_Controller
 
     private void ApplyToggleSprite(SettingUIImageLibrarySO images, bool isOn)
     {
-        if (images == null || presetGuideToggle == null) return;
-        var checkmark = presetGuideToggle.Q<VisualElement>(className: "unity-toggle__checkmark");
+        ApplyToggleSprite(images, presetGuideToggle, isOn);
+    }
+
+    private static void ApplyToggleSprite(SettingUIImageLibrarySO images, Toggle toggle, bool isOn)
+    {
+        if (images == null || toggle == null) return;
+        var checkmark = toggle.Q<VisualElement>(className: "unity-toggle__checkmark");
         if (checkmark == null) return;
         Sprite sprite = isOn ? images.toggleOn : images.toggleOff;
         if (sprite == null) return;

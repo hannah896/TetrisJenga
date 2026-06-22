@@ -350,6 +350,7 @@ public class BlockTower : MonoBehaviour
             var label = child.GetComponentInChildren<TextMeshPro>();
             if (label == null)
                 label = _visualizer?.SpawnLabel(Mathf.Max(1, Mathf.RoundToInt(blockCell.Weight)), child);
+            _visualizer?.ApplyLabelOutline(label);
             var box = child.GetComponent<BoxCollider>();
             if (box == null)
                 box = child.gameObject.AddComponent<BoxCollider>();

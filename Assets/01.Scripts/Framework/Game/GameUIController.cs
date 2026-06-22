@@ -32,7 +32,7 @@ public class GameUIController : MonoBehaviour
 
     [Header("Bonus Queue Animation")]
     [SerializeField, Min(0.05f)] float bonusQueueRiseDuration = 0.4f;
-    [SerializeField, Min(0f)] float bonusQueueRiseFallbackDistance = 180f;
+    [SerializeField, Min(0f)] float bonusQueueRiseDistance = 180f;
 
     [Header("클리어 연출")]
     [SerializeField] SpriteRenderer _clearBgRenderer;
@@ -45,6 +45,8 @@ public class GameUIController : MonoBehaviour
     Label _scoreValue;
     Label _targetScoreValue;
     Label _scorePopupText;
+    Label _bonusDoubleValue;
+    Label _bonusDoubleCaption;
     VisualElement _hudScorePanel;
     VisualElement _hudTargetScorePanel;
     Label _bonusPreviewTitle;
@@ -62,7 +64,6 @@ public class GameUIController : MonoBehaviour
     VisualElement _secondaryViewPanel;
     VisualElement _secondaryViewImage;
     VisualElement _blockWeightGuide;
-    VisualElement _slashBackground;
     readonly VisualElement[] _weightGuideImages = new VisualElement[6];
     readonly List<VisualElement> _bonusCellElements      = new();
     readonly List<VisualElement> _bonusNextCellElements  = new();
@@ -123,8 +124,10 @@ public class GameUIController : MonoBehaviour
             _scoreController.OnGameOver      += HandleGameOver;
             _scoreController.OnClear         += HandleClear;
             _scoreController.OnFloatingScore += HandleFloatingScore;
+            _scoreController.OnBonusComboChanged += HandleBonusComboChanged;
         }
         if (_camera != null) _camera.OnSecondaryViewTextureChanged += HandleSecondaryViewTexture;
+        UI_Setting_Controller.ImageSimplificationChanged += HandleImageSimplificationChanged;
     }
 
     void OnDisable()
@@ -138,12 +141,15 @@ public class GameUIController : MonoBehaviour
             _scoreController.OnGameOver      -= HandleGameOver;
             _scoreController.OnClear         -= HandleClear;
             _scoreController.OnFloatingScore -= HandleFloatingScore;
+            _scoreController.OnBonusComboChanged -= HandleBonusComboChanged;
         }
         if (_camera != null) _camera.OnSecondaryViewTextureChanged -= HandleSecondaryViewTexture;
+        UI_Setting_Controller.ImageSimplificationChanged -= HandleImageSimplificationChanged;
     }
 
     void Update()
     {
+        SyncHudScore();
         if (_showingResultHud) return;
         if (Keyboard.current != null && Keyboard.current.escapeKey.wasPressedThisFrame)
             _uiSetting.Toggle();
@@ -240,55 +246,104 @@ public class GameUIController : MonoBehaviour
         if (!IsEndlessMode && _targetScoreValue != null) _targetScoreValue.text = target.ToString();
     }
 
+    void SyncHudScore()
+    {
+        if (_scoreController == null)
+            _scoreController = GetComponent<ScoreController>();
+        if (_scoreController == null || _scoreValue == null) return;
+
+        string expectedScore = _scoreController.Score.ToString();
+        if (_scoreValue.text != expectedScore)
+            _scoreValue.text = expectedScore;
+
+        if (!IsEndlessMode && _targetScoreValue != null)
+        {
+            string expectedTarget = _scoreController.TargetScore.ToString();
+            if (_targetScoreValue.text != expectedTarget)
+                _targetScoreValue.text = expectedTarget;
+        }
+    }
+
     void HandleBonusRolled(TetrominoPreset current, TetrominoPreset next, TetrominoPreset third)
     {
         bool animate = _bonusPreviewInitialized && Application.isPlaying;
+        if (animate)
+        {
+            PlayBonusQueueFade(current, next, third);
+            return;
+        }
+
+        ApplyBonusPreviewContents(current, next, third);
+        SetBonusPreviewOpacities(1f, 0.5f, 0.5f);
+        _bonusPreviewInitialized = true;
+    }
+
+    void ApplyBonusPreviewContents(TetrominoPreset current, TetrominoPreset next, TetrominoPreset third)
+    {
         SetLabelText(_bonusKeyLabel,      Util.PresetKeyText(current));
         SetLabelText(_bonusNextKeyLabel,  Util.PresetKeyText(next));
         SetLabelText(_bonusThirdKeyLabel, Util.PresetKeyText(third));
         UpdateBonusPreviewSlot(_bonusCells,      _bonusCellElements,      current);
         UpdateBonusPreviewSlot(_bonusNextCells,  _bonusNextCellElements,  next);
         UpdateBonusPreviewSlot(_bonusThirdCells, _bonusThirdCellElements, third);
-        _bonusPreviewInitialized = true;
-
-        if (animate)
-            PlayBonusQueueRise();
     }
 
-    void PlayBonusQueueRise()
+    void PlayBonusQueueFade(TetrominoPreset current, TetrominoPreset next, TetrominoPreset third)
     {
         if (_bonusSlot == null || _bonusNextSlot == null || _bonusThirdSlot == null) return;
         if (_bonusQueueRoutine != null)
             StopCoroutine(_bonusQueueRoutine);
-        _bonusQueueRoutine = StartCoroutine(RunBonusQueueRise());
+        SetBonusPreviewOpacities(1f, 0.5f, 0.5f);
+        SetBonusPreviewOffsets(0f);
+        _bonusQueueRoutine = StartCoroutine(RunBonusQueueFade(current, next, third));
     }
 
-    IEnumerator RunBonusQueueRise()
+    IEnumerator RunBonusQueueFade(TetrominoPreset current, TetrominoPreset next, TetrominoPreset third)
     {
-        float measuredDistance = Mathf.Abs(_bonusNextSlot.worldBound.y - _bonusSlot.worldBound.y);
-        float distance = measuredDistance > 1f ? measuredDistance : bonusQueueRiseFallbackDistance;
-        var slots = new[] { _bonusSlot, _bonusNextSlot, _bonusThirdSlot };
-        foreach (var slot in slots)
-            slot.style.top = distance;
-
-        float duration = Mathf.Max(0.05f, bonusQueueRiseDuration);
+        float phaseDuration = Mathf.Max(0.05f, bonusQueueRiseDuration * 0.5f);
         float elapsed = 0f;
-        while (elapsed < duration)
+        while (elapsed < phaseDuration)
         {
             elapsed += Time.deltaTime;
-            float t = Mathf.Clamp01(elapsed / duration);
-            float eased = 1f - Mathf.Pow(1f - t, 3f);
-            float offset = Mathf.Lerp(distance, 0f, eased);
-            foreach (var slot in slots)
-                if (slot != null)
-                    slot.style.top = offset;
+            float t = Mathf.Clamp01(elapsed / phaseDuration);
+            _bonusSlot.style.opacity = 1f - t;
             yield return null;
         }
 
-        foreach (var slot in slots)
-            if (slot != null)
-                slot.style.top = 0f;
+        ApplyBonusPreviewContents(current, next, third);
+        SetBonusPreviewOpacities(1f, 0.5f, 0f);
+        float measuredDistance = Mathf.Abs(_bonusNextSlot.worldBound.y - _bonusSlot.worldBound.y);
+        float riseDistance = measuredDistance > 1f ? measuredDistance : bonusQueueRiseDistance;
+        SetBonusPreviewOffsets(riseDistance);
+
+        elapsed = 0f;
+        while (elapsed < phaseDuration)
+        {
+            elapsed += Time.deltaTime;
+            float t = Mathf.Clamp01(elapsed / phaseDuration);
+            float eased = 1f - Mathf.Pow(1f - t, 3f);
+            _bonusThirdSlot.style.opacity = Mathf.Lerp(0f, 0.5f, t);
+            SetBonusPreviewOffsets(Mathf.Lerp(riseDistance, 0f, eased));
+            yield return null;
+        }
+
+        SetBonusPreviewOpacities(1f, 0.5f, 0.5f);
+        SetBonusPreviewOffsets(0f);
         _bonusQueueRoutine = null;
+    }
+
+    void SetBonusPreviewOpacities(float current, float next, float third)
+    {
+        if (_bonusSlot != null) _bonusSlot.style.opacity = current;
+        if (_bonusNextSlot != null) _bonusNextSlot.style.opacity = next;
+        if (_bonusThirdSlot != null) _bonusThirdSlot.style.opacity = third;
+    }
+
+    void SetBonusPreviewOffsets(float top)
+    {
+        if (_bonusSlot != null) _bonusSlot.style.top = top;
+        if (_bonusNextSlot != null) _bonusNextSlot.style.top = top;
+        if (_bonusThirdSlot != null) _bonusThirdSlot.style.top = top;
     }
 
     void HandleGameOver(int score, int target)
@@ -341,6 +396,41 @@ public class GameUIController : MonoBehaviour
         _scorePopupRoutine = StartCoroutine(AnimateScorePopup(delta));
     }
 
+    void HandleBonusComboChanged(int multiplier)
+    {
+        bool visible = multiplier > 1;
+        if (_bonusDoubleValue != null)
+        {
+            float tierScale = multiplier >= 10 ? 1.4f : multiplier >= 5 ? 1.2f : 1f;
+            int xSize = Mathf.RoundToInt(77f * tierScale);
+            int numberSize = Mathf.RoundToInt(115f * tierScale);
+            _bonusDoubleValue.enableRichText = true;
+            _bonusDoubleValue.text = visible
+                ? $"<size={xSize}>x</size><size={numberSize}>{multiplier}</size>"
+                : string.Empty;
+            _bonusDoubleValue.style.color = multiplier >= 10
+                ? new Color(1f, 0.1f, 0.1f, 1f)
+                : multiplier >= 5
+                    ? new Color(1f, 0.42f, 0f, 1f)
+                    : new Color(1f, 0.9f, 0f, 1f);
+            _bonusDoubleValue.style.unityTextOutlineColor = multiplier >= 10
+                ? new Color(1f, 0.42f, 0f, 1f)
+                : multiplier >= 5
+                    ? new Color(1f, 0.9f, 0f, 1f)
+                    : new Color(0f, 151f / 255f, 217f / 255f, 1f);
+            _bonusDoubleValue.style.display = visible ? DisplayStyle.Flex : DisplayStyle.None;
+            _bonusDoubleValue.style.visibility = Visibility.Visible;
+            _bonusDoubleValue.style.opacity = 1f;
+        }
+        if (_bonusDoubleCaption != null)
+        {
+            _bonusDoubleCaption.text = visible ? "보너스" : string.Empty;
+            _bonusDoubleCaption.style.display = visible ? DisplayStyle.Flex : DisplayStyle.None;
+            _bonusDoubleCaption.style.visibility = Visibility.Visible;
+            _bonusDoubleCaption.style.opacity = 1f;
+        }
+    }
+
     void HandleSecondaryViewTexture(RenderTexture tex)
     {
         if (_secondaryViewImage == null) return;
@@ -365,6 +455,8 @@ public class GameUIController : MonoBehaviour
         _scoreValue          = root.Q<Label>("ScoreValue");
         _targetScoreValue    = root.Q<Label>("TargetScoreValue");
         _scorePopupText      = root.Q<Label>("ScorePopupText");
+        _bonusDoubleValue    = root.Q<Label>("BonusDoubleValue");
+        _bonusDoubleCaption  = root.Q<Label>("BonusDoubleCaption");
         _hudScorePanel       = root.Q<VisualElement>("HudScorePanel");
         _hudTargetScorePanel = root.Q<VisualElement>("HudTargetScorePanel");
         _bonusPreviewTitle   = root.Q<Label>("BonusPreviewTitle");
@@ -405,7 +497,10 @@ public class GameUIController : MonoBehaviour
                 _scoreController.ThirdBonusTargetPreset)).StartingIn(0);
 
         if (_scoreController != null)
+        {
             HandleScoreChanged(_scoreController.Score, _scoreController.TargetScore);
+            HandleBonusComboChanged(_scoreController.BonusComboMultiplier);
+        }
 
         _uiSetting.Initialize(root, settingImageLibrary,
             onRestart: () => SceneManager.LoadScene(_stageSelectSceneName));
@@ -441,6 +536,7 @@ public class GameUIController : MonoBehaviour
             hudDocument.panelSettings.scaleMode = PanelScaleMode.ScaleWithScreenSize;
             hudDocument.panelSettings.referenceResolution = new Vector2Int(1920, 1080);
             hudDocument.panelSettings.sortingOrder = 40000000;
+            hudDocument.panelSettings.targetTexture = null;
         }
         hudDocument.sortingOrder = 40000000;
         hudDocument.enabled = true;
@@ -470,6 +566,22 @@ public class GameUIController : MonoBehaviour
         if (_targetScoreValue == null) _targetScoreValue = CreateLabel(_hudTargetScorePanel, "TargetScoreValue",
             _scoreController != null ? _scoreController.TargetScore.ToString() : "0");
         if (_scorePopupText == null) _scorePopupText = CreateLabel(_hudScorePanel, "ScorePopupText", string.Empty);
+
+        var bonusDouble = root.Q<VisualElement>("BonusDouble");
+        if (bonusDouble == null)
+        {
+            bonusDouble = CreatePanel(root, "BonusDouble");
+            bonusDouble.style.position = Position.Absolute;
+            bonusDouble.style.left = 1315f;
+            bonusDouble.style.top = 560f;
+            bonusDouble.style.width = 280f;
+            bonusDouble.style.height = 135f;
+            bonusDouble.style.overflow = Overflow.Visible;
+        }
+        if (_bonusDoubleValue == null)
+            _bonusDoubleValue = CreateBonusLabel(bonusDouble, "BonusDoubleValue", -60f, 115f);
+        if (_bonusDoubleCaption == null)
+            _bonusDoubleCaption = CreateBonusLabel(bonusDouble, "BonusDoubleCaption", 145f, 45f);
 
         for (int i = 0; i < _weightGuideImages.Length; i++)
         {
@@ -516,29 +628,41 @@ public class GameUIController : MonoBehaviour
         UISprites.Apply(_hudTargetScorePanel, hudImageLibrary.targetScorePanel);
         UISprites.Apply(_bonusPreview,        hudImageLibrary.bonusPreviewPanel);
         UISprites.Apply(_blockWeightGuide,    hudImageLibrary.weightGuidePanel);
-        UISprites.Apply(_secondaryViewPanel,  hudImageLibrary.subCameraPreviewPanel);
-        ApplyBonusItemBackground(_bonusCells);
-        ApplyBonusItemBackground(_bonusNextCells);
-        ApplyBonusItemBackground(_bonusThirdCells);
+        UISprites.Apply(_secondaryViewPanel,  hudImageLibrary.weightGuidePanel);
+        if (_secondaryViewPanel != null && hudImageLibrary.weightGuidePanel != null)
+            _secondaryViewPanel.style.unityBackgroundScaleMode = ScaleMode.StretchToFill;
         UISprites.Apply(_bonusKeyLabel,      hudImageLibrary.bonusKeyBadge);
         UISprites.Apply(_bonusNextKeyLabel,  hudImageLibrary.bonusKeyBadge);
         UISprites.Apply(_bonusThirdKeyLabel, hudImageLibrary.bonusKeyBadge);
     }
 
-    void ApplyBonusItemBackground(VisualElement cells)
-    {
-        if (cells == null || cells.parent == null || hudImageLibrary == null) return;
-        UISprites.Apply(cells.parent, hudImageLibrary.bonusPreviewItem);
-        if (hudImageLibrary.bonusPreviewItem != null)
-            cells.style.backgroundColor = Color.clear;
-    }
-
     void SyncWeightGuideImages()
     {
         var spriteSet = _tower?.NumberSpriteSetAsset;
-        if (spriteSet == null) return;
         for (int i = 0; i < _weightGuideImages.Length; i++)
-            UISprites.Apply(_weightGuideImages[i], spriteSet.GetSprite(i + 1));
+        {
+            var element = _weightGuideImages[i];
+            if (element == null) continue;
+            if (UI_Setting_Controller.IsImageSimplificationEnabled)
+            {
+                element.style.backgroundImage = StyleKeyword.None;
+                element.style.backgroundColor = Util.NumberColor(i + 1);
+            }
+            else if (spriteSet != null)
+            {
+                UISprites.Apply(element, spriteSet.GetSprite(i + 1));
+            }
+            else
+            {
+                element.style.backgroundImage = StyleKeyword.None;
+                element.style.backgroundColor = Util.NumberColor(i + 1);
+            }
+        }
+    }
+
+    void HandleImageSimplificationChanged(bool simplified)
+    {
+        SyncWeightGuideImages();
     }
 
     // ── 결과 화면 ─────────────────────────────────────────────────────────
@@ -739,6 +863,22 @@ public class GameUIController : MonoBehaviour
         var label = new Label(text) { name = name };
         label.pickingMode = PickingMode.Ignore;
         parent?.Add(label);
+        return label;
+    }
+
+    static Label CreateBonusLabel(VisualElement parent, string name, float top, float fontSize)
+    {
+        var label = CreateLabel(parent, name, string.Empty);
+        label.style.position = Position.Absolute;
+        label.style.left = -140f;
+        label.style.top = top;
+        label.style.width = 560f;
+        label.style.height = name == "BonusDoubleValue" ? 300f : 84f;
+        label.style.fontSize = fontSize;
+        label.style.unityFontStyleAndWeight = FontStyle.Bold;
+        label.style.unityTextAlign = TextAnchor.MiddleCenter;
+        label.style.color = new Color(1f, 175f / 255f, 0f, 1f);
+        label.style.display = DisplayStyle.None;
         return label;
     }
 }

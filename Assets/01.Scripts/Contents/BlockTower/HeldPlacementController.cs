@@ -30,7 +30,6 @@ public class HeldPlacementController : MonoBehaviour
     [Header("Top Puyo Event")]
     [SerializeField, Min(1)] int topPuyoMinimumNumber = 2;
     [SerializeField, Min(2)] int topPuyoMatchCount = 5;
-    [SerializeField, Min(0)] int topPuyoExtraScorePerBlock = 1;
     [SerializeField, Min(0f)] float topPuyoFlashDuration = 2f;
     [SerializeField, Min(0.05f)] float topPuyoFlashInterval = 0.15f;
     bool _isResolvingTopPuyo;
@@ -443,11 +442,10 @@ public class HeldPlacementController : MonoBehaviour
                 _lastPlacedCells.Remove(cell);
             }
 
-            int bonus = matchedState.number + (group.Count - topPuyoMatchCount) * topPuyoExtraScorePerBlock;
             var worldPosition = scorePositions > 0
                 ? scoreCenter / scorePositions
                 : _tower.transform.position;
-            _score?.AddScore(Mathf.Max(0, bonus), worldPosition);
+            _score?.AwardPuyoScore(matchedState.number, group.Count, worldPosition);
         }
 
         CollapseTopBlocksDownward();

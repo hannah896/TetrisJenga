@@ -28,6 +28,21 @@
     color: #FFAF00;
 }
 
+#StartMessage,
+#ScoreValue,
+#TargetScoreValue,
+#ScorePopupText {
+    -unity-text-outline-color: #000000;
+    -unity-text-outline-width: 12px;
+}
+
+#BonusDoubleValue,
+#BonusDoubleCaption {
+    -unity-font-definition: url("project://database/Assets/00.Resources/Font/DNFBitBitv2.ttf?fileID=12800000&guid=f696af773a4d9964880d5f416fe7512a&type=3#DNFBitBitv2");
+    -unity-text-outline-color: #000000;
+    -unity-text-outline-width: 12px;
+}
+
 /* ---------- 공통 버튼 ---------- */
 .btn {
     -unity-text-align: middle-center;
@@ -90,7 +105,7 @@
     height: 916px;
     background-color: #9d6e6e;
     border-radius: 28px;
-    padding: 80px;
+    padding: 25px 80px;
     align-items: stretch;
     justify-content: flex-start;
 }
@@ -98,7 +113,7 @@
 .setting-row {
     flex-direction: row;
     align-items: center;
-    margin-bottom: 48px;
+    margin-bottom: 8px;
     height: 124px;
 }
 
@@ -184,7 +199,7 @@
 .setting-button-row {
     flex-direction: row;
     justify-content: space-between;
-    margin-top: 60px;
+    margin-top: 10px;
     margin-bottom: 0;
 }
 

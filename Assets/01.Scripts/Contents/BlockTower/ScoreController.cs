@@ -21,6 +21,7 @@ public class ScoreController : MonoBehaviour
 
     int  _score;
     bool _isGameOver;
+    int  _bonusComboMultiplier = 1;
 
 
     TetrominoPreset _bonusTargetPreset;
@@ -35,9 +36,11 @@ public class ScoreController : MonoBehaviour
     public System.Action<int, int>                                           OnGameOver;
     public System.Action<int, int>                                           OnClear;
     public System.Action<int>                                                OnFloatingScore;
+    public System.Action<int>                                                OnBonusComboChanged;
 
     public int  Score               => _score;
     public int  TargetScore         => targetScore;
+    public int  BonusComboMultiplier => _bonusComboMultiplier;
     public bool IsGameOver          => _isGameOver;
     public TetrominoPreset BonusTargetPreset      => _bonusTargetPreset;
     public TetrominoPreset NextBonusTargetPreset  => _nextBonusTargetPreset;
@@ -66,9 +69,11 @@ public class ScoreController : MonoBehaviour
     {
         _score                 = 0;
         _isGameOver            = false;
+        _bonusComboMultiplier  = 1;
         _bonusQueueInitialized = false;
         ResetBonusPresetBag();
         UpdateScoreDisplay();
+        OnBonusComboChanged?.Invoke(_bonusComboMultiplier);
     }
 
     public void SetScoreTo(int score)
@@ -106,6 +111,20 @@ public class ScoreController : MonoBehaviour
     public void AwardGoldFishDeadlineScore(Vector3 worldPosition)
     {
         AddScore(goldFishDeadlineScore, worldPosition);
+    }
+
+    public void RegisterBonusExtraction(bool success)
+    {
+        _bonusComboMultiplier = success
+            ? (_bonusComboMultiplier <= 1 ? 2 : _bonusComboMultiplier + 1)
+            : 1;
+        OnBonusComboChanged?.Invoke(_bonusComboMultiplier);
+    }
+
+    public void AwardPuyoScore(int blockNumber, int connectedBlockCount, Vector3 worldPosition)
+    {
+        long score = (long)_bonusComboMultiplier * blockNumber * connectedBlockCount;
+        AddScore((int)Math.Min(score, int.MaxValue), worldPosition);
     }
 
     public void UpdateScoreDisplay()

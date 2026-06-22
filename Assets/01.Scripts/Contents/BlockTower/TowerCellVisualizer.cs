@@ -13,6 +13,10 @@ public class TowerCellVisualizer : MonoBehaviour
     [SerializeField] Color placedBlockColor = new(0.55f, 0.58f, 0.60f, 1f);
     [SerializeField] BlockNumberSpriteSetAsset numberSpriteSetAsset;
 
+    [Header("Block Number Text")]
+    [SerializeField] Color blockLabelOutlineColor = new(0.25f, 0.25f, 0.25f, 1f);
+    [SerializeField, Range(0f, 1f)] float blockLabelOutlineWidth = 0.3f;
+
     [Header("Focus Feedback")]
     [SerializeField] Color focusedOutlineColor  = new(1f, 0.95f, 0.05f, 1f);
     [SerializeField] Color selectedOutlineColor = new(1f, 1f,    1f,    0.95f);
@@ -57,6 +61,20 @@ public class TowerCellVisualizer : MonoBehaviour
         _iceCellViews = _tower.IceCellViews;
         _bombIce      = GetComponent<BombIceEffectController>();
         _selection    = GetComponent<TetrominoSelectionController>();
+    }
+
+    void OnEnable()
+    {
+        UI_Setting_Controller.BlockNumberTextVisibilityChanged += ApplyBlockNumberTextVisibility;
+        UI_Setting_Controller.ImageSimplificationChanged += ApplyImageSimplification;
+        ApplyBlockNumberTextVisibility(UI_Setting_Controller.IsBlockNumberTextVisible);
+        ApplyImageSimplification(UI_Setting_Controller.IsImageSimplificationEnabled);
+    }
+
+    void OnDisable()
+    {
+        UI_Setting_Controller.BlockNumberTextVisibilityChanged -= ApplyBlockNumberTextVisibility;
+        UI_Setting_Controller.ImageSimplificationChanged -= ApplyImageSimplification;
     }
 
     // ── 셀 비주얼 ─────────────────────────────────────────────────────────
@@ -161,9 +179,11 @@ public class TowerCellVisualizer : MonoBehaviour
 
         if (view.label != null)
         {
+            ApplyLabelOutline(view.label);
             view.label.text = state.kind == CellKind.Bomb ? "X" : state.number.ToString();
             view.label.fontSize = 6f;
-            view.label.gameObject.SetActive(!state.concealedByBomb);
+            view.label.gameObject.SetActive(
+                UI_Setting_Controller.IsBlockNumberTextVisible && !state.concealedByBomb);
         }
 
         if (view.sr == null) return;
@@ -223,7 +243,7 @@ public class TowerCellVisualizer : MonoBehaviour
 
             view.sr.drawMode = SpriteDrawMode.Simple;
         }
-        else if (state.isOriginalTower && numberSprite != null)
+        else if (!UI_Setting_Controller.IsImageSimplificationEnabled && numberSprite != null)
         {
             view.sr.sprite   = CreateBlockSprite();
             view.sr.color    = Color.clear;
@@ -514,11 +534,99 @@ public class TowerCellVisualizer : MonoBehaviour
         tmp.fontStyle        = FontStyles.Bold;
         tmp.textWrappingMode = TextWrappingModes.NoWrap;
         tmp.overflowMode     = TextOverflowModes.Overflow;
+        ApplyLabelOutline(tmp);
+        tmp.gameObject.SetActive(UI_Setting_Controller.IsBlockNumberTextVisible);
 
         var r = go.GetComponent<Renderer>();
         if (r != null) r.sortingOrder = 2;
 
         return tmp;
+    }
+
+    public void ApplyLabelOutline(TMP_Text label)
+    {
+        if (label == null) return;
+        label.outlineColor = blockLabelOutlineColor;
+        label.outlineWidth = blockLabelOutlineWidth;
+        var material = label.fontMaterial;
+        if (material != null)
+        {
+            material.EnableKeyword("OUTLINE_ON");
+            material.SetColor(ShaderUtilities.ID_OutlineColor, blockLabelOutlineColor);
+            material.SetFloat(ShaderUtilities.ID_OutlineWidth, blockLabelOutlineWidth);
+        }
+        label.UpdateMeshPadding();
+        label.ForceMeshUpdate(true, true);
+    }
+
+    public void ApplyBlockNumberTextVisibility(bool visible)
+    {
+        var blockCells = FindObjectsByType<BlockCell>(FindObjectsInactive.Include, FindObjectsSortMode.None);
+        foreach (var blockCell in blockCells)
+        {
+            if (blockCell == null || blockCell.gameObject.scene != gameObject.scene) continue;
+            foreach (var label in blockCell.GetComponentsInChildren<TextMeshPro>(true))
+                label.gameObject.SetActive(visible);
+        }
+
+        if (!visible || _grid == null) return;
+        foreach (var pair in _grid.AllCells)
+            if (_cellViews.TryGetValue(pair.Key, out var view))
+                UpdateCellDataVisuals(pair.Value, view);
+        foreach (var pair in _grid.AllIceCells)
+            if (_iceCellViews.TryGetValue(pair.Key, out var view))
+                UpdateCellDataVisuals(pair.Value, view);
+    }
+
+    public void ApplyImageSimplification(bool simplified)
+    {
+        var blockCells = FindObjectsByType<BlockCell>(FindObjectsInactive.Include, FindObjectsSortMode.None);
+        foreach (var blockCell in blockCells)
+        {
+            if (blockCell == null || blockCell.gameObject.scene != gameObject.scene) continue;
+            var sr = blockCell.GetComponent<SpriteRenderer>();
+            if (sr == null) continue;
+
+            bool isHeldPreview = sr.sortingOrder >= 20;
+            var view = new CellView
+            {
+                go = blockCell.gameObject,
+                sr = sr,
+                numberSpriteRenderer = blockCell.transform.Find("NumberSpriteImage")?.GetComponent<SpriteRenderer>(),
+                outline = blockCell.transform.Find("FocusOutline")?.GetComponent<SpriteRenderer>(),
+                label = blockCell.GetComponentInChildren<TextMeshPro>(true)
+            };
+            var state = new CellState
+            {
+                number = Mathf.Max(1, Mathf.RoundToInt(blockCell.Weight)),
+                isOriginalTower = blockCell.IsOriginalTower,
+                kind = blockCell.Kind
+            };
+            UpdateCellDataVisuals(state, view);
+
+            if (!isHeldPreview) continue;
+            if (view.numberSpriteRenderer != null && view.numberSpriteRenderer.enabled)
+            {
+                var color = view.numberSpriteRenderer.color;
+                color.a = 0.6f;
+                view.numberSpriteRenderer.color = color;
+                view.numberSpriteRenderer.sortingOrder = 21;
+            }
+            else
+            {
+                var color = sr.color;
+                color.a = 0.6f;
+                sr.color = color;
+            }
+        }
+
+        if (_grid == null) return;
+        foreach (var pair in _grid.AllCells)
+            if (_cellViews.TryGetValue(pair.Key, out var view))
+                UpdateCellDataVisuals(pair.Value, view);
+        foreach (var pair in _grid.AllIceCells)
+            if (_iceCellViews.TryGetValue(pair.Key, out var view))
+                UpdateCellDataVisuals(pair.Value, view);
     }
 
     // ── 프리뷰 블러 ──────────────────────────────────────────────────────

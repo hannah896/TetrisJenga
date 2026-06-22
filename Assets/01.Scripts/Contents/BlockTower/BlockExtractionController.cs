@@ -182,9 +182,6 @@ public class BlockExtractionController : MonoBehaviour
             maxX = Mathf.Max(maxX, c.x); maxY = Mathf.Max(maxY, c.y);
         }
 
-        var extractionScorePos = _tower.TowerRoot.TransformPoint(new Vector3(
-            (minX + maxX + 1f) * 0.5f, (minY + maxY + 1f) * 0.5f, 0f));
-
         _held.Center = new Vector2((maxX - minX + 1) * 0.5f, (maxY - minY + 1) * 0.5f);
         _held.RelPos.Clear();
         _held.Data.Clear();
@@ -267,9 +264,24 @@ public class BlockExtractionController : MonoBehaviour
             var bc = go.AddComponent<BlockCell>();
             bc.Weight = 1; bc.IsOriginalTower = false;
 
-            _held.Data.Add((
-                new CellState { number = 1, isOriginalTower = false },
-                new CellView  { go = go, sr = sr, previewBlurRenderers = blurRenderers }));
+            var heldState = new CellState { number = 1, isOriginalTower = false };
+            var heldView = new CellView { go = go, sr = sr, previewBlurRenderers = blurRenderers };
+            _visualizer?.UpdateCellDataVisuals(heldState, heldView);
+            if (heldView.numberSpriteRenderer != null && heldView.numberSpriteRenderer.enabled)
+            {
+                heldView.numberSpriteRenderer.color = new Color(1f, 1f, 1f, heldColor.a);
+                heldView.numberSpriteRenderer.sortingOrder = 21;
+            }
+            else
+            {
+                var color = heldView.sr.color;
+                color.a = heldColor.a;
+                heldView.sr.color = color;
+            }
+            if (heldView.label != null && heldView.label.TryGetComponent<Renderer>(out var labelRenderer))
+                labelRenderer.sortingOrder = 22;
+
+            _held.Data.Add((heldState, heldView));
         }
 
         _physics?.CheckForDetachment();
@@ -282,7 +294,7 @@ public class BlockExtractionController : MonoBehaviour
         _held.UsingKeyboardPlacement = true;
         _heldPlacement?.BeginHeldGrowthAndAutoPlace();
         _tower.OnBlocksLifted?.Invoke();
-        _score?.AddScore(_held.MatchesBonus ? 2 : 1, extractionScorePos);
+        _score?.RegisterBonusExtraction(_held.MatchesBonus);
         _score?.RollBonusTarget();
     }
 
@@ -333,6 +345,7 @@ public class BlockExtractionController : MonoBehaviour
         _physics?.UpdateTowerPhysicsState();
         _tower.OnHoldCancelled?.Invoke();
         FocusDefaultExtractionCell();
+        _score?.RegisterBonusExtraction(false);
         _score?.AddScore(-2, _tower.transform.position);
     }
 

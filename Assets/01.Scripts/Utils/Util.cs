@@ -160,11 +160,11 @@ public static class Util
 
     public static float BonusPreviewCellsFallbackWidth(VisualElement container)
         => container != null && (container.name == "BonusPreview2Cells" || container.name == "BonusPreview3Cells")
-            ? 160f : 240f;
+            ? 120f : 240f;
 
     public static float BonusPreviewCellsFallbackHeight(VisualElement container)
         => container != null && (container.name == "BonusPreview2Cells" || container.name == "BonusPreview3Cells")
-            ? 80f : 120f;
+            ? 60f : 120f;
 
     public static float BonusPreviewCellSize(VisualElement container, List<VisualElement> elements)
     {
@@ -178,7 +178,7 @@ public static class Util
 
         return container != null
                && (container.name == "BonusPreview2Cells" || container.name == "BonusPreview3Cells")
-            ? 40f : 60f;
+            ? 30f : 60f;
     }
     #endregion
 }
