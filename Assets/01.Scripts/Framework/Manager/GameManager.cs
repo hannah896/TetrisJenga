@@ -38,6 +38,9 @@ public class GameManager
     /// <summary>DialogueScene 종료 후 이동할 Level 씬 이름.</summary>
     public string PendingLevelScene { get; set; }
 
+    /// <summary>로비 진입 시 모드 선택 화면을 바로 표시할지 여부.</summary>
+    public bool GoToModeSelect { get; set; }
+
     public int StageCount => stageCount;
 
     private string Path =>

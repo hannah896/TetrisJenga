@@ -39,6 +39,8 @@ public class GameUIController : MonoBehaviour
 
     [Header("결과 화면 씬 이름")]
     [SerializeField] string _stageSelectSceneName = "StageScene";
+    [SerializeField] string _lobbySceneName = "LobbyScene";
+    [SerializeField] string _dialogueSceneName = "DialogueScene";
 
     // ── VisualElement 참조 (BindHud 이후 유효) ───────────────────────────
     Label _scoreTitle;
@@ -703,7 +705,11 @@ public class GameUIController : MonoBehaviour
 
         var mainMenuButton = root.Q<UnityEngine.UIElements.Button>("MainMenuButton");
         if (mainMenuButton != null)
-            mainMenuButton.clicked += () => SceneManager.LoadScene(_stageSelectSceneName);
+            mainMenuButton.clicked += () =>
+            {
+                if (IsEndlessMode) GameManager.Instance.GoToModeSelect = true;
+                SceneManager.LoadScene(IsEndlessMode ? _lobbySceneName : _stageSelectSceneName);
+            };
 
         var nextButton = root.Q<UnityEngine.UIElements.Button>("NextButton");
         if (nextButton != null)
@@ -715,11 +721,13 @@ public class GameUIController : MonoBehaviour
         int nextIndex = GameManager.Instance.CurrentStageIndex + 1;
         if (nextIndex >= GameManager.Instance.StageCount)
         {
-            SceneManager.LoadScene(_stageSelectSceneName);
+            GameManager.Instance.GoToModeSelect = true;
+            SceneManager.LoadScene(_lobbySceneName);
             return;
         }
         GameManager.Instance.CurrentStageIndex = nextIndex;
-        SceneManager.LoadScene($"Level{nextIndex + 1}");
+        GameManager.Instance.PendingLevelScene = $"Level{nextIndex + 1}";
+        SceneManager.LoadScene(_dialogueSceneName);
     }
 
     static VisualTreeAsset LoadVisualTree(VisualTreeAsset assigned, string assetPath)

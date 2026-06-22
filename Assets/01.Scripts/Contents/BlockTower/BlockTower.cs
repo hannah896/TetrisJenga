@@ -23,6 +23,7 @@ using UnityEditor;
 [RequireComponent(typeof(TowerSceneBuilder))]
 [RequireComponent(typeof(HeldPlacementController))]
 [RequireComponent(typeof(BlockExtractionController))]
+[RequireComponent(typeof(BlockEffectController))]
 [RequireComponent(typeof(GameUIController))]
 [RequireComponent(typeof(ScoreController))]
 [ExecuteAlways]

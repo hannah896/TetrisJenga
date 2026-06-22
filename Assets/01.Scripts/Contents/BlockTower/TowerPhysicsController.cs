@@ -70,7 +70,7 @@ public class TowerPhysicsController : MonoBehaviour
     void ResolveDetachedLandingEffectPrefab()
     {
         if (detachedLandingEffectPrefab == null)
-            detachedLandingEffectPrefab = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/FX/Prefabs/FX002_01.prefab");
+            detachedLandingEffectPrefab = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/00.Resources/FX/Prefabs/FX002_01.prefab");
     }
 #endif
 

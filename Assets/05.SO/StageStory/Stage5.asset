@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2150504852ee59e4496ad5828adc5b60, type: 3}
   m_Name: Stage5
   m_EditorClassIdentifier: Assembly-CSharp::Dialogue
-  Background: {fileID: 0}
+  Background: {fileID: -16827685, guid: a1867ed57ebda5344831f159250b7f91, type: 3}
   Characters:
   - Name: "\uB098\uB808\uC774\uC158"
     Sprite: {fileID: -776501124, guid: ea337a04be4df094ea6e7d4467b52ad1, type: 3}
@@ -25,23 +25,29 @@ MonoBehaviour:
   Lines:
   - CharacterIndex: 0
     Sentence: "5\uC2A4\uD14C\uC774\uC9C0 -(\uC11D\uC720)"
-    SoundEffect: {fileID: 0}
+    HasSoundEffect: 0
+    SoundEffect: 0
   - CharacterIndex: 0
     Sentence: "\uBC30\uACBD: \uC190\uC0C1\uB41C \uC7A0\uC218\uD568 \uB0B4\uBD80"
-    SoundEffect: {fileID: 0}
+    HasSoundEffect: 0
+    SoundEffect: 0
   - CharacterIndex: 2
     Sentence: "\uBB3C \uC0C9\uC774\u2026 \uAC80\uAC8C \uBCC0\uD558\uACE0 \uC788\uC5B4\uC694."
-    SoundEffect: {fileID: 0}
+    HasSoundEffect: 0
+    SoundEffect: 0
   - CharacterIndex: 1
     Sentence: "\uC11D\uC720 \uC720\uCD9C\uC774\uB2E4! \uC808\uB300 \uC11D\uC720\uCE35\uC5D0
       \uB4E4\uC5B4\uAC00\uC9C0 \uB9C8. \uC5D4\uC9C4\uACFC \uC678\uBCBD\uC774 \uB9DD\uAC00\uC838."
-    SoundEffect: {fileID: 0}
+    HasSoundEffect: 0
+    SoundEffect: 0
   - CharacterIndex: 2
     Sentence: "\uD558\uC9C0\uB9CC \uAE38\uC774 \uB9C9\uD614\uC5B4\uC694\u2026"
-    SoundEffect: {fileID: 0}
+    HasSoundEffect: 0
+    SoundEffect: 0
   - CharacterIndex: 1
     Sentence: "\uC800\uCABD\uC740 \uB35C \uD37C\uC9C4 \uAC83 \uAC19\uC544. \uC800\uCABD\uC73C\uB85C
       \uAC00\uC790. \uC11D\uC720\uAC00 \uB354 \uD37C\uC9C0\uAE30 \uC804\uC5D0 \uC11D\uC720
       \uB369\uC5B4\uB9AC\uB97C \uD53C\uD574\uC11C \uC774\uB3D9\uD574\uC57C \uD560
       \uAC83 \uAC19\uC544!"
-    SoundEffect: {fileID: 0}
+    HasSoundEffect: 0
+    SoundEffect: 0

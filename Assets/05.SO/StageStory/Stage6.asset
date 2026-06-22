@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2150504852ee59e4496ad5828adc5b60, type: 3}
   m_Name: Stage6
   m_EditorClassIdentifier: Assembly-CSharp::Dialogue
-  Background: {fileID: 0}
+  Background: {fileID: 393096588, guid: 882b5c4a393dc834d889f0bc40560783, type: 3}
   Characters:
   - Name: "\uB098\uB808\uC774\uC158"
     Sprite: {fileID: -776501124, guid: ea337a04be4df094ea6e7d4467b52ad1, type: 3}
@@ -25,35 +25,44 @@ MonoBehaviour:
   Lines:
   - CharacterIndex: 0
     Sentence: "6\uC2A4\uD14C\uC774\uC9C0 - (\uC885\uC774\uBC15\uC2A4)"
-    SoundEffect: {fileID: 0}
+    HasSoundEffect: 0
+    SoundEffect: 0
   - CharacterIndex: 0
     Sentence: "\uBC30\uACBD: \uC190\uC0C1\uB41C \uC7A0\uC218\uD568 \uB0B4\uBD80"
-    SoundEffect: {fileID: 0}
+    HasSoundEffect: 0
+    SoundEffect: 0
   - CharacterIndex: 1
     Sentence: "\uACE7 \uC218\uBA74\uC774\uB2E4."
-    SoundEffect: {fileID: 0}
+    HasSoundEffect: 0
+    SoundEffect: 0
   - CharacterIndex: 2
     Sentence: "\uC218\uBA74\uC5D0 \uAC00\uAE5D\uB2E4\uACE0\uC694? \uC544\uC9C1 \uC5B4\uB450\uC6B4
       \uAC83 \uAC19\uC740\uB370\uC694."
-    SoundEffect: {fileID: 0}
+    HasSoundEffect: 0
+    SoundEffect: 0
   - CharacterIndex: 2
     Sentence: "\uC73D. \uC65C \uC774\uB9AC \uC870\uC885\uD558\uAE30 \uD798\uB4E4\uC9C0."
-    SoundEffect: {fileID: 0}
+    HasSoundEffect: 0
+    SoundEffect: 0
   - CharacterIndex: 1
     Sentence: "\uC218\uBA74\uC5D0 \uAC00\uAE4C\uC6B0\uB2C8 \uB098\uAC00\uB3C4 \uAD1C\uCC2E\uC744
       \uAC70\uC57C. \uB0B4\uAC00 \uC0B4\uD3B4\uBCFC\uAC8C."
-    SoundEffect: {fileID: 0}
+    HasSoundEffect: 0
+    SoundEffect: 0
   - CharacterIndex: 0
     Sentence: "\uC7A0\uC218\uD568 \uC678\uBD80\uC5D0\uB294 \uBB3C\uC5D0 \uC816\uC740
       \uC885\uC774\uBC15\uC2A4\uB4E4\uC774 \uB300\uB7C9\uC73C\uB85C \uBD99\uC5B4
       \uC7A0\uC218\uD568\uC774 \uBB34\uAC70\uC6CC\uC9C0\uBA70 \uAC00\uB77C\uC549\uAE30
       \uC2DC\uC791\uD55C\uB2E4."
-    SoundEffect: {fileID: 0}
+    HasSoundEffect: 0
+    SoundEffect: 0
   - CharacterIndex: 1
     Sentence: "\uC885\uC774\uBC15\uC2A4 \uB54C\uBB38\uC5D0 \uBB34\uAC70\uC6CC\uC838
       \uAC00\uB77C\uC549\uC740 \uAC70\uC600\uC5B4."
-    SoundEffect: {fileID: 0}
+    HasSoundEffect: 0
+    SoundEffect: 0
   - CharacterIndex: 1
     Sentence: "\uB0B4\uAC00 \uBC16\uC5D0\uC11C \uB5BC\uC5B4\uB0BC\uAC8C. \uB108\uB294
       \uC704\uB85C \uC870\uC885\uD574!"
-    SoundEffect: {fileID: 0}
+    HasSoundEffect: 0
+    SoundEffect: 0
