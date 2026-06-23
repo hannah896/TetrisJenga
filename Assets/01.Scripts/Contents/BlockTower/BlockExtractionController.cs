@@ -33,6 +33,7 @@ public class BlockExtractionController : MonoBehaviour
     [SerializeField, Min(1)] int titanTargetTurn = 50;
     [SerializeField, Min(0.05f)] float titanMinimumSeconds = 2f;
     [SerializeField, Min(1)] int titanPresetSearchRadius = 4;
+    [SerializeField, Min(0)] int titanFailScorePenalty = 1;
 
     const float PresetOutlineThickness = 0.125f;
     int _completedTitanTurns;
@@ -529,19 +530,9 @@ public class BlockExtractionController : MonoBehaviour
             return;
         }
 
-        if (TryFindTitanPresetCandidate(onlyCurrentPreset: true, requireNearby: true,
-                out var anchor, out var preset, out var rotation) ||
-            TryFindTitanPresetCandidate(onlyCurrentPreset: false, requireNearby: true,
-                out anchor, out preset, out rotation) ||
-            TryFindTitanPresetCandidate(onlyCurrentPreset: false, requireNearby: false,
-                out anchor, out preset, out rotation))
-        {
-            _selection.TrySetPresetSelection(this, anchor, preset, rotation);
-            _selection.ConfirmPresetSelection(this);
-            return;
-        }
-
         PlayPlacementFailFeedback();
+        if (titanFailScorePenalty > 0)
+            _score?.AddScore(-titanFailScorePenalty, _tower.transform.position);
         BeginPresetGrowth();
     }
 
