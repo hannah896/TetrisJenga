@@ -215,7 +215,7 @@ public class LobbyUIController : MonoBehaviour
     private void RefreshEndlessUnlockState()
     {
         int stageCount = GameManager.Instance != null ? GameManager.Instance.StageCount : 6;
-        _endlessUnlocked = StageProgress.IsAllCleared(stageCount);
+        _endlessUnlocked = GameManager.Instance.IsAllCleared(stageCount);
 
         if (_endlessButton == null) return;
 

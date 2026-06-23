@@ -110,7 +110,7 @@ public class StageUIController : MonoBehaviour
         var pathElem = new StageMapElement();
         stageMap.Insert(0, pathElem);
 
-        int unlockedIdx = StageProgress.GetHighestUnlockedIndex(mapData.nodes.Count);
+        int unlockedIdx = GameManager.Instance.GetHighestUnlockedIndex(mapData.nodes.Count);
         _unlockedIdx = unlockedIdx;
 
         // 잠금 해제된 구간까지만 경로 표시
@@ -126,7 +126,7 @@ public class StageUIController : MonoBehaviour
         {
             var node = mapData.nodes[i];
             bool isVisible = i <= unlockedIdx;
-            bool isCleared = StageProgress.IsCleared(i);
+            bool isCleared = GameManager.Instance.IsCleared(i);
 
             float3 pt = SplineUtility.EvaluatePosition(spline, node.splineT);
             var uiPos = new Vector2(pt.x * MapWidth, (1f - pt.y) * MapHeight);
